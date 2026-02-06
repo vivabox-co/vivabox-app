@@ -1,17 +1,74 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useUI } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
 
 export default function ConfirmacionPage() {
-  const { setHideNav } = useUI()
+  const {
+    setHideNav,
+    selectedExperience,
+    selectedDate,
+    selectedTime,
+  } = useUI()
+
   const router = useRouter()
+  const bookingCreated = useRef(false)
 
   useEffect(() => {
     setHideNav(true)
+
+    console.log("CONFIRM DATA →", {
+      selectedExperience,
+      selectedDate,
+      selectedTime,
+    })
+
+    // 🔴 Protection : si données manquantes → retour
+    if (!selectedExperience || !selectedDate || !selectedTime) {
+      console.error("❌ Booking impossible: données manquantes")
+      return
+    }
+
+    // Empêche double exécution du useEffect
+    if (bookingCreated.current) return
+    bookingCreated.current = true
+
+    const booking = {
+      id: Date.now().toString(),
+      experience: selectedExperience,
+      date: selectedDate,
+      time: selectedTime,
+      step: 1,
+    }
+
+    localStorage.setItem("currentBooking", JSON.stringify(booking))
+
     return () => setHideNav(false)
-  }, [])
+  }, [selectedExperience, selectedDate, selectedTime, setHideNav])
+
+  // 🧱 Écran erreur si données absentes
+  if (!selectedExperience || !selectedDate || !selectedTime) {
+    return (
+      <div style={{ padding: 24 }}>
+        <h2>Error en la reserva</h2>
+        <p>No se recibieron correctamente las fechas o la experiencia.</p>
+        <button
+          onClick={() => router.push("/mapa")}
+          style={{
+            marginTop: 20,
+            padding: 12,
+            borderRadius: 10,
+            background: "#111",
+            color: "white",
+            border: "none",
+          }}
+        >
+          Volver a empezar
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -35,7 +92,12 @@ export default function ConfirmacionPage() {
       </p>
 
       <button
-        onClick={() => router.push("/mapa")}
+        onClick={() => {
+          const stored = localStorage.getItem("currentBooking")
+          if (!stored) return
+          const booking = JSON.parse(stored)
+          router.push(`/reservar/seguimiento/${booking.id}`)
+        }}
         style={{
           marginTop: 40,
           padding: 14,
@@ -46,7 +108,7 @@ export default function ConfirmacionPage() {
           fontSize: 16,
         }}
       >
-        Volver a explorar experiencias
+        Ver seguimiento de mi experiencia
       </button>
     </div>
   )

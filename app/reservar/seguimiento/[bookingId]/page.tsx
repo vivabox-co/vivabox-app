@@ -1,0 +1,120 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import BookingTimeline from "@/components/ui/BookingTimeline"
+import DynamicStatusBlock from "@/components/ui/DynamicStatusBlock"
+import ExperienceSummaryCard from "@/components/list/ExperienceSummaryCard"
+import BottomSheet from "@/components/ui/BottomSheet"
+import ExperienceMeta from "@/components/experience/ExperienceMeta"
+import { useUI } from "@/components/ui/UIContext"
+
+export default function SeguimientoPage() {
+  const [booking, setBooking] = useState<any>(null)
+
+  const {
+    setActiveExperience,
+    setDrawerOpen,
+    drawerOpen,
+    activeExperience,
+    setHideNav,
+  } = useUI()
+
+  useEffect(() => {
+    setHideNav(false)
+  }, [setHideNav])
+
+  useEffect(() => {
+    const stored = localStorage.getItem("currentBooking")
+    if (stored) setBooking(JSON.parse(stored))
+  }, [])
+
+  function updateStep(newStep: number) {
+    const updated = { ...booking, step: newStep }
+    setBooking(updated)
+    localStorage.setItem("currentBooking", JSON.stringify(updated))
+  }
+
+  if (!booking) {
+    return (
+      <div
+        style={{
+          padding: 24,
+          minHeight: "100vh",
+          background: "#FAF8F5",
+        }}
+      >
+        Cargando...
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div
+        style={{
+          padding: "16px 16px 120px",
+          background: "#FAF8F5",
+          minHeight: "100vh",
+        }}
+      >
+        <h1
+          style={{
+            marginTop: 6,
+            marginBottom: 16,
+            fontSize: 26,
+            fontWeight: 600,
+          }}
+        >
+          Seguimiento
+        </h1>
+
+        <div style={{ marginBottom: 18 }}>
+          <ExperienceSummaryCard
+            title={booking.experience.title}
+            subtitle={booking.experience.subtitle || ""}
+            location={booking.experience.zone}
+            format={booking.experience.format}
+            image={booking.experience.image}
+            date={booking.date}
+            time={booking.time}
+            category={booking.experience.category}
+            onClick={() => {
+              setActiveExperience(booking.experience)
+              setDrawerOpen(true)
+            }}
+          />
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <BookingTimeline
+            step={booking.step}
+            setStep={updateStep}
+            category={booking.experience.category}
+          />
+        </div>
+
+        <div style={{ marginTop: 28, marginBottom: 60 }}>
+          <DynamicStatusBlock step={booking.step} />
+        </div>
+      </div>
+
+      <BottomSheet
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        experience={activeExperience}
+        mode="info"
+        bookingStep={booking.step}
+        confirmedDate={booking.date}
+        confirmedTime={booking.time}
+      >
+        {activeExperience && (
+          <ExperienceMeta
+            exp={activeExperience}
+            date={booking.date}
+            time={booking.time}
+          />
+        )}
+      </BottomSheet>
+    </>
+  )
+}

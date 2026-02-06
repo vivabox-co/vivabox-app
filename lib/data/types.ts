@@ -5,11 +5,11 @@ export type Category =
   | "cultura"
   | "estancias"
 
-export type Format = "solo" | "duo"
+export type Format = "solo" | "duo" | "familia"
 
 /**
  * activity_key correspond EXACTEMENT
- * au nom des fichiers SVG dans /public/icons
+ * aux fichiers SVG dans /public/icons
  * et à la colonne "activity_key" du Google Sheet
  */
 export type ActivityKey =
@@ -58,14 +58,26 @@ export type ActivityKey =
 export type Experience = {
   id: string
   title: string
+
+  /** Sous-titre utilisé dans liste & seguimiento */
+  subtitle?: string
+
   category: Category
-  activity_key: ActivityKey   // ✅ maintenant aligné avec tes SVG
+  activity_key: ActivityKey
+
+  /** Position carte */
   lat: number
   lng: number
-  duration: string
-  format: Format
+
+  /** Infos affichées dans card */
   zone: string
   distance: string
+  duration: string
+  format: Format
+
+  /** Image card */
   image: string
+
+  /** Note interne UX (phrase courte affichée parfois) */
   vivanote: string
 }

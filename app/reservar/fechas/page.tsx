@@ -5,7 +5,14 @@ import { useUI } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
 
 export default function FechasPage() {
-  const { selectedExperience, setHideNav, setDrawerOpen } = useUI()
+  const {
+    selectedExperience,
+    setSelectedDate,
+    setSelectedTime,
+    setHideNav,
+    setDrawerOpen,
+  } = useUI()
+
   const router = useRouter()
 
   const [date, setDate] = useState("")
@@ -24,7 +31,7 @@ export default function FechasPage() {
   useEffect(() => {
     setHideNav(true)
     return () => setHideNav(false)
-  }, [])
+  }, [setHideNav])
 
   if (!selectedExperience) {
     return (
@@ -35,14 +42,21 @@ export default function FechasPage() {
     )
   }
 
+  // 🔒 TS SAFE
+  const experience = selectedExperience
+
   function handleSubmit() {
     if (!date || !time || !phone) {
       alert("Completa los campos obligatorios")
       return
     }
 
+    // 🔥 Enregistre globalement pour confirmación
+    setSelectedDate(date)
+    setSelectedTime(time)
+
     const bookingData = {
-      experienceId: selectedExperience!.id,
+      experienceId: experience.id,
       primary: { date, time },
       alt1: alt1Date ? { date: alt1Date, time: alt1Time } : null,
       alt2: alt2Date ? { date: alt2Date, time: alt2Time } : null,
@@ -51,7 +65,8 @@ export default function FechasPage() {
     }
 
     console.log("BOOKING:", bookingData)
-    router.push("/reservar/confirmacion")
+
+    router.push("/reservar/fechas/confirmacion")
   }
 
   return (
@@ -61,8 +76,7 @@ export default function FechasPage() {
         height: "100vh",
         overflowY: "auto",
         WebkitOverflowScrolling: "touch",
-        paddingBottom: "120px", // espace réel pour le bouton
-
+        paddingBottom: "120px",
       }}
     >
       {/* BACK */}
@@ -84,13 +98,13 @@ export default function FechasPage() {
       </button>
 
       <img
-        src={selectedExperience.image}
-        alt={selectedExperience.title}
+        src={experience.image}
+        alt={experience.title}
         style={{ width: "100%", borderRadius: 12 }}
       />
 
-      <h2 style={{ marginTop: 12 }}>{selectedExperience.title}</h2>
-      <p style={{ opacity: 0.6 }}>{selectedExperience.zone}</p>
+      <h2 style={{ marginTop: 12 }}>{experience.title}</h2>
+      <p style={{ opacity: 0.6 }}>{experience.zone}</p>
 
       <div style={{ marginTop: 24 }}>
         <h3>Proponé tu fecha ideal</h3>
@@ -99,7 +113,6 @@ export default function FechasPage() {
         </p>
       </div>
 
-      {/* FECHA PRINCIPAL */}
       <div style={{ marginTop: 20 }}>
         <label>Fecha *</label>
         <input
@@ -228,13 +241,7 @@ export default function FechasPage() {
         />
       </div>
 
-      {/* SAFE BUTTON ZONE */}
-      <div
-        style={{
-          paddingBottom: "calc(24px + env(safe-area-inset-bottom))",
-          marginTop: 32,
-        }}
-      >
+      <div style={{ marginTop: 32 }}>
         <button
           onClick={handleSubmit}
           style={{

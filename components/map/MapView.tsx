@@ -11,7 +11,7 @@ import MarkerClusterGroup from "react-leaflet-cluster"
 import L from "leaflet"
 import { useEffect, useState } from "react"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
-import { Experience } from "@/lib/data/types"
+import { Experience, Format, Category } from "@/lib/data/types"
 import { createPinIcon } from "@/lib/map/createPinIcon"
 import { categoryColors } from "@/lib/map/categoryColors"
 import { useUI } from "@/components/ui/UIContext"
@@ -23,8 +23,8 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css"
 
 type MapViewProps = {
   onSelect: (exp: Experience) => void
-  activeCategories: string[]
-  activeFormats: ("solo" | "duo")[]
+  activeCategories: Category[]
+  activeFormats: Format[]
 }
 
 /* 🔁 Resize Fix */
@@ -71,14 +71,23 @@ function clean(str: string) {
   return str?.toLowerCase().trim()
 }
 
-function categoryLabel(category: string) {
-  switch (clean(category)) {
+function categoryLabel(category: Category) {
+  switch (category) {
     case "gastro": return "Gastronomía"
     case "bienestar": return "Bienestar"
     case "aventura": return "Aventura"
     case "cultura": return "Cultura"
     case "estancias": return "Estancias"
     default: return category
+  }
+}
+
+function formatLabel(format: Format) {
+  switch (format) {
+    case "solo": return "Para uno"
+    case "duo": return "Para dos"
+    case "familia": return "En familia"
+    default: return format
   }
 }
 
@@ -95,7 +104,7 @@ export default function MapView({
   }, [])
 
   const filtered = experiences.filter((exp) =>
-    activeCategories.map(clean).includes(clean(exp.category)) &&
+    activeCategories.includes(exp.category) &&
     activeFormats.includes(exp.format)
   )
 
@@ -115,8 +124,8 @@ export default function MapView({
         />
 
         {Object.entries(categoryColors).map(([rawCategory, color]) => {
-          const category = clean(rawCategory)
-          const exps = filtered.filter((e) => clean(e.category) === category)
+          const category = rawCategory as Category
+          const exps = filtered.filter((e) => e.category === category)
           if (!exps.length) return null
 
           return (
@@ -129,13 +138,12 @@ export default function MapView({
             >
               {exps.map((exp) => {
                 const isFav = favorites.includes(exp.id)
-                const activityKey = clean(exp.activity_key) // ✅ ICI
 
                 return (
                   <Marker
                     key={exp.id}
                     position={[exp.lat, exp.lng]}
-                    icon={createPinIcon(color, activityKey, isFav)}
+                    icon={createPinIcon(color, exp.activity_key, isFav)}
                   >
                     <Popup>
                       <div style={{ width: 210 }}>
@@ -201,7 +209,7 @@ export default function MapView({
                             {exp.title}
                           </div>
                           <div style={{ fontSize: 12, color: "#666" }}>
-                            {exp.format === "duo" ? "Para dos" : "Para uno"}
+                            {formatLabel(exp.format)}
                           </div>
 
                           <button

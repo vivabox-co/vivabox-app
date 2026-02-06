@@ -4,11 +4,15 @@ import { useEffect, useState, useMemo } from "react"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
 import { Experience } from "@/lib/data/types"
 import BottomSheet from "@/components/ui/BottomSheet"
+import ExperienceExploreMeta from "@/components/experience/ExperienceExploreMeta"
 import ListCard from "@/components/list/ListCard"
 import { useUI } from "@/components/ui/UIContext"
 import { Heart } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export default function FavoritosPage() {
+  const router = useRouter()
+
   const {
     favorites,
     toggleFavorite,
@@ -34,31 +38,25 @@ export default function FavoritosPage() {
     setDrawerOpen(true)
   }
 
-  function handleAskRemove(id: string) {
-    setConfirmId(id)
+  function handleChoose(exp: Experience) {
+    setSelectedExperience(exp)
+    setDrawerOpen(false)
+    router.push("/reservar/fechas")
   }
 
   return (
     <>
-      <div style={{ padding: "12px 12px 70px" }}>
+      <div style={{ padding: "12px 12px 90px" }}>
         <h2 style={{ marginBottom: 12 }}>Tus favoritos</h2>
 
         {favoriteExperiences.length === 0 ? (
           <div style={{ textAlign: "center", marginTop: 70 }}>
-            {/* 💗 COEUR VIVO */}
             <div style={{ marginBottom: 14 }}>
-              <Heart
-                size={40}
-                strokeWidth={1.5}
-                color="#ff6fa3"
-                fill="#ff6fa3"
-              />
+              <Heart size={40} strokeWidth={1.5} color="#ff6fa3" fill="#ff6fa3" />
             </div>
-
             <p style={{ marginBottom: 4 }}>
               Aún no guardaste experiencias.
             </p>
-
             <p style={{ opacity: 0.6 }}>
               Tocá el corazón para guardar tus preferidas.
             </p>
@@ -70,37 +68,26 @@ export default function FavoritosPage() {
               exp={exp}
               onClick={() => openDrawer(exp)}
               isFavorite={true}
-              onToggleFavorite={() => handleAskRemove(exp.id)}
+              onToggleFavorite={() => setConfirmId(exp.id)}
             />
           ))
         )}
       </div>
 
-      {/* DRAWER */}
-      <BottomSheet
-        open={drawerOpen}
-        experience={selectedExperience}
-        onClose={() => setDrawerOpen(false)}
-      >
-        {selectedExperience && (
-          <div style={{ padding: 16 }}>
-            <p>{selectedExperience.vivanote}</p>
+      {/* 🔥 DRAWER UNIFIÉ */}
+      {/* DRAWER UNIFIÉ (identique à mapa) */}
+<BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+  {selectedExperience && (
+    <ExperienceExploreMeta
+      exp={selectedExperience}
+      onChoose={() => {
+        setDrawerOpen(false)
+        router.push("/reservar/fechas")
+      }}
+    />
+  )}
+</BottomSheet>
 
-            <div style={{ marginTop: 12, fontSize: 14 }}>
-              <strong>Formato:</strong>{" "}
-              {selectedExperience.format === "duo" ? "Para dos" : "Para uno"}
-            </div>
-
-            <div style={{ marginTop: 4, fontSize: 14 }}>
-              <strong>Duración:</strong> {selectedExperience.duration}
-            </div>
-
-            <div style={{ marginTop: 4, fontSize: 14 }}>
-              <strong>Zona:</strong> {selectedExperience.zone}
-            </div>
-          </div>
-        )}
-      </BottomSheet>
 
       {/* MODAL REMOVE FAVORITE */}
       {confirmId && (

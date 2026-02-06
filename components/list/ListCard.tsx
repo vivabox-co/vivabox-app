@@ -20,16 +20,16 @@ export default function ListCard({
     <div
       onClick={onClick}
       style={{
-        marginBottom: 14,
-        borderRadius: 16,
+        marginBottom: 18,
+        borderRadius: 22,
         overflow: "hidden",
-        background: "#fff",
-        boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+        background: "#FFFFFF",
+        boxShadow: "0 10px 28px rgba(0,0,0,0.06)",
         cursor: "pointer",
-        transition: "transform 0.15s ease, box-shadow 0.15s ease",
+        transition: "transform 0.18s ease, box-shadow 0.18s ease",
       }}
       onMouseEnter={(e) =>
-        (e.currentTarget.style.transform = "translateY(-2px)")
+        (e.currentTarget.style.transform = "translateY(-3px)")
       }
       onMouseLeave={(e) =>
         (e.currentTarget.style.transform = "translateY(0)")
@@ -42,7 +42,7 @@ export default function ListCard({
           alt={exp.title}
           style={{
             width: "100%",
-            height: 170,
+            height: 180,
             objectFit: "cover",
           }}
         />
@@ -55,50 +55,75 @@ export default function ListCard({
           }}
           style={{
             position: "absolute",
-            top: 10,
-            right: 10,
-            background: "rgba(255,255,255,0.95)",
-            backdropFilter: "blur(4px)",
+            top: 12,
+            right: 12,
+            background: "rgba(255,255,255,0.92)",
+            backdropFilter: "blur(6px)",
             border: "none",
             borderRadius: "50%",
-            width: 38,
-            height: 38,
+            width: 40,
+            height: 40,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: "pointer",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+            boxShadow: "0 6px 14px rgba(0,0,0,0.18)",
+            transition: "transform 0.15s ease",
           }}
         >
           <Heart
             size={18}
             strokeWidth={2}
             fill={isFavorite ? "#ff4d6d" : "none"}
-            color={isFavorite ? "#ff4d6d" : "#888"}
+            color={isFavorite ? "#ff4d6d" : "#777"}
           />
         </button>
       </div>
 
-      {/* TEXT */}
-      <div style={{ padding: 14 }}>
+      {/* CONTENU */}
+      <div style={{ padding: 16 }}>
         <div
           style={{
             fontWeight: 600,
-            fontSize: 15,
+            fontSize: 16,
             lineHeight: 1.3,
-            marginBottom: 4,
+            marginBottom: 6,
+            color: "#1a1a1a",
           }}
         >
           {exp.title}
         </div>
 
+        {exp.subtitle && (
+          <div
+            style={{
+              fontSize: 14,
+              color: "#6b6b6b",
+              marginBottom: 8,
+              lineHeight: 1.4,
+            }}
+          >
+            {exp.subtitle}
+          </div>
+        )}
+
         <div
           style={{
             fontSize: 13,
-            opacity: 0.6,
+            color: "#8a8a8a",
+            marginBottom: 4,
           }}
         >
           {exp.zone}
+        </div>
+
+        <div
+          style={{
+            fontSize: 13,
+            color: "#8a8a8a",
+          }}
+        >
+          {exp.duration}
         </div>
       </div>
     </div>

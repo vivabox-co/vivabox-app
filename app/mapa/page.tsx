@@ -2,18 +2,22 @@
 
 import dynamic from "next/dynamic"
 import { useEffect, useState } from "react"
-import { Experience } from "../../lib/data/types"
-import BottomSheet from "../../components/ui/BottomSheet"
-import CategoryFilters from "../../components/map/CategoryFilters"
-import FormatFilters from "../../components/map/FormatFilters"
-import { useUI } from "../../components/ui/UIContext"
+import { Experience, Category } from "@/lib/data/types"
+import BottomSheet from "@/components/ui/BottomSheet"
+import CategoryFilters from "@/components/map/CategoryFilters"
+import FormatFilters from "@/components/map/FormatFilters"
+import ExperienceExploreMeta from "@/components/experience/ExperienceExploreMeta"
+import { useUI } from "@/components/ui/UIContext"
+import { useRouter } from "next/navigation"
 
 const MapView = dynamic(
-  () => import("../../components/map/MapView"),
+  () => import("@/components/map/MapView"),
   { ssr: false }
 )
 
 export default function MapaPage() {
+  const router = useRouter()
+
   const {
     selectedExperience,
     setSelectedExperience,
@@ -21,7 +25,7 @@ export default function MapaPage() {
     setDrawerOpen,
   } = useUI()
 
-  const [activeCategories, setActiveCategories] = useState<string[]>([
+  const [activeCategories, setActiveCategories] = useState<Category[]>([
     "gastro",
     "bienestar",
     "aventura",
@@ -37,17 +41,14 @@ export default function MapaPage() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
-  /* Responsive detection */
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
     handleResize()
     window.addEventListener("resize", handleResize)
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
-  function toggleCategory(key: string) {
+  function toggleCategory(key: Category) {
     setActiveCategories(prev =>
       prev.includes(key)
         ? prev.filter(k => k !== key)
@@ -73,34 +74,6 @@ export default function MapaPage() {
         className={drawerOpen ? "mapa-content blurred" : "mapa-content"}
         onClick={closeFilters}
       >
-        {/* BOUTON FILTRES MOBILE */}
-        {isMobile && !filtersOpen && (
-          <button
-            onClick={e => {
-              e.stopPropagation()
-              setFiltersOpen(true)
-            }}
-            style={{
-              position: "absolute",
-              top: 14,
-              left: 14,
-              zIndex: 1000,
-              padding: "9px 16px",
-              borderRadius: 20,
-              border: "none",
-              background: "#111",
-              color: "white",
-              fontSize: 14,
-              fontWeight: 600,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-              cursor: "pointer",
-            }}
-          >
-            Filtros
-          </button>
-        )}
-
-        {/* FILTRES */}
         {(!isMobile || filtersOpen) && (
           <div
             onClick={e => e.stopPropagation()}
@@ -116,18 +89,11 @@ export default function MapaPage() {
               gap: 12,
             }}
           >
-            <CategoryFilters
-              active={activeCategories}
-              onToggle={toggleCategory}
-            />
-            <FormatFilters
-              active={activeFormats}
-              onToggle={toggleFormat}
-            />
+            <CategoryFilters active={activeCategories} onToggle={toggleCategory} />
+            <FormatFilters active={activeFormats} onToggle={toggleFormat} />
           </div>
         )}
 
-        {/* MAP */}
         <MapView
           activeCategories={activeCategories}
           activeFormats={activeFormats}
@@ -138,48 +104,19 @@ export default function MapaPage() {
         />
       </div>
 
-      {/* DRAWER EXPERIENCE */}
-      <BottomSheet
-        open={drawerOpen}
-        experience={selectedExperience}
-        onClose={() => setDrawerOpen(false)}
-      >
-        {selectedExperience && (
-          <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-            {/* IMAGE HERO */}
-            <div style={{ height: 200, flexShrink: 0, background: "#eee" }}>
-              <img
-                src={selectedExperience.image || "/images/placeholder.jpg"}
-                alt={selectedExperience.title}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-            </div>
+      {/* ✅ BOTTOM SHEET UNIQUE */}
+<BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+  {selectedExperience && (
+    <ExperienceExploreMeta
+      exp={selectedExperience}
+      onChoose={() => {
+        setDrawerOpen(false)
+        router.push("/reservar/fechas")
+      }}
+    />
+  )}
+</BottomSheet>
 
-            {/* INFOS */}
-            <div style={{ flex: 1, overflowY: "auto", padding: 18 }}>
-              <h2 style={{ marginBottom: 6 }}>{selectedExperience.title}</h2>
-              <p style={{ opacity: 0.7 }}>{selectedExperience.vivanote}</p>
-
-              <div style={{ marginTop: 18, fontSize: 14 }}>
-                <strong>Formato:</strong>{" "}
-                {selectedExperience.format === "duo" ? "Para dos" : "Para uno"}
-              </div>
-
-              <div style={{ marginTop: 4, fontSize: 14 }}>
-                <strong>Duración:</strong> {selectedExperience.duration}
-              </div>
-
-              <div style={{ marginTop: 4, fontSize: 14 }}>
-                <strong>Zona:</strong> {selectedExperience.zone}
-              </div>
-            </div>
-          </div>
-        )}
-      </BottomSheet>
     </>
   )
 }

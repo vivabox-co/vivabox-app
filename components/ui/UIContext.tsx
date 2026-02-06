@@ -18,6 +18,13 @@ type UIContextType = {
   selectedExperience: SelectedExperience
   setSelectedExperience: (exp: SelectedExperience) => void
 
+  // 🔥 Date et heure choisies pour la réservation
+  selectedDate: string | null
+  setSelectedDate: (d: string | null) => void
+
+  selectedTime: string | null
+  setSelectedTime: (t: string | null) => void
+
   // Masquer la bottom nav
   hideNav: boolean
   setHideNav: (v: boolean) => void
@@ -39,6 +46,10 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   // Réservation (flow fechas)
   const [selectedExperience, setSelectedExperience] =
     useState<SelectedExperience>(null)
+
+  // 🔥 Nouveaux états réservation
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedTime, setSelectedTime] = useState<string | null>(null)
 
   const [hideNav, setHideNav] = useState(false)
 
@@ -63,6 +74,11 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
 
         selectedExperience,
         setSelectedExperience,
+
+        selectedDate,
+        setSelectedDate,
+        selectedTime,
+        setSelectedTime,
 
         hideNav,
         setHideNav,

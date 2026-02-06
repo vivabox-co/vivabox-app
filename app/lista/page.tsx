@@ -3,9 +3,13 @@
 import { Experience } from "@/lib/data/types"
 import BottomSheet from "@/components/ui/BottomSheet"
 import ListView from "@/components/list/ListView"
+import ExperienceExploreMeta from "@/components/experience/ExperienceExploreMeta"
 import { useUI } from "@/components/ui/UIContext"
+import { useRouter } from "next/navigation"
 
 export default function ListaPage() {
+  const router = useRouter()
+
   const {
     selectedExperience,
     setSelectedExperience,
@@ -13,8 +17,15 @@ export default function ListaPage() {
     setDrawerOpen,
   } = useUI()
 
+  function handleChoose() {
+    if (!selectedExperience) return
+    setDrawerOpen(false)
+    router.push("/reservar/fechas")
+  }
+
   return (
     <>
+      {/* LISTE DES EXPÉRIENCES */}
       <ListView
         onSelect={(exp: Experience) => {
           setSelectedExperience(exp)
@@ -22,67 +33,19 @@ export default function ListaPage() {
         }}
       />
 
-      <BottomSheet
-        open={drawerOpen}
-        experience={selectedExperience}
-        onClose={() => {
-          setDrawerOpen(false)
-        }}
-      >
-        {selectedExperience && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              height: "100%",
-            }}
-          >
-            <div
-              style={{
-                height: 180,
-                background: "#eee",
-                flexShrink: 0,
-              }}
-            >
-              <img
-                src={selectedExperience.image || "/images/placeholder.jpg"}
-                alt={selectedExperience.title}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-            </div>
+      {/* DRAWER UNIFIÉ (identique à mapa) */}
+<BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+  {selectedExperience && (
+    <ExperienceExploreMeta
+      exp={selectedExperience}
+      onChoose={() => {
+        setDrawerOpen(false)
+        router.push("/reservar/fechas")
+      }}
+    />
+  )}
+</BottomSheet>
 
-            <div
-              style={{
-                flex: 1,
-                overflowY: "auto",
-                padding: 16,
-              }}
-            >
-              <h2>{selectedExperience.title}</h2>
-              <p>{selectedExperience.vivanote}</p>
-
-              <div style={{ marginTop: 16, fontSize: 14 }}>
-                <strong>Formato:</strong>{" "}
-                {selectedExperience.format === "duo"
-                  ? "Para dos"
-                  : "Para uno"}
-              </div>
-
-              <div style={{ marginTop: 4, fontSize: 14 }}>
-                <strong>Duración:</strong> {selectedExperience.duration}
-              </div>
-
-              <div style={{ marginTop: 4, fontSize: 14 }}>
-                <strong>Zona:</strong> {selectedExperience.zone}
-              </div>
-            </div>
-          </div>
-        )}
-      </BottomSheet>
     </>
   )
 }
