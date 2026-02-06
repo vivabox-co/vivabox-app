@@ -19,12 +19,12 @@ export default function SeguimientoPage() {
     setHideNav,
   } = useUI()
 
-  /* Bottom nav visible en seguimiento */
+  /* 🔥 Bottom nav visible en seguimiento */
   useEffect(() => {
     setHideNav(false)
   }, [setHideNav])
 
-  /* Charger booking */
+  /* 🔥 Charger la réservation depuis localStorage */
   useEffect(() => {
     const stored = localStorage.getItem("currentBooking")
     if (stored) setBooking(JSON.parse(stored))
@@ -71,7 +71,7 @@ export default function SeguimientoPage() {
           Seguimiento
         </h1>
 
-        {/* CARD EXPERIENCE */}
+        {/* CARD EXPERIENCE (ouvre drawer info) */}
         <div style={{ marginBottom: 18 }}>
           <ExperienceSummaryCard
             title={booking.experience.title}
@@ -98,13 +98,13 @@ export default function SeguimientoPage() {
           />
         </div>
 
-        {/* STATUS */}
+        {/* STATUS BLOCK */}
         <div style={{ marginTop: 28, marginBottom: 60 }}>
           <DynamicStatusBlock step={booking.step} />
         </div>
       </div>
 
-      {/* BOTTOM SHEET UNIFIÉ */}
+      {/* 🔥 BOTTOM SHEET INFO POST-RÉSERVATION */}
       <BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         {activeExperience && (
           <ExperienceBookedContent

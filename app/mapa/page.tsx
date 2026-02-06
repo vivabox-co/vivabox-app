@@ -41,6 +41,7 @@ export default function MapaPage() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
+  /* Detect mobile */
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768)
     handleResize()
@@ -74,15 +75,42 @@ export default function MapaPage() {
         className={drawerOpen ? "mapa-content blurred" : "mapa-content"}
         onClick={closeFilters}
       >
+        {/* 🔥 BOUTON FILTRES MOBILE */}
+        {isMobile && !filtersOpen && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setFiltersOpen(true)
+            }}
+            style={{
+              position: "absolute",
+              top: 14,
+              left: 14,
+              zIndex: 1100,
+              padding: "10px 16px",
+              borderRadius: 22,
+              border: "none",
+              background: "#111",
+              color: "#fff",
+              fontSize: 14,
+              fontWeight: 600,
+              boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
+            }}
+          >
+            Filtros
+          </button>
+        )}
+
+        {/* FILTRES PANEL */}
         {(!isMobile || filtersOpen) && (
           <div
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             style={{
               position: "absolute",
               top: 14,
               left: 0,
               right: 0,
-              zIndex: 1000,
+              zIndex: 1100,
               padding: "0 14px",
               display: "flex",
               flexDirection: "column",
@@ -91,9 +119,28 @@ export default function MapaPage() {
           >
             <CategoryFilters active={activeCategories} onToggle={toggleCategory} />
             <FormatFilters active={activeFormats} onToggle={toggleFormat} />
+
+            {/* 🔥 BOUTON FERMER MOBILE */}
+            {isMobile && (
+              <button
+                onClick={() => setFiltersOpen(false)}
+                style={{
+                  marginTop: 6,
+                  alignSelf: "center",
+                  background: "#eee",
+                  border: "none",
+                  borderRadius: 16,
+                  padding: "6px 14px",
+                  fontSize: 12,
+                }}
+              >
+                Cerrar filtros
+              </button>
+            )}
           </div>
         )}
 
+        {/* MAP */}
         <MapView
           activeCategories={activeCategories}
           activeFormats={activeFormats}
@@ -104,19 +151,18 @@ export default function MapaPage() {
         />
       </div>
 
-      {/* ✅ BOTTOM SHEET UNIQUE */}
-<BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-  {selectedExperience && (
-    <ExperienceExploreMeta
-      exp={selectedExperience}
-      onChoose={() => {
-        setDrawerOpen(false)
-        router.push("/reservar/fechas")
-      }}
-    />
-  )}
-</BottomSheet>
-
+      {/* BOTTOM SHEET UNIQUE */}
+      <BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+        {selectedExperience && (
+          <ExperienceExploreMeta
+            exp={selectedExperience}
+            onChoose={() => {
+              setDrawerOpen(false)
+              router.push("/reservar/fechas")
+            }}
+          />
+        )}
+      </BottomSheet>
     </>
   )
 }

@@ -66,11 +66,6 @@ function createClusterIcon(color: string) {
     })
 }
 
-/* 🧠 NORMALISATION */
-function clean(str: string) {
-  return str?.toLowerCase().trim()
-}
-
 function categoryLabel(category: Category) {
   switch (category) {
     case "gastro": return "Gastronomía"
@@ -212,16 +207,20 @@ export default function MapView({
                             {formatLabel(exp.format)}
                           </div>
 
+                          {/* 🔥 CTA NOIR */}
                           <button
                             style={{
                               marginTop: 10,
                               width: "100%",
-                              padding: "7px 10px",
+                              padding: "9px 10px",
                               fontSize: 14,
-                              borderRadius: 8,
-                              border: "1px solid #ddd",
-                              background: "#fff",
+                              borderRadius: 10,
+                              border: "none",
+                              background: "#111",
+                              color: "white",
+                              fontWeight: 600,
                               cursor: "pointer",
+                              boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
                             }}
                             onClick={() => onSelect(exp)}
                           >

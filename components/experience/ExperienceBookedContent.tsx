@@ -2,7 +2,7 @@
 
 import { Experience } from "@/lib/data/types"
 import { categoryColors } from "@/lib/map/categoryColors"
-import { MapPin, Clock, Users, CalendarCheck } from "lucide-react"
+import { MapPin, Clock, Users, Calendar } from "lucide-react"
 
 type Props = {
   exp: Experience
@@ -14,16 +14,16 @@ export default function ExperienceBookedContent({ exp, date, time }: Props) {
   const color = categoryColors[exp.category] || "#ddd"
 
   return (
-    <div style={{ paddingBottom: 40 }}>
+    <div style={{ paddingBottom: 32 }}>
       {/* IMAGE */}
       <div
         style={{
+          position: "relative",
           width: "100%",
           height: 200,
           overflow: "hidden",
           borderRadius: 18,
           marginBottom: 18,
-          position: "relative",
         }}
       >
         <img
@@ -38,36 +38,42 @@ export default function ExperienceBookedContent({ exp, date, time }: Props) {
             position: "absolute",
             top: 12,
             right: 12,
+            background: color,
+            color: "white",
             padding: "6px 12px",
             borderRadius: 999,
             fontSize: 12,
             fontWeight: 600,
-            background: color,
-            color: "white",
           }}
         >
           {exp.category}
         </div>
       </div>
 
+      {/* TITRE */}
       <div style={{ padding: "0 16px" }}>
-        <h2 style={{ margin: 0 }}>{exp.title}</h2>
+        <h2 style={{ margin: "0 0 6px" }}>{exp.title}</h2>
 
         {/* DATE CONFIRMÉE */}
         {date && time && (
           <div
             style={{
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
               gap: 8,
-              marginTop: 12,
-              fontSize: 14,
-              fontWeight: 600,
-              color: "#1E7A3B",
+              marginTop: 8,
+              padding: "6px 12px",
+              borderRadius: 999,
+              background: "#F3EFEA",
+              fontSize: 13,
+              color: "#444",
+              fontWeight: 500,
             }}
           >
-            <CalendarCheck size={16} />
-            <span>{date} · {time}</span>
+            <Calendar size={14} />
+            <span>{date}</span>
+            <Clock size={14} />
+            <span>{time}</span>
           </div>
         )}
       </div>
@@ -79,9 +85,8 @@ export default function ExperienceBookedContent({ exp, date, time }: Props) {
         <InfoRow icon={Users} value={exp.format} />
       </div>
 
-      {/* VIVANOTE */}
+      {/* NOTE */}
       <div style={{ padding: "0 16px", marginTop: 12 }}>
-        <h4>Recomendación Vivabox</h4>
         <p style={{ color: "#555" }}>{exp.vivanote}</p>
       </div>
     </div>
@@ -90,7 +95,7 @@ export default function ExperienceBookedContent({ exp, date, time }: Props) {
 
 function InfoRow({ icon: Icon, value }: any) {
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 8, fontSize: 14 }}>
+    <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
       <Icon size={16} />
       <span>{value}</span>
     </div>
