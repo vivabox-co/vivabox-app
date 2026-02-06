@@ -5,7 +5,7 @@ import BookingTimeline from "@/components/ui/BookingTimeline"
 import DynamicStatusBlock from "@/components/ui/DynamicStatusBlock"
 import ExperienceSummaryCard from "@/components/list/ExperienceSummaryCard"
 import BottomSheet from "@/components/ui/BottomSheet"
-import ExperienceMeta from "@/components/experience/ExperienceMeta"
+import ExperienceBookedContent from "@/components/experience/ExperienceBookedContent"
 import { useUI } from "@/components/ui/UIContext"
 
 export default function SeguimientoPage() {
@@ -19,10 +19,12 @@ export default function SeguimientoPage() {
     setHideNav,
   } = useUI()
 
+  /* Bottom nav visible en seguimiento */
   useEffect(() => {
     setHideNav(false)
   }, [setHideNav])
 
+  /* Charger booking */
   useEffect(() => {
     const stored = localStorage.getItem("currentBooking")
     if (stored) setBooking(JSON.parse(stored))
@@ -50,6 +52,7 @@ export default function SeguimientoPage() {
 
   return (
     <>
+      {/* PAGE */}
       <div
         style={{
           padding: "16px 16px 120px",
@@ -68,6 +71,7 @@ export default function SeguimientoPage() {
           Seguimiento
         </h1>
 
+        {/* CARD EXPERIENCE */}
         <div style={{ marginBottom: 18 }}>
           <ExperienceSummaryCard
             title={booking.experience.title}
@@ -85,6 +89,7 @@ export default function SeguimientoPage() {
           />
         </div>
 
+        {/* TIMELINE */}
         <div style={{ marginTop: 18 }}>
           <BookingTimeline
             step={booking.step}
@@ -93,25 +98,20 @@ export default function SeguimientoPage() {
           />
         </div>
 
+        {/* STATUS */}
         <div style={{ marginTop: 28, marginBottom: 60 }}>
           <DynamicStatusBlock step={booking.step} />
         </div>
       </div>
 
-      <BottomSheet
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        experience={activeExperience}
-        mode="info"
-        bookingStep={booking.step}
-        confirmedDate={booking.date}
-        confirmedTime={booking.time}
-      >
+      {/* BOTTOM SHEET UNIFIÉ */}
+      <BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         {activeExperience && (
-          <ExperienceMeta
+          <ExperienceBookedContent
             exp={activeExperience}
             date={booking.date}
             time={booking.time}
+            step={booking.step}
           />
         )}
       </BottomSheet>

@@ -32,10 +32,8 @@ export default function BottomSheet({
   function handleTouchEnd() {
     if (startY.current === null) return
 
-    // swipe up → expand
     if (deltaY.current < -50) setExpanded(true)
 
-    // swipe down → collapse or close
     if (deltaY.current > 50) {
       if (expanded) setExpanded(false)
       else onClose()
@@ -56,11 +54,7 @@ export default function BottomSheet({
         onTouchEnd={handleTouchEnd}
       >
         <div className="sheet-handle" />
-
-        {/* 🔥 CONTENU SCROLLABLE */}
-        <div className="sheet-content">
-          {children}
-        </div>
+        <div className="sheet-content">{children}</div>
       </div>
     </>
   )
