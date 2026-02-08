@@ -12,52 +12,12 @@ export type Category =
 export type Format = "solo" | "duo" | "familia"
 
 /**
- * activity_key correspond EXACTEMENT
- * aux fichiers SVG dans /public/icons
- * et à la colonne "activity_key" du Google Sheet
+ * 🔥 activity_key est DATA-DRIVEN
+ * Provient du Google Sheet
+ * Correspond aux SVG dans /public/icons
+ * MAIS on ne le fige PAS côté code
  */
-export type ActivityKey =
-  | "archery"
-  | "art_workshop"
-  | "bbq"
-  | "beer_tasting"
-  | "brunch"
-  | "buggy"
-  | "bungee"
-  | "caravan"
-  | "chef-hat"
-  | "cinema"
-  | "climbing"
-  | "coffee_tasting"
-  | "dining"
-  | "driving_track"
-  | "eco_lodge"
-  | "escape_room"
-  | "facial"
-  | "flight_plane"
-  | "glass"
-  | "glamping"
-  | "golf"
-  | "hair"
-  | "hiking"
-  | "horseback"
-  | "hotel_stay"
-  | "ice_bath"
-  | "karting"
-  | "massage"
-  | "meditation"
-  | "motorbike"
-  | "paragliding"
-  | "perfume"
-  | "photoshoot"
-  | "pizza_class"
-  | "sauna"
-  | "scuba"
-  | "skydive"
-  | "spa"
-  | "sushi_class"
-  | "theater"
-  | "wind_tunnel"
+export type ActivityKey = string
 
 /* ================================
    🔥 NOUVEAUX TYPES PRODUIT
@@ -82,28 +42,28 @@ type ExtraPersonOption = {
 
 export type Experience = {
   /* 🔹 IDENTITÉ */
-  id: string                     // 🔥 = nom du prestataire
+  id: string                  // 🔥 = nom prestataire
   title: string
   subtitle?: string
 
   category: Category
-  activity_key: ActivityKey
+  activity_key: ActivityKey  // 🔥 dynamique
 
   /* 🔹 LOCALISATION */
   lat: number
   lng: number
   zone: string
   distance?: string
-  city?: string                  // 🔥 Filtrage ville
+  city?: string               // 🔥 filtre ville depuis sheet
 
   /* 🔹 MÉTA RAPIDE (cards) */
   duration: string
-  durationType?: DurationType    // 🔥 Filtrage mental
+  durationType?: DurationType
   format: Format
   image: string
   vivanote: string
 
-  /* 🔴 CONTENU PRODUIT (drawer explore) */
+  /* 🔴 CONTENU PRODUIT */
   shortDescription: string
   includes: string[]
   requirements?: string[]
@@ -114,7 +74,7 @@ export type Experience = {
   importantToKnow?: string[]
 
   /* 🔴 FILTRAGE INTELLIGENT */
-  ambiance?: string[]            // ex: ["relax","romántico"]
+  ambiance?: string[]
   environment?: Environment
 
   /* 🔴 LOGIQUE RÉSERVATION */

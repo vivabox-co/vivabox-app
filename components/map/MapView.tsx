@@ -9,13 +9,14 @@ import {
 } from "react-leaflet"
 import MarkerClusterGroup from "react-leaflet-cluster"
 import L from "leaflet"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
-import { Experience, Format, Category } from "@/lib/data/types"
+import { Experience, Format, Category, ActivityKey } from "@/lib/data/types"
 import { createPinIcon } from "@/lib/map/createPinIcon"
 import { categoryColors } from "@/lib/map/categoryColors"
 import { useUI } from "@/components/ui/UIContext"
 import { Heart, MapPin, Clock, Users } from "lucide-react"
+import { filterExperiences } from "@/lib/product/filterExperiences"
 
 import "leaflet/dist/leaflet.css"
 import "leaflet.markercluster/dist/MarkerCluster.css"
@@ -25,14 +26,13 @@ type MapViewProps = {
   onSelect: (exp: Experience) => void
   activeCategories: Category[]
   activeFormats: Format[]
-
-  /* 🔥 Filtres drawer Vivabox */
   activeCities?: string[]
   activeAmbiances?: string[]
   indoorState?: "indoor" | "outdoor" | "any"
+  activeActivities?: ActivityKey[]
 }
 
-/* 🔁 Resize Fix */
+/* 🔁 Fix resize map */
 function ResizeFix() {
   const map = useMap()
   useEffect(() => {
@@ -44,7 +44,7 @@ function ResizeFix() {
   return null
 }
 
-/* 🎨 Cluster icon */
+/* 🎨 Cluster style */
 function createClusterIcon(color: string) {
   return (cluster: any) =>
     L.divIcon({
@@ -92,6 +92,7 @@ export default function MapView({
   activeCities = [],
   activeAmbiances = [],
   indoorState = "any",
+  activeActivities = [],
 }: MapViewProps) {
   const [experiences, setExperiences] = useState<Experience[]>([])
   const { favorites, toggleFavorite } = useUI()
@@ -100,25 +101,25 @@ export default function MapView({
     fetchExperiences().then(setExperiences)
   }, [])
 
-  /* 🔥 MOTEUR FILTRAGE PRODUIT CENTRAL */
-  const filtered = experiences.filter((exp) => {
-    if (!activeCategories.includes(exp.category)) return false
-    if (!activeFormats.includes(exp.format)) return false
-
-    /* Ville */
-    if (activeCities.length && !activeCities.includes(exp.zone)) return false
-
-    /* Ambiance */
-    if (
-      activeAmbiances.length &&
-      (!exp.ambiance || !exp.ambiance.some((a) => activeAmbiances.includes(a)))
-    ) return false
-
-    /* Indoor / Outdoor */
-    if (indoorState !== "any" && exp.environment !== indoorState) return false
-
-    return true
-  })
+  /* 🧠 CENTRAL PRODUCT FILTER */
+  const { filteredExperiences } = useMemo(() => {
+    return filterExperiences(experiences, {
+      categories: activeCategories,
+      formats: activeFormats,
+      cities: activeCities,
+      ambiances: activeAmbiances,
+      indoorState,
+      activities: activeActivities,
+    })
+  }, [
+    experiences,
+    activeCategories,
+    activeFormats,
+    activeCities,
+    activeAmbiances,
+    indoorState,
+    activeActivities,
+  ])
 
   return (
     <div style={{ width: "100%", height: "100%" }}>
@@ -129,15 +130,11 @@ export default function MapView({
         style={{ width: "100%", height: "100%" }}
       >
         <ResizeFix />
-
-        <TileLayer
-          attribution=""
-          url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png"
-        />
+        <TileLayer url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png" />
 
         {Object.entries(categoryColors).map(([rawCategory, color]) => {
           const category = rawCategory as Category
-          const exps = filtered.filter((e) => e.category === category)
+          const exps = filteredExperiences.filter((e) => e.category === category)
           if (!exps.length) return null
 
           return (
@@ -159,29 +156,33 @@ export default function MapView({
                   >
                     <Popup>
                       <div style={{ width: 220 }}>
-                        <div style={{
-                          position: "relative",
-                          height: 120,
-                          borderRadius: 10,
-                          overflow: "hidden"
-                        }}>
+                        <div
+                          style={{
+                            position: "relative",
+                            height: 120,
+                            borderRadius: 10,
+                            overflow: "hidden",
+                          }}
+                        >
                           <img
                             src={exp.image}
                             alt={exp.title}
                             style={{ width: "100%", height: "100%", objectFit: "cover" }}
                           />
 
-                          <div style={{
-                            position: "absolute",
-                            top: 8,
-                            left: 8,
-                            padding: "4px 8px",
-                            fontSize: 10,
-                            fontWeight: 600,
-                            color: "white",
-                            background: color,
-                            borderRadius: 8,
-                          }}>
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 8,
+                              left: 8,
+                              padding: "4px 8px",
+                              fontSize: 10,
+                              fontWeight: 600,
+                              color: "white",
+                              background: color,
+                              borderRadius: 8,
+                            }}
+                          >
                             {categoryLabel(exp.category)}
                           </div>
 
@@ -219,7 +220,7 @@ export default function MapView({
                             {exp.title}
                           </div>
 
-                          <MetaRow icon={MapPin} text={exp.zone} />
+                          <MetaRow icon={MapPin} text={exp.city || exp.zone} />
                           <MetaRow icon={Clock} text={exp.duration} />
                           <MetaRow icon={Users} text={formatLabel(exp.format)} />
 
@@ -254,7 +255,7 @@ export default function MapView({
   )
 }
 
-function MetaRow({ icon: Icon, text }: any) {
+function MetaRow({ icon: Icon, text }: { icon: any; text: string }) {
   return (
     <div style={{ display: "flex", gap: 6, fontSize: 12, color: "#666", marginTop: 4 }}>
       <Icon size={14} />

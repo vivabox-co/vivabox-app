@@ -6,6 +6,7 @@ import { Experience, Category, Format } from "@/lib/data/types"
 import { useUI } from "@/components/ui/UIContext"
 import { Heart } from "lucide-react"
 import { categoryColors } from "@/lib/map/categoryColors"
+import { filterExperiences } from "@/lib/product/filterExperiences"
 
 type Props = {
   onSelect: (exp: Experience) => void
@@ -14,7 +15,7 @@ type Props = {
   activeCities: string[]
   activeAmbiances: string[]
   indoorState: "indoor" | "outdoor" | "any"
-  searchQuery: string   // 🔥 vient maintenant du haut (ListaPage)
+  searchQuery: string
 }
 
 export default function ListView({
@@ -33,30 +34,21 @@ export default function ListView({
     fetchExperiences().then(setExperiences)
   }, [])
 
-  const query = searchQuery.toLowerCase().trim()
-
-  /* 🔥 MOTEUR FILTRAGE UNIQUE VIVABOX */
-  const filtered = useMemo(() => {
-    return experiences.filter((exp) => {
-      if (!activeCategories.includes(exp.category)) return false
-      if (!activeFormats.includes(exp.format)) return false
-      if (activeCities.length && !activeCities.includes(exp.zone)) return false
-      if (activeAmbiances.length && !exp.ambiance?.some(a => activeAmbiances.includes(a))) return false
-      if (indoorState !== "any" && exp.environment !== indoorState) return false
-
-      if (query) {
-        const haystack =
-          `${exp.title} ${exp.zone} ${exp.shortDescription ?? ""} ${exp.vivanote ?? ""}`.toLowerCase()
-        if (!haystack.includes(query)) return false
-      }
-
-      return true
+  /* 🔥 MOTEUR PRODUIT UNIQUE */
+  const { filteredExperiences } = useMemo(() => {
+    return filterExperiences(experiences, {
+      categories: activeCategories,
+      formats: activeFormats,
+      cities: activeCities,
+      ambiances: activeAmbiances,
+      indoorState,
+      searchText: searchQuery,
     })
-  }, [experiences, activeCategories, activeFormats, activeCities, activeAmbiances, indoorState, query])
+  }, [experiences, activeCategories, activeFormats, activeCities, activeAmbiances, indoorState, searchQuery])
 
   /* 🔁 Alternance catégories Vivabox */
   const ordered = useMemo(() => {
-    const sorted = [...filtered].sort((a, b) => a.title.localeCompare(b.title))
+    const sorted = [...filteredExperiences].sort((a, b) => a.title.localeCompare(b.title))
     const groups: Record<string, Experience[]> = {}
 
     sorted.forEach((exp) => {
@@ -79,7 +71,7 @@ export default function ListView({
     }
 
     return result
-  }, [filtered])
+  }, [filteredExperiences])
 
   return (
     <div style={{ padding: "0 12px 90px" }}>
@@ -100,7 +92,6 @@ export default function ListView({
               cursor: "pointer",
             }}
           >
-            {/* Bande catégorie */}
             <div style={{ width: 6, background: categoryColors[exp.category] }} />
 
             <img
