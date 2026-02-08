@@ -15,7 +15,7 @@ import { Experience, Format, Category } from "@/lib/data/types"
 import { createPinIcon } from "@/lib/map/createPinIcon"
 import { categoryColors } from "@/lib/map/categoryColors"
 import { useUI } from "@/components/ui/UIContext"
-import { Heart } from "lucide-react"
+import { Heart, MapPin, Clock, Users } from "lucide-react"
 
 import "leaflet/dist/leaflet.css"
 import "leaflet.markercluster/dist/MarkerCluster.css"
@@ -25,6 +25,11 @@ type MapViewProps = {
   onSelect: (exp: Experience) => void
   activeCategories: Category[]
   activeFormats: Format[]
+
+  /* 🔥 Filtres drawer Vivabox */
+  activeCities?: string[]
+  activeAmbiances?: string[]
+  indoorState?: "indoor" | "outdoor" | "any"
 }
 
 /* 🔁 Resize Fix */
@@ -43,53 +48,50 @@ function ResizeFix() {
 function createClusterIcon(color: string) {
   return (cluster: any) =>
     L.divIcon({
-      html: `
-        <div style="
-          background:${color};
-          width:46px;
-          height:46px;
-          border-radius:50%;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          color:white;
-          font-weight:700;
-          font-size:14px;
-          border:3px solid white;
-          box-shadow:0 4px 12px rgba(0,0,0,0.25);
-        ">
-          ${cluster.getChildCount()}
-        </div>
-      `,
+      html: `<div style="
+        background:${color};
+        width:46px;
+        height:46px;
+        border-radius:50%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        color:white;
+        font-weight:700;
+        font-size:14px;
+        border:3px solid white;
+        box-shadow:0 4px 12px rgba(0,0,0,0.25);
+      ">${cluster.getChildCount()}</div>`,
       className: "",
       iconSize: [46, 46],
     })
 }
 
 function categoryLabel(category: Category) {
-  switch (category) {
-    case "gastro": return "Gastronomía"
-    case "bienestar": return "Bienestar"
-    case "aventura": return "Aventura"
-    case "cultura": return "Cultura"
-    case "estancias": return "Estancias"
-    default: return category
-  }
+  return {
+    gastro: "Gastronomía",
+    bienestar: "Bienestar",
+    aventura: "Aventura",
+    cultura: "Cultura",
+    estancias: "Estancias",
+  }[category]
 }
 
 function formatLabel(format: Format) {
-  switch (format) {
-    case "solo": return "Para uno"
-    case "duo": return "Para dos"
-    case "familia": return "En familia"
-    default: return format
-  }
+  return {
+    solo: "Para uno",
+    duo: "Para dos",
+    familia: "En familia",
+  }[format]
 }
 
 export default function MapView({
   onSelect,
   activeCategories,
   activeFormats,
+  activeCities = [],
+  activeAmbiances = [],
+  indoorState = "any",
 }: MapViewProps) {
   const [experiences, setExperiences] = useState<Experience[]>([])
   const { favorites, toggleFavorite } = useUI()
@@ -98,10 +100,25 @@ export default function MapView({
     fetchExperiences().then(setExperiences)
   }, [])
 
-  const filtered = experiences.filter((exp) =>
-    activeCategories.includes(exp.category) &&
-    activeFormats.includes(exp.format)
-  )
+  /* 🔥 MOTEUR FILTRAGE PRODUIT CENTRAL */
+  const filtered = experiences.filter((exp) => {
+    if (!activeCategories.includes(exp.category)) return false
+    if (!activeFormats.includes(exp.format)) return false
+
+    /* Ville */
+    if (activeCities.length && !activeCities.includes(exp.zone)) return false
+
+    /* Ambiance */
+    if (
+      activeAmbiances.length &&
+      (!exp.ambiance || !exp.ambiance.some((a) => activeAmbiances.includes(a)))
+    ) return false
+
+    /* Indoor / Outdoor */
+    if (indoorState !== "any" && exp.environment !== indoorState) return false
+
+    return true
+  })
 
   return (
     <div style={{ width: "100%", height: "100%" }}>
@@ -114,7 +131,7 @@ export default function MapView({
         <ResizeFix />
 
         <TileLayer
-          attribution={""}
+          attribution=""
           url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png"
         />
 
@@ -141,13 +158,12 @@ export default function MapView({
                     icon={createPinIcon(color, exp.activity_key, isFav)}
                   >
                     <Popup>
-                      <div style={{ width: 210 }}>
+                      <div style={{ width: 220 }}>
                         <div style={{
                           position: "relative",
-                          height: 110,
+                          height: 120,
                           borderRadius: 10,
-                          overflow: "hidden",
-                          background: "#eee",
+                          overflow: "hidden"
                         }}>
                           <img
                             src={exp.image}
@@ -188,7 +204,6 @@ export default function MapView({
                               alignItems: "center",
                               justifyContent: "center",
                               cursor: "pointer",
-                              boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
                             }}
                           >
                             <Heart
@@ -203,11 +218,11 @@ export default function MapView({
                           <div style={{ fontSize: 14, fontWeight: 600 }}>
                             {exp.title}
                           </div>
-                          <div style={{ fontSize: 12, color: "#666" }}>
-                            {formatLabel(exp.format)}
-                          </div>
 
-                          {/* 🔥 CTA NOIR */}
+                          <MetaRow icon={MapPin} text={exp.zone} />
+                          <MetaRow icon={Clock} text={exp.duration} />
+                          <MetaRow icon={Users} text={formatLabel(exp.format)} />
+
                           <button
                             style={{
                               marginTop: 10,
@@ -220,7 +235,6 @@ export default function MapView({
                               color: "white",
                               fontWeight: 600,
                               cursor: "pointer",
-                              boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
                             }}
                             onClick={() => onSelect(exp)}
                           >
@@ -236,6 +250,15 @@ export default function MapView({
           )
         })}
       </MapContainer>
+    </div>
+  )
+}
+
+function MetaRow({ icon: Icon, text }: any) {
+  return (
+    <div style={{ display: "flex", gap: 6, fontSize: 12, color: "#666", marginTop: 4 }}>
+      <Icon size={14} />
+      <span>{text}</span>
     </div>
   )
 }

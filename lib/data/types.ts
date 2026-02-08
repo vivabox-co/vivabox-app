@@ -1,3 +1,7 @@
+/* ================================
+   🎨 CATÉGORIES & FORMAT
+================================ */
+
 export type Category =
   | "gastro"
   | "bienestar"
@@ -55,29 +59,66 @@ export type ActivityKey =
   | "theater"
   | "wind_tunnel"
 
-export type Experience = {
-  id: string
-  title: string
+/* ================================
+   🔥 NOUVEAUX TYPES PRODUIT
+================================ */
 
-  /** Sous-titre utilisé dans liste & seguimiento */
+export type EffortLevel = "suave" | "medio" | "intenso"
+
+export type Environment = "indoor" | "outdoor" | "mixto"
+
+export type DurationType = "corta" | "media" | "larga"
+
+type ExtraPersonOption = {
+  allowed: boolean
+  maxExtraPeople?: number
+  requiresManualApproval?: boolean
+  note?: string
+}
+
+/* ================================
+   🎯 EXPERIENCE VIVABOX (PRODUIT)
+================================ */
+
+export type Experience = {
+  /* 🔹 IDENTITÉ */
+  id: string                     // 🔥 = nom du prestataire
+  title: string
   subtitle?: string
 
   category: Category
   activity_key: ActivityKey
 
-  /** Position carte */
+  /* 🔹 LOCALISATION */
   lat: number
   lng: number
-
-  /** Infos affichées dans card */
   zone: string
-  distance: string
+  distance?: string
+  city?: string                  // 🔥 Filtrage ville
+
+  /* 🔹 MÉTA RAPIDE (cards) */
   duration: string
+  durationType?: DurationType    // 🔥 Filtrage mental
   format: Format
-
-  /** Image card */
   image: string
-
-  /** Note interne UX (phrase courte affichée parfois) */
   vivanote: string
+
+  /* 🔴 CONTENU PRODUIT (drawer explore) */
+  shortDescription: string
+  includes: string[]
+  requirements?: string[]
+  idealFor?: string[]
+  effortLevel?: EffortLevel
+  weatherNote?: string
+  clothingNote?: string
+  importantToKnow?: string[]
+
+  /* 🔴 FILTRAGE INTELLIGENT */
+  ambiance?: string[]            // ex: ["relax","romántico"]
+  environment?: Environment
+
+  /* 🔴 LOGIQUE RÉSERVATION */
+  needsPhone: boolean
+  needsPeopleCount: boolean
+  extraPeopleOption?: ExtraPersonOption
 }

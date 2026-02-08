@@ -1,37 +1,49 @@
+"use client"
+
+import { BookingStatus } from "./BookingTimeline"
+
 type Props = {
-  step: number
+  status: BookingStatus
 }
 
-export default function DynamicStatusBlock({ step }: Props) {
-  const content = {
-    1: {
+export default function DynamicStatusBlock({ status }: Props) {
+  const content: Record<
+    BookingStatus,
+    { title: string; text: string; actions?: string[] }
+  > = {
+    requested: {
       title: "Recibimos tu solicitud",
       text: "Estamos empezando a coordinar tu experiencia para que todo salga perfecto.",
       actions: ["Cambiar fechas", "Hablar con Mariana"],
     },
-    2: {
+
+    waiting_provider: {
       title: "Estamos gestionando todo por ti",
       text: "Estamos verificando disponibilidad con el lugar. Te avisamos máximo en 48h.",
       actions: ["Cambiar fechas", "Hablar con Mariana"],
     },
-    3: {
+
+    confirmed: {
       title: "Tu experiencia está confirmada 🎉",
       text: "Pronto recibirás los detalles finales para que solo te preocupes por disfrutar.",
       actions: ["Ver detalles"],
     },
-    4: {
-      title: "Hoy es tu experiencia",
-      text: "Que la disfrutes muchísimo. Si necesitas algo, aquí estamos.",
-      actions: ["¿Necesitas ayuda?"],
+
+    rejected: {
+      title: "No pudimos confirmar la fecha",
+      text: "Te contactaremos para proponerte una alternativa que funcione mejor.",
+      actions: ["Hablar con Mariana"],
     },
-    5: {
+
+    done: {
       title: "¿Cómo te fue?",
       text: "Tu opinión ayuda a otros a elegir experiencias increíbles.",
       actions: ["Dejar opinión"],
     },
-  }[step]
+  }
 
-  if (!content) return null
+  const block = content[status]
+  if (!block) return null
 
   return (
     <div
@@ -51,7 +63,7 @@ export default function DynamicStatusBlock({ step }: Props) {
           marginBottom: 8,
         }}
       >
-        {content.title}
+        {block.title}
       </h4>
 
       <p
@@ -62,28 +74,30 @@ export default function DynamicStatusBlock({ step }: Props) {
           marginBottom: 14,
         }}
       >
-        {content.text}
+        {block.text}
       </p>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        {content.actions.map((label) => (
-          <button
-            key={label}
-            style={{
-              padding: "9px 16px",
-              borderRadius: 999,
-              border: "none",
-              background: "#222",
-              color: "white",
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer",
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {block.actions && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {block.actions.map((label) => (
+            <button
+              key={label}
+              style={{
+                padding: "9px 16px",
+                borderRadius: 999,
+                border: "none",
+                background: "#222",
+                color: "white",
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

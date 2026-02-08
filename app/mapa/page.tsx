@@ -1,19 +1,17 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useEffect, useState } from "react"
-import { Experience, Category } from "@/lib/data/types"
+import { useState } from "react"
+import { Experience, Category, Format } from "@/lib/data/types"
 import BottomSheet from "@/components/ui/BottomSheet"
-import CategoryFilters from "@/components/map/CategoryFilters"
-import FormatFilters from "@/components/map/FormatFilters"
 import ExperienceExploreMeta from "@/components/experience/ExperienceExploreMeta"
+import FiltersDrawer from "@/components/filters/FiltersDrawer"
 import { useUI } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
 
-const MapView = dynamic(
-  () => import("@/components/map/MapView"),
-  { ssr: false }
-)
+const MapView = dynamic(() => import("@/components/map/MapView"), {
+  ssr: false,
+})
 
 export default function MapaPage() {
   const router = useRouter()
@@ -25,6 +23,12 @@ export default function MapaPage() {
     setDrawerOpen,
   } = useUI()
 
+  /* =========================
+     🎛 FILTER STATE (REAL PRODUCT)
+  ========================= */
+
+  const [filtersOpen, setFiltersOpen] = useState(false)
+
   const [activeCategories, setActiveCategories] = useState<Category[]>([
     "gastro",
     "bienestar",
@@ -33,117 +37,66 @@ export default function MapaPage() {
     "estancias",
   ])
 
-  const [activeFormats, setActiveFormats] = useState<("solo" | "duo")[]>([
+  const [activeFormats, setActiveFormats] = useState<Format[]>([
     "solo",
     "duo",
+    "familia",
   ])
 
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const [activeCities, setActiveCities] = useState<string[]>([])
+  const [activeAmbiances, setActiveAmbiances] = useState<string[]>([])
+  const [indoorState, setIndoorState] =
+    useState<"indoor" | "outdoor" | "any">("any")
 
-  /* Detect mobile */
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768)
-    handleResize()
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
+  /* =========================
+     🔁 TOGGLE HELPERS
+  ========================= */
 
-  function toggleCategory(key: Category) {
-    setActiveCategories(prev =>
-      prev.includes(key)
-        ? prev.filter(k => k !== key)
-        : [...prev, key]
-    )
+  const toggleArray = <T,>(
+    value: T,
+    list: T[],
+    setter: (v: T[]) => void
+  ) => {
+    setter(list.includes(value) ? list.filter((x) => x !== value) : [...list, value])
   }
 
-  function toggleFormat(format: "solo" | "duo") {
-    setActiveFormats(prev =>
-      prev.includes(format)
-        ? prev.filter(f => f !== format)
-        : [...prev, format]
-    )
-  }
-
-  function closeFilters() {
-    if (filtersOpen) setFiltersOpen(false)
-  }
+  /* =========================
+     🧱 UI
+  ========================= */
 
   return (
     <>
-      <div
-        className={drawerOpen ? "mapa-content blurred" : "mapa-content"}
-        onClick={closeFilters}
-      >
-        {/* 🔥 BOUTON FILTRES MOBILE */}
-        {isMobile && !filtersOpen && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setFiltersOpen(true)
-            }}
-            style={{
-              position: "absolute",
-              top: 14,
-              left: 14,
-              zIndex: 1100,
-              padding: "10px 16px",
-              borderRadius: 22,
-              border: "none",
-              background: "#111",
-              color: "#fff",
-              fontSize: 14,
-              fontWeight: 600,
-              boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
-            }}
-          >
-            Filtros
-          </button>
-        )}
+      {/* MAIN MAP AREA */}
+      <div className={drawerOpen ? "mapa-content blurred" : "mapa-content"}>
 
-        {/* FILTRES PANEL */}
-        {(!isMobile || filtersOpen) && (
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: "absolute",
-              top: 14,
-              left: 0,
-              right: 0,
-              zIndex: 1100,
-              padding: "0 14px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
-          >
-            <CategoryFilters active={activeCategories} onToggle={toggleCategory} />
-            <FormatFilters active={activeFormats} onToggle={toggleFormat} />
+        {/* 🔥 FILTER BUTTON */}
+        <button
+          onClick={() => setFiltersOpen(true)}
+          style={{
+            position: "absolute",
+            top: 14,
+            left: 14,
+            zIndex: 1100,
+            padding: "10px 16px",
+            borderRadius: 22,
+            border: "none",
+            background: "#111",
+            color: "#fff",
+            fontSize: 14,
+            fontWeight: 600,
+            boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
+          }}
+        >
+          Filtros
+        </button>
 
-            {/* 🔥 BOUTON FERMER MOBILE */}
-            {isMobile && (
-              <button
-                onClick={() => setFiltersOpen(false)}
-                style={{
-                  marginTop: 6,
-                  alignSelf: "center",
-                  background: "#eee",
-                  border: "none",
-                  borderRadius: 16,
-                  padding: "6px 14px",
-                  fontSize: 12,
-                }}
-              >
-                Cerrar filtros
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* MAP */}
+        {/* 🗺 MAP */}
         <MapView
           activeCategories={activeCategories}
           activeFormats={activeFormats}
+          activeCities={activeCities}
+          activeAmbiances={activeAmbiances}
+          indoorState={indoorState}
           onSelect={(exp: Experience) => {
             setSelectedExperience(exp)
             setDrawerOpen(true)
@@ -151,7 +104,9 @@ export default function MapaPage() {
         />
       </div>
 
-      {/* BOTTOM SHEET UNIQUE */}
+      {/* =========================
+         📦 EXPERIENCE DRAWER
+      ========================= */}
       <BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         {selectedExperience && (
           <ExperienceExploreMeta
@@ -163,6 +118,30 @@ export default function MapaPage() {
           />
         )}
       </BottomSheet>
+
+      {/* =========================
+         🧩 FILTERS LEFT DRAWER (80%)
+      ========================= */}
+      <FiltersDrawer
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+
+        cities={["Bogotá", "Medellín", "Cartagena"]}
+        activeCities={activeCities}
+        toggleCity={(c) => toggleArray(c, activeCities, setActiveCities)}
+
+        activeCategories={activeCategories}
+        toggleCategory={(c) => toggleArray(c, activeCategories, setActiveCategories)}
+
+        activeFormats={activeFormats}
+        toggleFormat={(f) => toggleArray(f, activeFormats, setActiveFormats)}
+
+        activeAmbiances={activeAmbiances}
+        toggleAmbiance={(a) => toggleArray(a, activeAmbiances, setActiveAmbiances)}
+
+        indoorState={indoorState}
+        setIndoorState={setIndoorState}
+      />
     </>
   )
 }

@@ -1,9 +1,18 @@
-"use client";
+"use client"
+
+import { Format } from "@/lib/data/types"
+import { Users } from "lucide-react"
 
 type Props = {
-  active: ("solo" | "duo")[];
-  onToggle: (format: "solo" | "duo") => void;
-};
+  active: Format[]
+  onToggle: (format: Format) => void
+}
+
+const options: { key: Format; label: string }[] = [
+  { key: "solo", label: "Para uno" },
+  { key: "duo", label: "Para dos" },
+  { key: "familia", label: "En familia" },
+]
 
 export default function FormatFilters({ active, onToggle }: Props) {
   return (
@@ -11,33 +20,41 @@ export default function FormatFilters({ active, onToggle }: Props) {
       style={{
         display: "flex",
         gap: 8,
-        whiteSpace: "nowrap",
+        overflowX: "auto",
+        padding: "4px 0",
       }}
     >
-      {[
-        { key: "solo", label: "Para uno" },
-        { key: "duo", label: "Para dos" },
-      ].map((f) => {
-        const isActive = active.includes(f.key as any);
+      {options.map((f) => {
+        const isActive = active.includes(f.key)
 
         return (
           <button
             key={f.key}
-            onClick={() => onToggle(f.key as any)}
+            onClick={() => onToggle(f.key)}
             style={{
-              padding: "6px 10px",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "7px 14px",
               fontSize: 13,
-              borderRadius: 16,
+              borderRadius: 18,
               cursor: "pointer",
               border: "none",
-              background: isActive ? "#111" : "#f1f1f1",
-              color: isActive ? "white" : "#333",
+              whiteSpace: "nowrap",
+              fontWeight: 500,
+              background: isActive ? "#111" : "#F2F2F2",
+              color: isActive ? "white" : "#444",
+              boxShadow: isActive
+                ? "0 4px 10px rgba(0,0,0,0.15)"
+                : "none",
+              transition: "all 0.2s ease",
             }}
           >
+            <Users size={14} />
             {f.label}
           </button>
-        );
+        )
       })}
     </div>
-  );
+  )
 }

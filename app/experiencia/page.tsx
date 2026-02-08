@@ -2,24 +2,41 @@
 
 import { useEffect, useState } from "react"
 import { MapPin, Calendar, Clock, Phone, CheckCircle } from "lucide-react"
+import { fetchExperiences } from "@/lib/data/fetchExperiences"
 
 export default function ExperienciaPage() {
   const [booking, setBooking] = useState<any>(null)
+  const [experience, setExperience] = useState<any>(null)
 
   useEffect(() => {
     const stored = localStorage.getItem("currentBooking")
     if (stored) setBooking(JSON.parse(stored))
   }, [])
 
-  if (!booking) {
+  /* Charger la vraie expérience */
+  useEffect(() => {
+    if (!booking?.experienceId) return
+
+    fetchExperiences().then((list) => {
+      const found = list.find((e) => e.id === booking.experienceId)
+      if (found) setExperience(found)
+    })
+  }, [booking])
+
+  /* Sécurité */
+  if (!booking || !experience) {
     return (
       <div style={{ padding: 24, minHeight: "100vh", background: "#FAF8F5" }}>
-        Cargando...
+        Cargando experiencia...
       </div>
     )
   }
 
-  const exp = booking.experience
+  const isConfirmed =
+    booking.status === "confirmed" || booking.status === "done"
+
+  // 🔥 id = nom du prestataire
+  const providerName = experience.id
 
   return (
     <div
@@ -32,16 +49,10 @@ export default function ExperienciaPage() {
       <h1 style={{ fontSize: 26, marginBottom: 16 }}>Tu experiencia</h1>
 
       {/* IMAGE */}
-      <div
-        style={{
-          borderRadius: 18,
-          overflow: "hidden",
-          marginBottom: 18,
-        }}
-      >
+      <div style={{ borderRadius: 18, overflow: "hidden", marginBottom: 18 }}>
         <img
-          src={exp.image}
-          alt={exp.title}
+          src={experience.image}
+          alt={experience.title}
           style={{ width: "100%", height: 200, objectFit: "cover" }}
         />
       </div>
@@ -56,9 +67,16 @@ export default function ExperienciaPage() {
           marginBottom: 20,
         }}
       >
-        <h2 style={{ marginTop: 0 }}>{exp.title}</h2>
+        <h2 style={{ marginTop: 0 }}>{experience.title}</h2>
 
-        <InfoRow icon={MapPin} value={exp.zone} />
+        {/* 🔥 PRESTATAIRE visible seulement après confirmation */}
+        {isConfirmed && (
+          <div style={{ fontSize: 14, color: "#555", marginBottom: 6 }}>
+            Prestador: {providerName}
+          </div>
+        )}
+
+        <InfoRow icon={MapPin} value={experience.zone} />
         <InfoRow icon={Calendar} value={booking.date} />
         <InfoRow icon={Clock} value={booking.time} />
       </div>
@@ -72,7 +90,7 @@ export default function ExperienciaPage() {
 
       {/* VIVANOTE */}
       <Section title="Recomendación Vivabox">
-        <p style={{ margin: 0, color: "#555" }}>{exp.vivanote}</p>
+        <p style={{ margin: 0, color: "#555" }}>{experience.vivanote}</p>
       </Section>
 
       {/* AYUDA */}
@@ -99,9 +117,13 @@ export default function ExperienciaPage() {
             color: "#fff",
             border: "none",
             fontSize: 15,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
           }}
         >
-          <Phone size={16} style={{ marginRight: 6 }} />
+          <Phone size={16} />
           Hablar con Mariana
         </button>
       </div>
@@ -113,15 +135,7 @@ export default function ExperienciaPage() {
 
 function InfoRow({ icon: Icon, value }: any) {
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 8,
-        alignItems: "center",
-        marginBottom: 6,
-        color: "#555",
-      }}
-    >
+    <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6, color: "#555" }}>
       <Icon size={16} strokeWidth={2} />
       <span>{value}</span>
     </div>
@@ -139,15 +153,7 @@ function Section({ title, children }: any) {
 
 function Bullet({ children }: any) {
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 8,
-        alignItems: "flex-start",
-        marginBottom: 6,
-        color: "#555",
-      }}
-    >
+    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 6, color: "#555" }}>
       <CheckCircle size={16} />
       <span>{children}</span>
     </div>

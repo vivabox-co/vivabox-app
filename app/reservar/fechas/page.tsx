@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useUI } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
+import { Calendar, Clock, Users, Phone, MessageSquare } from "lucide-react"
 
 export default function FechasPage() {
   const {
@@ -19,14 +20,10 @@ export default function FechasPage() {
   const [time, setTime] = useState("")
   const [people, setPeople] = useState(1)
   const [phone, setPhone] = useState("")
+  const [notes, setNotes] = useState("")
 
-  const [alt1Date, setAlt1Date] = useState("")
-  const [alt1Time, setAlt1Time] = useState("")
-  const [alt2Date, setAlt2Date] = useState("")
-  const [alt2Time, setAlt2Time] = useState("")
-
-  const [showAlt1, setShowAlt1] = useState(false)
-  const [showAlt2, setShowAlt2] = useState(false)
+  const [altDate, setAltDate] = useState("")
+  const [altTime, setAltTime] = useState("")
 
   useEffect(() => {
     setHideNav(true)
@@ -34,51 +31,56 @@ export default function FechasPage() {
   }, [setHideNav])
 
   if (!selectedExperience) {
-    return (
-      <div style={{ padding: 20 }}>
-        <p>No hay experiencia seleccionada.</p>
-        <button onClick={() => router.push("/")}>Volver</button>
-      </div>
-    )
+    return <div style={{ padding: 20 }}>No hay experiencia seleccionada.</div>
   }
 
-  // 🔒 TS SAFE
-  const experience = selectedExperience
+  const exp = selectedExperience
 
   function handleSubmit() {
-    if (!date || !time || !phone) {
-      alert("Completa los campos obligatorios")
+    if (!date || !time) {
+      alert("Completa fecha y hora")
       return
     }
 
-    // 🔥 Enregistre globalement pour confirmación
+    if (exp.needsPhone && !phone) {
+      alert("Necesitamos tu teléfono")
+      return
+    }
+
+    if (exp.needsPeopleCount && people < 1) {
+      alert("Indica al menos 1 persona")
+      return
+    }
+
     setSelectedDate(date)
     setSelectedTime(time)
 
-    const bookingData = {
-      experienceId: experience.id,
-      primary: { date, time },
-      alt1: alt1Date ? { date: alt1Date, time: alt1Time } : null,
-      alt2: alt2Date ? { date: alt2Date, time: alt2Time } : null,
-      people,
-      phone,
+    const bookingObject = {
+      id: Date.now().toString(),
+      experienceId: exp.id,
+      experienceSnapshot: {
+        title: exp.title,
+        image: exp.image,
+        zone: exp.zone,
+        duration: exp.duration,
+        providerName: exp.id, // 🔥 id = nombre del presta (según tu sheet)
+      },
+      date,
+      time,
+      altDate: altDate || null,
+      altTime: altTime || null,
+      people: exp.needsPeopleCount ? people : 1,
+      phone: exp.needsPhone ? phone : null,
+      notes,
+      status: "requested",
     }
 
-    console.log("BOOKING:", bookingData)
-
+    localStorage.setItem("currentBooking", JSON.stringify(bookingObject))
     router.push("/reservar/fechas/confirmacion")
   }
 
   return (
-    <div
-      style={{
-        padding: 16,
-        height: "100vh",
-        overflowY: "auto",
-        WebkitOverflowScrolling: "touch",
-        paddingBottom: "120px",
-      }}
-    >
+    <div style={{ padding: 16, paddingBottom: 120 }}>
       {/* BACK */}
       <button
         onClick={() => {
@@ -86,177 +88,117 @@ export default function FechasPage() {
           setDrawerOpen(true)
           router.push("/mapa")
         }}
-        style={{
-          background: "none",
-          border: "none",
-          fontSize: 22,
-          marginBottom: 10,
-          cursor: "pointer",
-        }}
       >
         ←
       </button>
 
+      {/* HERO */}
       <img
-        src={experience.image}
-        alt={experience.title}
+        src={exp.image}
+        alt={exp.title}
         style={{ width: "100%", borderRadius: 12 }}
       />
+      <h2 style={{ marginTop: 12 }}>{exp.title}</h2>
 
-      <h2 style={{ marginTop: 12 }}>{experience.title}</h2>
-      <p style={{ opacity: 0.6 }}>{experience.zone}</p>
+      <p style={{ marginTop: 8, color: "#555" }}>
+        Proponé la fecha que más te convenga. Nosotros coordinamos todo.
+      </p>
 
-      <div style={{ marginTop: 24 }}>
-        <h3>Proponé tu fecha ideal</h3>
-        <p style={{ fontSize: 14, opacity: 0.6 }}>
-          Vivabox coordina la disponibilidad con el lugar.
+      {/* FECHA PRINCIPAL */}
+      <h3 style={{ marginTop: 28 }}>Fecha principal</h3>
+
+      <Label icon={Calendar} text="Fecha *" />
+      <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+
+      <Label icon={Clock} text="Hora *" />
+      <select value={time} onChange={e => setTime(e.target.value)}>
+        <option value="">Seleccionar</option>
+        <option>08:00</option>
+        <option>10:00</option>
+        <option>12:00</option>
+        <option>14:00</option>
+        <option>16:00</option>
+        <option>18:00</option>
+      </select>
+
+      {/* ALTERNATIVA */}
+      <h3 style={{ marginTop: 28 }}>Fecha alternativa (opcional)</h3>
+      <input type="date" value={altDate} onChange={e => setAltDate(e.target.value)} />
+      <select value={altTime} onChange={e => setAltTime(e.target.value)}>
+        <option value="">Hora alternativa</option>
+        <option>08:00</option>
+        <option>10:00</option>
+        <option>12:00</option>
+        <option>14:00</option>
+        <option>16:00</option>
+        <option>18:00</option>
+      </select>
+
+      {/* PERSONAS */}
+      {exp.needsPeopleCount && (
+        <>
+          <Label icon={Users} text="¿Cuántas personas asistirán?" />
+          <input
+            type="number"
+            min={1}
+            value={people}
+            onChange={e => setPeople(Number(e.target.value))}
+          />
+        </>
+      )}
+
+      {exp.extraPeopleOption?.allowed && (
+        <p style={{ marginTop: 10, fontSize: 13, color: "#666" }}>
+          {exp.extraPeopleOption.note}
         </p>
-      </div>
-
-      <div style={{ marginTop: 20 }}>
-        <label>Fecha *</label>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          style={{ width: "100%", padding: 10, marginTop: 6 }}
-        />
-      </div>
-
-      <div style={{ marginTop: 16 }}>
-        <label>Hora de inicio *</label>
-        <select
-          value={time}
-          onChange={(e) => setTime(e.target.value)}
-          style={{ width: "100%", padding: 10, marginTop: 6 }}
-        >
-          <option value="">Seleccionar</option>
-          <option>08:00</option>
-          <option>10:00</option>
-          <option>12:00</option>
-          <option>14:00</option>
-          <option>16:00</option>
-          <option>18:00</option>
-        </select>
-      </div>
-
-      {!showAlt1 && (
-        <button
-          onClick={() => setShowAlt1(true)}
-          style={{
-            marginTop: 16,
-            background: "none",
-            border: "none",
-            fontSize: 14,
-            cursor: "pointer",
-          }}
-        >
-          + Agregar otra fecha
-        </button>
       )}
 
-      {showAlt1 && (
+      {/* TELÉFONO */}
+      {exp.needsPhone && (
         <>
-          <h4 style={{ marginTop: 24 }}>Fecha alternativa 1</h4>
-          <input
-            type="date"
-            value={alt1Date}
-            onChange={(e) => setAlt1Date(e.target.value)}
-            style={{ width: "100%", padding: 10, marginTop: 8 }}
-          />
-          <select
-            value={alt1Time}
-            onChange={(e) => setAlt1Time(e.target.value)}
-            style={{ width: "100%", padding: 10, marginTop: 8 }}
-          >
-            <option value="">Hora</option>
-            <option>08:00</option>
-            <option>10:00</option>
-            <option>12:00</option>
-            <option>14:00</option>
-            <option>16:00</option>
-            <option>18:00</option>
-          </select>
-
-          {!showAlt2 && (
-            <button
-              onClick={() => setShowAlt2(true)}
-              style={{
-                marginTop: 16,
-                background: "none",
-                border: "none",
-                fontSize: 14,
-                cursor: "pointer",
-              }}
-            >
-              + Agregar otra fecha
-            </button>
-          )}
+          <Label icon={Phone} text="Teléfono *" />
+          <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} />
         </>
       )}
 
-      {showAlt2 && (
-        <>
-          <h4 style={{ marginTop: 24 }}>Fecha alternativa 2</h4>
-          <input
-            type="date"
-            value={alt2Date}
-            onChange={(e) => setAlt2Date(e.target.value)}
-            style={{ width: "100%", padding: 10, marginTop: 8 }}
-          />
-          <select
-            value={alt2Time}
-            onChange={(e) => setAlt2Time(e.target.value)}
-            style={{ width: "100%", padding: 10, marginTop: 8 }}
-          >
-            <option value="">Hora</option>
-            <option>08:00</option>
-            <option>10:00</option>
-            <option>12:00</option>
-            <option>14:00</option>
-            <option>16:00</option>
-            <option>18:00</option>
-          </select>
-        </>
-      )}
+      {/* NOTAS */}
+      <Label icon={MessageSquare} text="¿Algo que debamos tener en cuenta?" />
+      <textarea
+        value={notes}
+        onChange={e => setNotes(e.target.value)}
+        placeholder="Alergias, celebración, movilidad reducida..."
+      />
 
-      <div style={{ marginTop: 16 }}>
-        <label>Número de personas *</label>
-        <input
-          type="number"
-          min={1}
-          value={people}
-          onChange={(e) => setPeople(Number(e.target.value))}
-          style={{ width: "100%", padding: 10, marginTop: 6 }}
-        />
-      </div>
+      <p style={{ marginTop: 18, fontSize: 13, color: "#666" }}>
+        Te confirmaremos la experiencia en menos de 48 horas.
+      </p>
 
-      <div style={{ marginTop: 16 }}>
-        <label>Teléfono *</label>
-        <input
-          type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          style={{ width: "100%", padding: 10, marginTop: 6 }}
-        />
-      </div>
+      <button
+        onClick={handleSubmit}
+        style={{
+          marginTop: 32,
+          width: "100%",
+          padding: 14,
+          borderRadius: 12,
+          background: "#111",
+          color: "white",
+          border: "none",
+          fontSize: 16,
+        }}
+      >
+        Enviar solicitud
+      </button>
+    </div>
+  )
+}
 
-      <div style={{ marginTop: 32 }}>
-        <button
-          onClick={handleSubmit}
-          style={{
-            width: "100%",
-            padding: 14,
-            borderRadius: 12,
-            background: "#111",
-            color: "white",
-            border: "none",
-            fontSize: 16,
-          }}
-        >
-          Enviar solicitud
-        </button>
-      </div>
+/* UI small components */
+
+function Label({ icon: Icon, text }: any) {
+  return (
+    <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 14 }}>
+      <Icon size={16} />
+      <label>{text}</label>
     </div>
   )
 }

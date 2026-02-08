@@ -1,137 +1,74 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, Check } from "lucide-react"
+import { Check, X } from "lucide-react"
 import { categoryColors } from "@/lib/map/categoryColors"
 
+export type BookingStatus =
+  | "requested"
+  | "waiting_provider"
+  | "confirmed"
+  | "rejected"
+  | "done"
+
 const steps = [
-  "Recibimos tu solicitud",
-  "Estamos coordinando tu experiencia",
-  "Fecha confirmada",
-  "Todo listo para disfrutar",
-  "Cuéntanos cómo te fue",
+  { key: "requested", label: "Recibimos tu solicitud" },
+  { key: "waiting_provider", label: "Estamos coordinando tu experiencia" },
+  { key: "confirmed", label: "Fecha confirmada" },
+  { key: "done", label: "Todo listo para disfrutar" },
 ]
 
 type Props = {
-  step: number
-  setStep: (s: number) => void
+  status: BookingStatus
   category: string
 }
 
-// 🔥 timestamps simulés
-function generateTimes() {
-  const base = new Date("2026-02-05T11:54:00")
-  return steps.map((_, i) => {
-    const d = new Date(base.getTime() + i * 74 * 60000)
-    const month = d.toLocaleString("en-US", { month: "short" }).toUpperCase()
-    const day = d.getDate()
-    const time = d.toLocaleString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    }).toLowerCase()
-    return { monthDay: `${month} ${day}`, time }
-  })
-}
-
-export default function BookingTimeline({ step, setStep, category }: Props) {
+export default function BookingTimeline({ status, category }: Props) {
   const color = categoryColors[category] || "#111"
-  const times = generateTimes()
-
-  const prev = () => setStep(Math.max(1, step - 1))
-  const next = () => setStep(Math.min(5, step + 1))
+  const currentIndex = steps.findIndex((s) => s.key === status)
 
   return (
-    <div style={{ marginTop: 30, position: "relative" }}>
-      {/* DEBUG NAV */}
-      <div style={{ position: "absolute", right: 0, top: -8, opacity: 0.35 }}>
-        <button onClick={prev}><ChevronLeft size={20} /></button>
-        <button onClick={next}><ChevronRight size={20} /></button>
-      </div>
+    <div style={{ marginTop: 30 }}>
+      <h3 style={{ fontSize: 18, marginBottom: 20 }}>Estado de tu reserva</h3>
 
-      <h3 style={{ fontSize: 18, marginBottom: 20 }}>Progreso de tu reserva</h3>
+      {status === "rejected" && (
+        <div style={{
+          padding: "10px 14px",
+          background: "#FDECEA",
+          color: "#B42318",
+          borderRadius: 12,
+          marginBottom: 18,
+          fontSize: 14,
+        }}>
+          <X size={14} style={{ marginRight: 6 }} />
+          No pudimos confirmar la fecha solicitada. Te ayudaremos a encontrar una alternativa.
+        </div>
+      )}
 
-      <div style={{ position: "relative" }}>
-        {/* LIGNE CENTRÉE SUR LES POINTS */}
-        <div
-          style={{
-            position: "absolute",
-            left: 58 + 11 + 9, // 96 = date zone, +9 = centre du cercle 18px
-            top: 0,
-            bottom: 0,
-            width: 2,
-            background: "#E6E1D9",
-          }}
-        />
+      {steps.map((step, i) => {
+        const reached = i <= currentIndex
 
-        {steps.map((label, i) => {
-          const index = i + 1
-          const completed = index < step
-          const current = index === step
-          const reached = index <= step
-          const t = times[i]
-
-          return (
+        return (
+          <div key={step.key} style={{ display: "flex", gap: 14, marginBottom: 20 }}>
             <div
-              key={i}
               style={{
+                width: 18,
+                height: 18,
+                borderRadius: "50%",
+                background: reached ? color : "#E8E3DC",
                 display: "flex",
-                alignItems: "flex-start",
-                marginBottom: 28,
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              {/* DATE À GAUCHE (UNIQUEMENT SI ÉTAPE ATTEINTE) */}
-              <div style={{ width: 58, textAlign: "right", marginRight: 12 }}>
-                {reached && (
-                  <>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#666" }}>
-                      {t.monthDay}
-                    </div>
-                    <div style={{ fontSize: 11, color: "#999" }}>
-                      {t.time}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* POINT */}
-              <div
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: "50%",
-                  marginRight: 14,
-                  background: completed ? color : current ? "#fff" : "#E8E3DC",
-                  border: current ? `2px solid ${color}` : "none",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: current ? `0 0 0 4px ${color}20` : "none",
-                  zIndex: 2,
-                }}
-              >
-                {(completed || current) && (
-    <Check
-      size={12}
-      strokeWidth={3}
-      color={completed ? "white" : color}
-    />
-  )}
-</div>
-              {/* TEXTE */}
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{
-                    fontSize: current ? 17 : 14,
-                    fontWeight: current ? 700 : 500,
-                    color: completed || current ? "#111" : "#9A9A9A",
-                  }}
-                >
-                  {label}
-                </div>
-              </div>
+              {reached && <Check size={12} color="white" />}
             </div>
-          )
-        })}
-      </div>
+
+            <div style={{ color: reached ? "#111" : "#999" }}>
+              {step.label}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

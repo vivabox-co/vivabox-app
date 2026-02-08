@@ -4,7 +4,7 @@ import { Experience } from "@/lib/data/types"
 import { Heart } from "lucide-react"
 
 type Props = {
-  exp: Experience
+  exp?: Experience | null
   onClick: () => void
   isFavorite: boolean
   onToggleFavorite: () => void
@@ -16,6 +16,9 @@ export default function ListCard({
   isFavorite,
   onToggleFavorite,
 }: Props) {
+  // 🔒 Protection contre données non chargées
+  if (!exp) return null
+
   return (
     <div
       onClick={onClick}

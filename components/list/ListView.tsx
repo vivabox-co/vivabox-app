@@ -2,180 +2,150 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
-import { Experience } from "@/lib/data/types"
-import CategoryFilters from "@/components/map/CategoryFilters"
-import FormatFilters from "@/components/map/FormatFilters"
+import { Experience, Category, Format } from "@/lib/data/types"
 import { useUI } from "@/components/ui/UIContext"
 import { Heart } from "lucide-react"
 import { categoryColors } from "@/lib/map/categoryColors"
 
 type Props = {
   onSelect: (exp: Experience) => void
+  activeCategories: Category[]
+  activeFormats: Format[]
+  activeCities: string[]
+  activeAmbiances: string[]
+  indoorState: "indoor" | "outdoor" | "any"
+  searchQuery: string   // 🔥 vient maintenant du haut (ListaPage)
 }
 
-export default function ListView({ onSelect }: Props) {
+export default function ListView({
+  onSelect,
+  activeCategories,
+  activeFormats,
+  activeCities = [],
+  activeAmbiances = [],
+  indoorState = "any",
+  searchQuery,
+}: Props) {
   const [experiences, setExperiences] = useState<Experience[]>([])
-  const [activeCategories, setActiveCategories] = useState<string[]>([
-    "gastro", "bienestar", "aventura", "cultura", "estancias",
-  ])
-  const [activeFormats, setActiveFormats] = useState<("solo" | "duo")[]>([
-    "solo", "duo",
-  ])
-
   const { favorites, toggleFavorite } = useUI()
 
   useEffect(() => {
     fetchExperiences().then(setExperiences)
   }, [])
 
-  function toggleCategory(key: string) {
-    setActiveCategories(prev =>
-      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-    )
-  }
+  const query = searchQuery.toLowerCase().trim()
 
-  function toggleFormat(format: "solo" | "duo") {
-    setActiveFormats(prev =>
-      prev.includes(format) ? prev.filter(f => f !== format) : [...prev, format]
-    )
-  }
-
+  /* 🔥 MOTEUR FILTRAGE UNIQUE VIVABOX */
   const filtered = useMemo(() => {
-    const sorted = experiences
-      .filter(exp =>
-        activeCategories.includes(exp.category) &&
-        activeFormats.includes(exp.format)
-      )
-      .sort((a, b) => a.title.localeCompare(b.title))
+    return experiences.filter((exp) => {
+      if (!activeCategories.includes(exp.category)) return false
+      if (!activeFormats.includes(exp.format)) return false
+      if (activeCities.length && !activeCities.includes(exp.zone)) return false
+      if (activeAmbiances.length && !exp.ambiance?.some(a => activeAmbiances.includes(a))) return false
+      if (indoorState !== "any" && exp.environment !== indoorState) return false
 
+      if (query) {
+        const haystack =
+          `${exp.title} ${exp.zone} ${exp.shortDescription ?? ""} ${exp.vivanote ?? ""}`.toLowerCase()
+        if (!haystack.includes(query)) return false
+      }
+
+      return true
+    })
+  }, [experiences, activeCategories, activeFormats, activeCities, activeAmbiances, indoorState, query])
+
+  /* 🔁 Alternance catégories Vivabox */
+  const ordered = useMemo(() => {
+    const sorted = [...filtered].sort((a, b) => a.title.localeCompare(b.title))
     const groups: Record<string, Experience[]> = {}
-    sorted.forEach(exp => {
+
+    sorted.forEach((exp) => {
       if (!groups[exp.category]) groups[exp.category] = []
       groups[exp.category].push(exp)
     })
 
+    const order: Category[] = ["gastro","bienestar","aventura","cultura","estancias"]
     const result: Experience[] = []
-    const cats = Object.keys(groups)
-    let remaining = true
 
+    let remaining = true
     while (remaining) {
       remaining = false
-      for (const c of cats) {
-        if (groups[c]?.length) {
-          result.push(groups[c].shift()!)
+      for (const cat of order) {
+        if (groups[cat]?.length) {
+          result.push(groups[cat].shift()!)
           remaining = true
         }
       }
     }
 
     return result
-  }, [experiences, activeCategories, activeFormats])
+  }, [filtered])
 
   return (
-    <div style={{ paddingBottom: 80 }}>
-      {/* FILTRES */}
-      <div style={{
-        position: "sticky",
-        top: 0,
-        background: "#fff",
-        padding: "12px 12px 8px",
-        zIndex: 10,
-      }}>
-        <CategoryFilters active={activeCategories} onToggle={toggleCategory} />
-        <div style={{ marginTop: 8 }}>
-          <FormatFilters active={activeFormats} onToggle={toggleFormat} />
-        </div>
-      </div>
+    <div style={{ padding: "0 12px 90px" }}>
+      {ordered.map((exp) => {
+        const isFav = favorites.includes(exp.id)
 
-      {/* LISTE */}
-      <div style={{ padding: "0 12px" }}>
-        {filtered.map(exp => {
-          const isFav = favorites.includes(exp.id)
+        return (
+          <div
+            key={exp.id}
+            onClick={() => onSelect(exp)}
+            style={{
+              display: "flex",
+              marginBottom: 12,
+              borderRadius: 18,
+              overflow: "hidden",
+              boxShadow: "0 6px 16px rgba(0,0,0,0.06)",
+              background: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            {/* Bande catégorie */}
+            <div style={{ width: 6, background: categoryColors[exp.category] }} />
 
-          return (
-            <div
-              key={exp.id}
-              onClick={() => onSelect(exp)}
-              style={{
-                display: "flex",
-                marginBottom: 10,
-                borderRadius: 18,
-                overflow: "hidden",
-                boxShadow: "0 6px 16px rgba(0,0,0,0.06)",
-                background: "#fff",
-                cursor: "pointer",
-              }}
-            >
-              {/* Bande catégorie */}
-              <div style={{
-                width: 6,
-                background: categoryColors[exp.category],
-              }} />
+            <img
+              src={exp.image}
+              alt={exp.title}
+              style={{ width: 150, height: 150, objectFit: "cover" }}
+            />
 
-              {/* IMAGE */}
-              <img
-                src={exp.image || "/images/placeholder.jpg"}
-                alt={exp.title}
-                style={{
-                  width: 160,
-                  height: 160,
-                  objectFit: "cover",
-                  flexShrink: 0,
-                }}
-              />
+            <div style={{
+              flex: 1,
+              padding: "14px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between"
+            }}>
+              <strong style={{ fontSize: 17 }}>{exp.title}</strong>
+              <div style={{ fontSize: 14, opacity: 0.65 }}>{exp.zone}</div>
 
-              {/* CONTENU */}
-              <div style={{
-                flex: 1,
-                padding: "14px 14px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-              }}>
-                {/* TITRE */}
-                <strong style={{
-                  fontSize: 18,
-                  lineHeight: 1.25,
-                }}>
-                  {exp.title}
-                </strong>
-
-                {/* ZONE */}
-                <div style={{ fontSize: 15, opacity: 0.6 }}>
-                  {exp.zone}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: 14 }}>
+                  {exp.format === "duo"
+                    ? "Para dos"
+                    : exp.format === "familia"
+                    ? "En familia"
+                    : "Para uno"}
                 </div>
 
-                {/* LIGNE BAS (format + coeur) */}
-                <div style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginTop: 6,
-                }}>
-                  <div style={{ fontSize: 15 }}>
-                    {exp.format === "duo" ? "Para dos" : "Para uno"}
-                  </div>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      toggleFavorite(exp.id)
-                    }}
-                    style={{ background: "none", border: "none" }}
-                  >
-                    <Heart
-                      size={22}
-                      strokeWidth={2}
-                      color={isFav ? "#ff4d8d" : "#bbb"}
-                      fill={isFav ? "#ff4d8d" : "none"}
-                    />
-                  </button>
-                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleFavorite(exp.id)
+                  }}
+                  style={{ background: "none", border: "none" }}
+                >
+                  <Heart
+                    size={22}
+                    color={isFav ? "#ff4d8d" : "#bbb"}
+                    fill={isFav ? "#ff4d8d" : "none"}
+                  />
+                </button>
               </div>
             </div>
-          )
-        })}
-      </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

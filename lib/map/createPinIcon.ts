@@ -1,4 +1,4 @@
-import L from "leaflet"
+/* ⚠️ IMPORTANT : ne PAS importer Leaflet en haut */
 import { getActivityIcon } from "./getActivityIcon"
 
 export function createPinIcon(
@@ -6,6 +6,10 @@ export function createPinIcon(
   activityKey: string,
   isFavorite: boolean
 ) {
+  /* 🧠 Empêche exécution côté serveur */
+  if (typeof window === "undefined") return undefined as any
+
+  const L = require("leaflet") // ← import dynamique côté client uniquement
   const iconSrc = getActivityIcon(activityKey)
 
   return L.divIcon({
