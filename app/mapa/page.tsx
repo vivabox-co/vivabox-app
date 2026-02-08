@@ -156,51 +156,45 @@ export default function MapaPage() {
       </BottomSheet>
 
       <FiltersDrawer
-        open={filtersOpen}
-        onClose={() => setFiltersOpen(false)}
-        resultCount={filteredExperiences.length}
-        onReset={resetFilters}
-        activityFilters={activityFilters}
+  open={filtersOpen}
+  onClose={() => setFiltersOpen(false)}
+  resultCount={filteredExperiences.length}
+  onReset={resetFilters}
+  activityFilters={activityFilters}
 
-        activeActivities={activeActivities}
-        toggleActivity={(id: ActivityKey) =>
-          setActiveActivities((prev) =>
-            prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
-          )
-        }
+  activeActivities={activeActivities}
+  setActiveActivities={setActiveActivities}   // ✅ AJOUTER
+  toggleActivity={(id: ActivityKey) =>
+    setActiveActivities(prev =>
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    )
+  }
 
-        cities={availableCities}
-        activeCities={activeCities}
-        toggleCity={(c: string) =>
-          setActiveCities((prev) =>
-            prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
-          )
-        }
+  cities={availableCities}
+  activeCities={activeCities}
+  toggleCity={(c: string) =>
+    setActiveCities(prev =>
+      prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]
+    )
+  }
 
-        activeCategories={activeCategories}
-        toggleCategory={(c: Category) =>
-          setActiveCategories((prev) =>
-            prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
-          )
-        }
+  activeFormats={activeFormats}
+  toggleFormat={(f: Format) =>
+    setActiveFormats(prev =>
+      prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]
+    )
+  }
 
-        activeFormats={activeFormats}
-        toggleFormat={(f: Format) =>
-          setActiveFormats((prev) =>
-            prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]
-          )
-        }
+  activeAmbiances={activeAmbiances}
+  toggleAmbiance={(a: string) =>
+    setActiveAmbiances(prev =>
+      prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]
+    )
+  }
 
-        activeAmbiances={activeAmbiances}
-        toggleAmbiance={(a: string) =>
-          setActiveAmbiances((prev) =>
-            prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]
-          )
-        }
-
-        indoorState={indoorState}
-        setIndoorState={setIndoorState}
-      />
+  indoorState={indoorState}
+  setIndoorState={setIndoorState}
+/>
     </>
   )
 }

@@ -6,7 +6,9 @@ import { Category, Format, ActivityKey } from "@/lib/data/types"
 import { categoryColors } from "@/lib/map/categoryColors"
 import { getActivityIcon } from "@/lib/map/getActivityIcon"
 
-type ActivityFilterGroup = {
+/* ================= TYPES ================= */
+
+export type ActivityFilterGroup = {
   category: Category
   activities: ActivityKey[]
 }
@@ -17,16 +19,14 @@ type Props = {
   resultCount: number
   onReset: () => void
 
-  activityFilters: ActivityFilterGroup[]   // 🔥 dynamic from sheet
+  activityFilters: ActivityFilterGroup[]
   activeActivities: ActivityKey[]
+  setActiveActivities: (v: ActivityKey[]) => void
   toggleActivity: (id: ActivityKey) => void
 
   cities?: string[]
   activeCities: string[]
   toggleCity: (c: string) => void
-
-  activeCategories: Category[]
-  toggleCategory: (c: Category) => void
 
   activeFormats: Format[]
   toggleFormat: (f: Format) => void
@@ -38,6 +38,8 @@ type Props = {
   setIndoorState: (v: "indoor" | "outdoor" | "any") => void
 }
 
+/* ================= COMPONENT ================= */
+
 export default function FiltersDrawer({
   open,
   onClose,
@@ -45,12 +47,11 @@ export default function FiltersDrawer({
   onReset,
   activityFilters,
   activeActivities,
+  setActiveActivities,
   toggleActivity,
   cities = [],
   activeCities,
   toggleCity,
-  activeCategories,
-  toggleCategory,
   activeFormats,
   toggleFormat,
   activeAmbiances = [],
@@ -72,79 +73,128 @@ export default function FiltersDrawer({
       <Backdrop onClick={onClose} />
 
       <div style={drawerStyle}>
-        {/* HEADER */}
         <Header onClose={onClose} />
 
-        {/* 🎯 ACTIVITIES BY CATEGORY */}
-        {activityFilters.map(group => (
-          <Section
-            key={group.category}
-            title={categoryLabel(group.category)}
-            color={categoryColors[group.category]}
-            defaultOpen
-          >
-            {group.activities.map(act => (
-              <ActivityChip
-                key={act}
-                active={activeActivities.includes(act)}
-                onClick={() => toggleActivity(act)}
-                icon={getActivityIcon(act)}
-                color={categoryColors[group.category]}
-              >
-                {formatActivityLabel(act)}
-              </ActivityChip>
-            ))}
-          </Section>
-        ))}
+        {/* ================= CATEGORÍA ================= */}
+        <MainSection title="Categoría">
+          {activityFilters.map(group => (
+            <CategorySubSection
+              key={group.category}
+              category={group.category}
+              activities={group.activities}
+              activeActivities={activeActivities}
+              setActiveActivities={setActiveActivities}
+            >
+              {group.activities.map(act => (
+                <ActivityChip
+                  key={act}
+                  active={activeActivities.includes(act)}
+                  onClick={() => toggleActivity(act)}
+                  icon={getActivityIcon(act)}
+                  color={categoryColors[group.category]}
+                >
+                  {formatActivityLabel(act)}
+                </ActivityChip>
+              ))}
+            </CategorySubSection>
+          ))}
+        </MainSection>
 
-        {/* OTHER FILTERS */}
-        <Section title="Estilo" color="#666">
+        <MainSection title="Estilo">
           {["relax","adrenalina","romántico","social"].map(a => (
             <Chip key={a} active={activeAmbiances.includes(a)} onClick={() => toggleAmbiance(a)}>
               {a}
             </Chip>
           ))}
-        </Section>
+        </MainSection>
 
-        <Section title="Personas" color="#666">
+        <MainSection title="Personas">
           {(["solo","duo","familia"] as Format[]).map(f => (
             <Chip key={f} active={activeFormats.includes(f)} onClick={() => toggleFormat(f)}>
               {f === "solo" ? "Para uno" : f === "duo" ? "Para dos" : "En familia"}
             </Chip>
           ))}
-        </Section>
+        </MainSection>
 
-        <Section title="Ciudad" color="#666">
+        <MainSection title="Ciudad">
           {cities.map(city => (
             <Chip key={city} active={activeCities.includes(city)} onClick={() => toggleCity(city)}>
               {city}
             </Chip>
           ))}
-        </Section>
+        </MainSection>
 
-        <Section title="Ambiente" color="#666">
-          {["any","indoor","outdoor"].map(v => (
-            <Chip key={v} active={indoorState === v} onClick={() => setIndoorState(v as any)}>
+        <MainSection title="Ambiente">
+          {(["any","indoor","outdoor"] as const).map(v => (
+            <Chip key={v} active={indoorState === v} onClick={() => setIndoorState(v)}>
               {v === "any" ? "Indiferente" : v === "indoor" ? "Bajo techo" : "Al aire libre"}
             </Chip>
           ))}
-        </Section>
+        </MainSection>
 
-        <Footer
-          resultCount={resultCount}
-          activeCount={activeCount}
-          onReset={onReset}
-          onClose={onClose}
-        />
+        <Footer resultCount={resultCount} activeCount={activeCount} onReset={onReset} onClose={onClose} />
       </div>
     </>
   )
 }
 
+/* ================= CATEGORY LOGIC ================= */
+
+function CategorySubSection({
+  category,
+  activities,
+  activeActivities,
+  setActiveActivities,
+  children
+}: {
+  category: Category
+  activities: ActivityKey[]
+  activeActivities: ActivityKey[]
+  setActiveActivities: (v: ActivityKey[]) => void
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  const color = categoryColors[category]
+
+  const allActive = activities.every(a => activeActivities.includes(a))
+  const someActive = activities.some(a => activeActivities.includes(a))
+
+  function toggleCategory() {
+    if (allActive) {
+      setActiveActivities(activeActivities.filter(a => !activities.includes(a)))
+    } else {
+      setActiveActivities(Array.from(new Set([...activeActivities, ...activities])))
+    }
+  }
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <button
+        onClick={toggleCategory}
+        style={{
+          ...mainBtnStyle,
+          background: allActive ? color : someActive ? `${color}22` : "#F8F8F8",
+          border: `1px solid ${color}33`,
+          color: allActive ? "#fff" : color,
+        }}
+      >
+        {categoryLabel(category)}
+        <span>{allActive ? "✓" : someActive ? "•" : "+"}</span>
+      </button>
+
+      <button onClick={() => setOpen(!open)} style={{ fontSize: 12, color: "#777", background:"none", border:"none", margin:"6px 4px" }}>
+        {open ? "Ocultar actividades" : "Ver actividades"}
+      </button>
+
+      {open && <div style={sectionBox}>{children}</div>}
+    </div>
+  )
+}
+
 /* ================= UI ================= */
 
-const drawerStyle = {
-  position: "fixed" as const,
+const drawerStyle: React.CSSProperties = {
+  position: "fixed",
   top: 0,
   left: 0,
   width: "82%",
@@ -152,102 +202,84 @@ const drawerStyle = {
   background: "#fff",
   zIndex: 1500,
   padding: 20,
-  overflowY: "auto" as const,
+  overflowY: "auto",
   boxShadow: "8px 0 40px rgba(0,0,0,0.25)",
 }
 
-function Backdrop({ onClick }: any) {
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.15)",
-        backdropFilter: "blur(3px)",
-        zIndex: 1400,
-      }}
-    />
-  )
+function Backdrop({ onClick }: { onClick: () => void }) {
+  return <div onClick={onClick} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.15)", backdropFilter: "blur(3px)", zIndex: 1400 }} />
 }
 
-function Header({ onClose }: any) {
+function Header({ onClose }: { onClose: () => void }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
       <h2 style={{ margin: 0 }}>Filtros</h2>
-      <button onClick={onClose} style={{ border: "none", background: "none" }}>
+      <button onClick={onClose} style={{ background: "none", border: "none" }}>
         <X size={22} />
       </button>
     </div>
   )
 }
 
-function Section({ title, children, color, defaultOpen = false }: any) {
-  const [open, setOpen] = useState(defaultOpen)
+function MainSection({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
 
   return (
-    <div style={{ marginTop: 22 }}>
-      <button
-        onClick={() => setOpen(!open)}
-        style={{
-          background: "none",
-          border: "none",
-          fontSize: 15,
-          fontWeight: 700,
-          color,
-          display: "flex",
-          justifyContent: "space-between",
-          width: "100%",
-          padding: "6px 0",
-          cursor: "pointer",
-        }}
-      >
+    <div style={{ marginTop: 16 }}>
+      <button onClick={() => setOpen(!open)} style={mainBtnStyle}>
         {title}
-        <span>{open ? "−" : "+"}</span>
+        <span style={{ fontSize: 18 }}>{open ? "−" : "+"}</span>
       </button>
-
-      {open && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>{children}</div>}
+      {open && <div style={sectionBox}>{children}</div>}
     </div>
   )
 }
 
-function Chip({ children, active, onClick }: any) {
+const mainBtnStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "14px 16px",
+  borderRadius: 16,
+  border: "1px solid #E5E5E5",
+  background: "#F8F8F8",
+  display: "flex",
+  justifyContent: "space-between",
+  fontWeight: 700,
+  fontSize: 15,
+}
+
+const sectionBox: React.CSSProperties = {
+  marginTop: 10,
+  padding: 12,
+  borderRadius: 14,
+  background: "#FAFAFA",
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+}
+
+function ActivityChip({ children, active, onClick, icon, color }: any) {
   return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: "8px 14px",
-        borderRadius: 20,
-        border: active ? "2px solid #111" : "1px solid #ddd",
-        background: active ? "#111" : "#f2f2f2",
-        color: active ? "#fff" : "#333",
-        cursor: "pointer",
-        fontSize: 13,
-      }}
-    >
+    <button onClick={onClick} style={{
+      display: "flex", alignItems: "center", gap: 8,
+      padding: "8px 14px", borderRadius: 20,
+      border: active ? `2px solid ${color}` : "1px solid #ddd",
+      background: active ? color : "#f2f2f2",
+      color: active ? "#fff" : "#333",
+    }}>
+      <img src={icon} width={18} height={18} />
       {children}
     </button>
   )
 }
 
-function ActivityChip({ children, active, onClick, icon, color }: any) {
+function Chip({ children, active, onClick }: any) {
   return (
-    <button
-      onClick={onClick}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "10px 14px",
-        borderRadius: 22,
-        border: active ? `2px solid ${color}` : "1px solid #ddd",
-        background: active ? color : "#f2f2f2",
-        color: active ? "#fff" : "#333",
-        cursor: "pointer",
-        fontSize: 14,
-      }}
-    >
-      <img src={icon} width={18} height={18} />
+    <button onClick={onClick} style={{
+      padding: "8px 14px", borderRadius: 20,
+      border: active ? "2px solid #111" : "1px solid #ddd",
+      background: active ? "#111" : "#f2f2f2",
+      color: active ? "#fff" : "#333",
+    }}>
       {children}
     </button>
   )
@@ -255,32 +287,48 @@ function ActivityChip({ children, active, onClick, icon, color }: any) {
 
 function Footer({ resultCount, activeCount, onReset, onClose }: any) {
   return (
-    <div style={{ position: "sticky", bottom: 0, background: "#fff", paddingTop: 20, marginTop: 30 }}>
-      {activeCount > 0 && (
-        <div style={{ fontSize: 13, marginBottom: 10 }}>Filtros activos: {activeCount}</div>
-      )}
-      <button onClick={onReset} style={{ width: "100%", padding: 12, marginBottom: 10 }}>
-        Limpiar filtros
-      </button>
-      <button onClick={onClose} style={{ width: "100%", padding: 14, background: "#111", color: "#fff" }}>
-        Mostrar {resultCount} experiencias
-      </button>
+    <div style={footerWrap}>
+      {activeCount > 0 && <div style={{ fontSize: 13 }}>Filtros activos: <strong>{activeCount}</strong></div>}
+      <button onClick={onReset} style={resetBtn}>Limpiar filtros</button>
+      <button onClick={onClose} style={ctaBtn}>Mostrar {resultCount} experiencias</button>
     </div>
   )
 }
 
-/* ================= HELPERS ================= */
-
-function categoryLabel(cat: Category) {
-  return {
-    gastro: "Gastronomía",
-    bienestar: "Bienestar",
-    aventura: "Aventura",
-    cultura: "Cultura",
-    estancias: "Estancias",
-  }[cat]
+const footerWrap: React.CSSProperties = {
+  position: "sticky",
+  bottom: 0,
+  marginTop: 30,
+  padding: "18px 0 10px",
+  background: "linear-gradient(to top, #fff 85%, rgba(255,255,255,0))",
+  display: "flex",
+  flexDirection: "column",
+  gap: 10,
 }
 
-function formatActivityLabel(key: string) {
-  return key.replace(/_/g, " ")
+const resetBtn: React.CSSProperties = {
+  width: "100%",
+  padding: "12px",
+  borderRadius: 14,
+  border: "1px solid #E2E2E2",
+  background: "#F6F6F6",
+  fontWeight: 600,
+}
+
+const ctaBtn: React.CSSProperties = {
+  width: "100%",
+  padding: "15px",
+  borderRadius: 16,
+  border: "none",
+  background: "#111",
+  color: "#fff",
+  fontWeight: 700,
+}
+
+function categoryLabel(cat: Category) {
+  return { gastro:"Gastronomía", bienestar:"Bienestar", aventura:"Aventura", cultura:"Cultura", estancias:"Estancias" }[cat]
+}
+
+function formatActivityLabel(key: ActivityKey) {
+  return key.replace(/_/g," ")
 }

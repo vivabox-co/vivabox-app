@@ -148,41 +148,37 @@ export default function MapView({
               {exps.map((exp) => {
                 const isFav = favorites.includes(exp.id)
 
+                const lat = Number(exp.lat)
+                const lng = Number(exp.lng)
+
+                if (isNaN(lat) || isNaN(lng)) return null
+
                 return (
                   <Marker
                     key={exp.id}
-                    position={[exp.lat, exp.lng]}
-                    icon={createPinIcon(color, exp.activity_key, isFav)}
+                    position={[lat, lng]}
+                    icon={createPinIcon(color, exp.activity_key || "", isFav)}
                   >
                     <Popup>
                       <div style={{ width: 220 }}>
-                        <div
-                          style={{
-                            position: "relative",
-                            height: 120,
-                            borderRadius: 10,
-                            overflow: "hidden",
-                          }}
-                        >
+                        <div style={{ position: "relative", height: 120, borderRadius: 10, overflow: "hidden" }}>
                           <img
-                            src={exp.image}
+                            src={exp.image || "/placeholder.jpg"}
                             alt={exp.title}
                             style={{ width: "100%", height: "100%", objectFit: "cover" }}
                           />
 
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: 8,
-                              left: 8,
-                              padding: "4px 8px",
-                              fontSize: 10,
-                              fontWeight: 600,
-                              color: "white",
-                              background: color,
-                              borderRadius: 8,
-                            }}
-                          >
+                          <div style={{
+                            position: "absolute",
+                            top: 8,
+                            left: 8,
+                            padding: "4px 8px",
+                            fontSize: 10,
+                            fontWeight: 600,
+                            color: "white",
+                            background: color,
+                            borderRadius: 8,
+                          }}>
                             {categoryLabel(exp.category)}
                           </div>
 
@@ -216,9 +212,7 @@ export default function MapView({
                         </div>
 
                         <div style={{ marginTop: 10 }}>
-                          <div style={{ fontSize: 14, fontWeight: 600 }}>
-                            {exp.title}
-                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 600 }}>{exp.title}</div>
 
                           <MetaRow icon={MapPin} text={exp.city || exp.zone} />
                           <MetaRow icon={Clock} text={exp.duration} />

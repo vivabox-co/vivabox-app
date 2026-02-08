@@ -255,27 +255,45 @@ export default function ListaPage() {
       </BottomSheet>
 
       <FiltersDrawer
-        open={filtersOpen}
-        onClose={() => setFiltersOpen(false)}
-        resultCount={filteredExperiences.length}
-        onReset={resetFilters}
-        activityFilters={activityFilters}
-        activeActivities={activeActivities}
-        toggleActivity={(id: ActivityKey) =>
-          toggleArray(id, activeActivities, setActiveActivities)
-        }
-        cities={availableCities}
-        activeCities={activeCities}
-        toggleCity={(c) => toggleArray(c, activeCities, setActiveCities)}
-        activeCategories={activeCategories}
-        toggleCategory={(c) => toggleArray(c, activeCategories, setActiveCategories)}
-        activeFormats={activeFormats}
-        toggleFormat={(f) => toggleArray(f, activeFormats, setActiveFormats)}
-        activeAmbiances={activeAmbiances}
-        toggleAmbiance={(a) => toggleArray(a, activeAmbiances, setActiveAmbiances)}
-        indoorState={indoorState}
-        setIndoorState={setIndoorState}
-      />
+  open={filtersOpen}
+  onClose={() => setFiltersOpen(false)}
+  resultCount={filteredExperiences.length}
+  onReset={resetFilters}
+  activityFilters={activityFilters}
+
+  activeActivities={activeActivities}
+  setActiveActivities={setActiveActivities}   // ✅ AJOUTER CETTE LIGNE
+  toggleActivity={(id: ActivityKey) =>
+    setActiveActivities(prev =>
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    )
+  }
+
+  cities={availableCities}
+  activeCities={activeCities}
+  toggleCity={(c: string) =>
+    setActiveCities(prev =>
+      prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]
+    )
+  }
+
+  activeFormats={activeFormats}
+  toggleFormat={(f: Format) =>
+    setActiveFormats(prev =>
+      prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]
+    )
+  }
+
+  activeAmbiances={activeAmbiances}
+  toggleAmbiance={(a: string) =>
+    setActiveAmbiances(prev =>
+      prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]
+    )
+  }
+
+  indoorState={indoorState}
+  setIndoorState={setIndoorState}
+/>
     </>
   )
 }

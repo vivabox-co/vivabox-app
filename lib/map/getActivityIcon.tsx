@@ -3,8 +3,7 @@ const iconBasePath = "/icons"
 export const defaultActivityIcon = `${iconBasePath}/dining.svg`
 
 /**
- * Liste des clés autorisées = sécurité produit
- * Doit correspondre au type ActivityKey
+ * Clés autorisées = sécurité produit
  */
 const VALID_ACTIVITY_KEYS = new Set([
   "archery",
@@ -15,7 +14,7 @@ const VALID_ACTIVITY_KEYS = new Set([
   "buggy",
   "bungee",
   "caravan",
-  "chef-hat",
+  "chef_hat",
   "cinema",
   "climbing",
   "coffee_tasting",
@@ -43,17 +42,26 @@ const VALID_ACTIVITY_KEYS = new Set([
   "pizza_class",
   "sauna",
   "scuba",
-  "skydive",
+  "skydiving",
   "spa",
   "sushi_class",
   "theater",
   "wind_tunnel",
 ])
 
+/**
+ * Nettoyage minimal SAFE
+ */
+function cleanKey(value: string): string {
+  return value
+    .replace(/\u00A0/g, "") // espace insécable Google
+    .trim()
+}
+
 export function getActivityIcon(activityKey: string): string {
   if (!activityKey) return defaultActivityIcon
 
-  const key = activityKey.toLowerCase().trim()
+  const key = cleanKey(activityKey)
 
   if (!VALID_ACTIVITY_KEYS.has(key)) {
     console.warn("⚠️ activity_key inconnue :", key)

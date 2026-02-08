@@ -14,12 +14,10 @@ const SHEET_URL =
 const DEFAULT_FORMAT: Format = "solo"
 const DEFAULT_CATEGORY: Category = "cultura"
 
-/* ================================
-   🔧 UTILITAIRES
-================================ */
+/* ================= UTIL ================= */
 
 function clean(value: string = "") {
-  return value.replace(/^"|"$/g, "").trim()
+  return value.replace(/^"|"$/g, "").replace(/\r/g, "").trim()
 }
 
 function toArray(value: string = ""): string[] {
@@ -38,38 +36,31 @@ function toNumber(value: string = ""): number | undefined {
   return Number.isNaN(n) ? undefined : n
 }
 
-/* ================================
-   🛡 VALIDATION activity_key
-================================ */
+/* 🔥 Normalisation Sheet → code */
 
-const VALID_ACTIVITY_KEYS: ActivityKey[] = [
-  "archery","art_workshop","bbq","beer_tasting","brunch","buggy","bungee",
-  "caravan","chef-hat","cinema","climbing","coffee_tasting","dining",
-  "driving_track","eco_lodge","escape_room","facial","flight_plane","glass",
-  "glamping","golf","hair","hiking","horseback","hotel_stay","ice_bath",
-  "karting","massage","meditation","motorbike","paragliding","perfume",
-  "photoshoot","pizza_class","sauna","scuba","skydive","spa","sushi_class",
-  "theater","wind_tunnel",
-]
+function normalizeActivityKey(value: string): ActivityKey {
+  return clean(value)
+    .toLowerCase()
+    .replace(/\u00A0/g, "")       // espace insécable Google
+    .replace(/[ -]+/g, "_")      // "chef hat" → chef_hat
+    .replace(/[^\w_]/g, "")      // supprime accents / symboles
+    .trim() as ActivityKey
+}
 
-function validateActivityKey(raw: string): ActivityKey {
-  const key = clean(raw) as ActivityKey
-
-  if (!VALID_ACTIVITY_KEYS.includes(key)) {
-    console.warn("❌ activity_key invalide dans Sheet :", key)
-    return "dining"
+function normalizeCategory(value: string): Category {
+  const v = clean(value).toLowerCase()
+  if (["gastro","bienestar","aventura","cultura","estancias"].includes(v)) {
+    return v as Category
   }
-
-  return key
+  console.warn("⚠️ catégorie inconnue → fallback cultura :", v)
+  return DEFAULT_CATEGORY
 }
 
 function isExperience(exp: Experience | null): exp is Experience {
   return exp !== null
 }
 
-/* ================================
-   📦 FETCH PRODUIT
-================================ */
+/* ================= FETCH ================= */
 
 export async function fetchExperiences(): Promise<Experience[]> {
   const res = await fetch(SHEET_URL, { cache: "no-store" })
@@ -81,7 +72,7 @@ export async function fetchExperiences(): Promise<Experience[]> {
     const cols = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
 
     if (!cols || cols.length < 30) {
-      console.warn("Ligne ignorée", index + 2)
+      console.warn("⚠️ Ligne ignorée", index + 2)
       return null
     }
 
@@ -89,16 +80,18 @@ export async function fetchExperiences(): Promise<Experience[]> {
     const lng = Number(clean(cols[5]).replace(",", "."))
 
     if (Number.isNaN(lat) || Number.isNaN(lng)) {
-      console.warn("Coordonnées invalides ligne", index + 2)
+      console.warn("⚠️ Coordonnées invalides ligne", index + 2)
       return null
     }
+
+    const activityKey = normalizeActivityKey(cols[3])
 
     return {
       /* 🔹 IDENTITÉ */
       id: clean(cols[0]),
       title: clean(cols[1]),
-      category: (clean(cols[2]) as Category) || DEFAULT_CATEGORY,
-      activity_key: validateActivityKey(cols[3]),
+      category: normalizeCategory(cols[2]),
+      activity_key: activityKey,
 
       /* 🔹 LOCALISATION */
       lat,
@@ -124,11 +117,11 @@ export async function fetchExperiences(): Promise<Experience[]> {
       clothingNote: clean(cols[18]),
       importantToKnow: toArray(cols[19]),
 
-      /* 🔴 FILTRAGE INTELLIGENT */
+      /* 🔴 FILTRAGE */
       ambiance: toArray(cols[27]),
       environment: clean(cols[28]) as Environment,
 
-      /* 🔴 LOGIQUE RÉSERVATION */
+      /* 🔴 RÉSERVATION */
       needsPhone: toBool(cols[20]),
       needsPeopleCount: toBool(cols[21]),
 
