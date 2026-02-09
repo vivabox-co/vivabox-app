@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useUI } from "@/components/ui/UIContext"
-import { Compass, Heart, CalendarDays } from "lucide-react"
+import { Compass, Sparkles, CalendarDays } from "lucide-react"
 
 export default function ActivadoPage() {
   const router = useRouter()
@@ -15,14 +15,8 @@ export default function ActivadoPage() {
   }, [])
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      {/* 🌅 IMAGE AMBIANCE */}
+    <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", position: "relative", overflow: "hidden" }}>
+      {/* IMAGE */}
       <div
         style={{
           position: "absolute",
@@ -36,72 +30,63 @@ export default function ActivadoPage() {
         }}
       />
 
-      {/* 🧩 CARTE TRANSPARENTE */}
+      {/* CARD */}
       <div
         style={{
           position: "absolute",
-          top: "40%",
+          top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 2,
           width: "calc(100% - 48px)",
           maxWidth: 440,
-          background: "rgba(255,255,255,0.72)",
+          background: "rgba(255,255,255,0.88)",
           backdropFilter: "blur(14px)",
-          WebkitBackdropFilter: "blur(14px)",
           border: "1px solid rgba(255,255,255,0.4)",
-          padding: "32px 26px 26px",
+          padding: "42px 26px 34px",
           borderRadius: 26,
           boxShadow: "0 25px 60px rgba(0,0,0,0.08)",
           textAlign: "center",
         }}
       >
-        {/* 🎉 TITRE */}
-        <h2 style={{ fontSize: 26, fontWeight: 650, marginBottom: 14 }}>
-          Tu regalo está listo
+        <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 40 }}>
+          Tu regalo está activo
         </h2>
 
-        {/* ✨ INTRO */}
-        <p
-          style={{
-            fontSize: 16,
-            opacity: 0.85,
-            marginBottom: 22,
-            lineHeight: 1.5,
-          }}
-        >
-          Podés explorar todas las experiencias disponibles y elegir la que más te guste.
-        </p>
-
-        {/* 🧭 MINI GUIDE AVEC ICÔNES */}
+        {/* FLOW */}
         <div
           style={{
-            textAlign: "left",
-            fontSize: 15,
-            lineHeight: 1.7,
-            marginBottom: 22,
-            opacity: 0.92,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 0,
+            marginBottom: 40,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-            <Compass size={18} /> Explorá experiencias
-          </div>
+          <IconStep
+            icon={<Compass size={34} />}
+            label="Explorás"
+            sub="Todo disponible"
+          />
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-            <Heart size={18} /> Elegí la que más te guste
-          </div>
+          <BigArrow />
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <CalendarDays size={18} /> Proponé fechas
-          </div>
+          <IconStep
+            icon={<Sparkles size={34} />}
+            label="Elegís"
+            sub="Una experiencia"
+            highlight
+          />
+
+          <BigArrow />
+
+          <IconStep
+            icon={<CalendarDays size={34} />}
+            label="Reservás"
+            sub="Proponés fecha"
+          />
         </div>
 
-        {/* 🧘 MICRO RASSURANCE */}
-        <p style={{ fontSize: 14, opacity: 0.65, marginBottom: 26 }}>
-          No estás reservando todavía.
-        </p>
-
-        {/* 🔘 CTA */}
         <button
           onClick={() => router.push("/mapa")}
           style={{
@@ -110,8 +95,8 @@ export default function ActivadoPage() {
             background: "#111",
             color: "white",
             border: "none",
-            fontSize: 16,
-            fontWeight: 500,
+            fontSize: 17,
+            fontWeight: 600,
             cursor: "pointer",
             width: "100%",
             boxShadow: "0 12px 28px rgba(0,0,0,0.16)",
@@ -120,6 +105,57 @@ export default function ActivadoPage() {
           Ver experiencias
         </button>
       </div>
+    </div>
+  )
+}
+
+function IconStep({
+  icon,
+  label,
+  sub,
+  highlight = false,
+}: {
+  icon: React.ReactNode
+  label: string
+  sub: string
+  highlight?: boolean
+}) {
+  return (
+    <div style={{ textAlign: "center", flex: 1 }}>
+      <div
+        style={{
+          width: 68,
+          height: 68,
+          margin: "0 auto 10px",
+          borderRadius: 20,
+          background: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: highlight
+            ? "0 0 0 6px rgba(0,0,0,0.04), 0 10px 26px rgba(0,0,0,0.12)"
+            : "0 6px 18px rgba(0,0,0,0.08)",
+          animation: highlight ? "pulse 2.4s ease-in-out infinite" : "none",
+        }}
+      >
+        {icon}
+      </div>
+      <div style={{ fontSize: 16, fontWeight: 700 }}>{label}</div>
+      <div style={{ fontSize: 13, opacity: 0.6 }}>{sub}</div>
+    </div>
+  )
+}
+
+function BigArrow() {
+  return (
+    <div
+      style={{
+        fontSize: 54,
+        opacity: 0.35,
+        transform: "translateY(-30px)",
+      }}
+    >
+      →
     </div>
   )
 }

@@ -9,6 +9,8 @@ export default function ActivarPage() {
   const { setHideNav } = useUI()
 
   const [code, setCode] = useState("")
+  const [email, setEmail] = useState("")
+  const [name, setName] = useState("")
   const [error, setError] = useState("")
 
   useEffect(() => {
@@ -24,6 +26,11 @@ export default function ActivarPage() {
       return
     }
 
+    if (!email || !name) {
+      setError("Completá tu nombre y email para continuar.")
+      return
+    }
+
     router.push("/activado")
   }
 
@@ -33,16 +40,13 @@ export default function ActivarPage() {
         minHeight: "100vh",
         position: "relative",
         display: "flex",
-        flexDirection: "column",
-        justifyContent: "flex-start",
         alignItems: "center",
+        justifyContent: "center",
         padding: "32px 24px",
-        paddingTop: "12vh",
-        paddingBottom: "20vh",
         overflow: "hidden",
       }}
     >
-      {/* 🌅 IMAGE AMBIANCE */}
+      {/* IMAGE */}
       <div
         style={{
           position: "absolute",
@@ -50,36 +54,36 @@ export default function ActivarPage() {
           backgroundImage: "url('/image/image_activar.png')",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          filter: "blur(6px) brightness(1.03)",
-          transform: "scale(1)",
+          filter: "blur(6px) brightness(1.05)",
           zIndex: 0,
         }}
       />
 
-      {/* 🧩 CARTE DE LECTURE */}
+      {/* CARD */}
       <div
         style={{
-          position: "absolute",
-          top: "40%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
+          position: "relative",
           zIndex: 2,
-          width: "calc(100% - 48px)", // 24px marge de chaque côté
+          width: "100%",
           maxWidth: 420,
-          background: "rgba(255,255,255,0.75)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          border: "1px solid rgba(255,255,255,0.35)",
-          padding: "28px 22px 24px",
-          borderRadius: 24,
+          background: "rgba(255,255,255,0.78)",
+          backdropFilter: "blur(14px)",
+          border: "1px solid rgba(255,255,255,0.4)",
+          padding: "30px 24px 26px",
+          borderRadius: 26,
           boxShadow: "0 20px 60px rgba(0,0,0,0.08)",
           textAlign: "center",
         }}
       >
-        <h2 style={{ fontSize: 26, fontWeight: 600, marginBottom: 18 }}>
-          Ingresá tu código
+        {/* TITLE */}
+        <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 20 }}>
+          Activemos tu experiencia
         </h2>
 
+        {/* CODE */}
+        <label style={{ fontSize: 13, opacity: 0.85, fontWeight: 600 }}>
+          Código Vivabox
+        </label>
         <input
           type="text"
           placeholder="XXXX-XXXX"
@@ -93,6 +97,7 @@ export default function ActivarPage() {
             setError("")
           }}
           style={{
+            marginTop: 6,
             padding: 14,
             borderRadius: 12,
             border: "1px solid #ddd",
@@ -102,13 +107,64 @@ export default function ActivarPage() {
           }}
         />
 
-        <p style={{ fontSize: 17, opacity: 0.65, marginTop: 10 }}>
-          Lo encontrás dentro de tu cajita.
+        <p style={{ fontSize: 12, opacity: 0.6, marginTop: 6 }}>
+          Está dentro de tu cajita.
         </p>
 
-        <p style={{ fontSize: 15, marginTop: 4, opacity: 0.8 }}>
-          Tu regalo ya está cubierto.
-        </p>
+        {/* USER INFO */}
+        <div style={{ marginTop: 24 }}>
+          <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
+            Tus datos
+          </p>
+
+          <input
+            type="text"
+            placeholder="Tu nombre"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={{
+              padding: 12,
+              borderRadius: 12,
+              border: "1px solid #ddd",
+              fontSize: 15,
+              width: "100%",
+              marginBottom: 10,
+            }}
+          />
+
+          <input
+            type="email"
+            placeholder="Tu email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{
+              padding: 12,
+              borderRadius: 12,
+              border: "1px solid #ddd",
+              fontSize: 15,
+              width: "100%",
+            }}
+          />
+
+          <p style={{ fontSize: 12, opacity: 0.6, marginTop: 6 }}>
+            Solo para coordinar tu experiencia
+          </p>
+        </div>
+
+        {/* REASSURANCE */}
+        <div
+          style={{
+            marginTop: 22,
+            padding: "12px 14px",
+            borderRadius: 14,
+            background: "#EAF7EF",
+            fontSize: 15,
+            fontWeight: 700,
+            color: "#1E7A3B",
+          }}
+        >
+          Tu regalo ya está cubierto
+        </div>
 
         {error && (
           <p style={{ color: "#c0392b", marginTop: 12, fontSize: 14 }}>
@@ -116,6 +172,7 @@ export default function ActivarPage() {
           </p>
         )}
 
+        {/* CTA */}
         <button
           onClick={handleActivate}
           style={{
@@ -126,13 +183,13 @@ export default function ActivarPage() {
             color: "white",
             border: "none",
             fontSize: 17,
-            fontWeight: 500,
+            fontWeight: 700,
             cursor: "pointer",
             width: "100%",
             boxShadow: "0 10px 26px rgba(0,0,0,0.15)",
           }}
         >
-          Activar
+          Activar mi experiencia
         </button>
       </div>
     </div>

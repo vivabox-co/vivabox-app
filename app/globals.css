@@ -242,3 +242,9 @@ a {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
   }
 }
+
+@keyframes pulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
