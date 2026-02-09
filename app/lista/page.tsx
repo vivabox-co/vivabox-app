@@ -1,299 +1,180 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import {
-  Experience,
-  Category,
-  Format,
-  ActivityKey,
-} from "@/lib/data/types"
+import { Experience, Category, Format, ActivityKey } from "@/lib/data/types"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
 import { filterExperiences } from "@/lib/product/filterExperiences"
 import { buildActivityFilters } from "@/lib/product/buildActivityFilters"
 import BottomSheet from "@/components/ui/BottomSheet"
-import ListView from "@/components/list/ListView"
 import ExperienceExploreMeta from "@/components/experience/ExperienceExploreMeta"
 import FiltersDrawer from "@/components/filters/FiltersDrawer"
 import { useUI } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
-import { Search } from "lucide-react"
-import { getActivityIcon } from "@/lib/map/getActivityIcon"
+import { Search, ArrowRight, Heart, Clock, Users } from "lucide-react"
+import { categoryColors } from "@/lib/map/categoryColors"
 
 export default function ListaPage() {
   const router = useRouter()
   const wrapperRef = useRef<HTMLDivElement>(null)
 
-  const { selectedExperience, setSelectedExperience, drawerOpen, setDrawerOpen } =
-    useUI()
+  const { selectedExperience, setSelectedExperience, drawerOpen, setDrawerOpen } = useUI()
 
   const [experiences, setExperiences] = useState<Experience[]>([])
+  const [favorites, setFavorites] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [highlightIndex, setHighlightIndex] = useState(0)
-
-  /* ---------------- LOAD DATA ---------------- */
-  useEffect(() => {
-    fetchExperiences().then(setExperiences)
-  }, [])
-
-  /* ---------------- CLOSE SUGGESTIONS ---------------- */
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (!wrapperRef.current?.contains(e.target as Node)) {
-        setShowSuggestions(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [])
-
-  const query = searchQuery.toLowerCase().trim()
-
-  /* ---------------- AUTOCOMPLETE ---------------- */
-  const suggestions = useMemo(() => {
-    if (!query) return []
-    return experiences
-      .filter((exp) =>
-        `${exp.title} ${exp.zone}`.toLowerCase().includes(query)
-      )
-      .slice(0, 6)
-  }, [query, experiences])
-
-  function selectExperience(exp: Experience) {
-    setSelectedExperience(exp)
-    setDrawerOpen(true)
-    setShowSuggestions(false)
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!suggestions.length) return
-    if (e.key === "ArrowDown")
-      setHighlightIndex((p) => (p + 1) % suggestions.length)
-    if (e.key === "ArrowUp")
-      setHighlightIndex((p) => (p - 1 + suggestions.length) % suggestions.length)
-    if (e.key === "Enter") selectExperience(suggestions[highlightIndex])
-  }
-
-  /* ---------------- FILTER STATE ---------------- */
-
   const [filtersOpen, setFiltersOpen] = useState(false)
-
   const [activeActivities, setActiveActivities] = useState<ActivityKey[]>([])
-  const [activeCategories, setActiveCategories] = useState<Category[]>([
-    "gastro",
-    "bienestar",
-    "aventura",
-    "cultura",
-    "estancias",
-  ])
-  const [activeFormats, setActiveFormats] = useState<Format[]>([
-    "solo",
-    "duo",
-    "familia",
-  ])
-  const [activeCities, setActiveCities] = useState<string[]>([])
-  const [activeAmbiances, setActiveAmbiances] = useState<string[]>([])
-  const [indoorState, setIndoorState] =
-    useState<"indoor" | "outdoor" | "any">("any")
 
-  const toggleArray = <T,>(value: T, list: T[], setter: (v: T[]) => void) =>
-    setter(list.includes(value) ? list.filter((x) => x !== value) : [...list, value])
+  useEffect(() => { fetchExperiences().then(setExperiences) }, [])
 
-  const resetFilters = () => {
-    setActiveActivities([])
-    setActiveCategories(["gastro", "bienestar", "aventura", "cultura", "estancias"])
-    setActiveFormats(["solo", "duo", "familia"])
-    setActiveCities([])
-    setActiveAmbiances([])
-    setIndoorState("any")
-  }
+  const activityFilters = useMemo(() => buildActivityFilters(experiences), [experiences])
 
-  /* ---------------- AVAILABLE CITIES ---------------- */
-  const availableCities = useMemo(() => {
-    const set = new Set<string>()
-    experiences.forEach((exp) => exp.city && set.add(exp.city))
-    return Array.from(set).sort()
-  }, [experiences])
-
-  /* ---------------- ACTIVITY FILTERS (DYNAMIC) ---------------- */
-  const activityFilters = useMemo(
-    () => buildActivityFilters(experiences),
-    [experiences]
-  )
-
-  /* ---------------- FILTER ENGINE ---------------- */
   const { filteredExperiences } = filterExperiences(experiences, {
-    categories: activeCategories,
-    formats: activeFormats,
-    cities: activeCities,
-    ambiances: activeAmbiances,
-    indoorState,
+    categories: ["gastro","bienestar","aventura","cultura","estancias"],
+    formats: ["solo","duo","familia"],
+    cities: [],
+    ambiances: [],
+    indoorState: "any",
     searchText: searchQuery,
     activities: activeActivities,
   })
 
-  /* ---------------- UI ---------------- */
+  const grouped = useMemo(() => {
+    const map: Record<Category, Experience[]> = {
+      gastro: [], bienestar: [], aventura: [], cultura: [], estancias: []
+    }
+    filteredExperiences.forEach(e => map[e.category].push(e))
+    return map
+  }, [filteredExperiences])
+
+  function toggleFav(id: string) {
+    setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id])
+  }
+
+  function selectExperience(exp: Experience) {
+    setSelectedExperience(exp)
+    setDrawerOpen(true)
+  }
 
   return (
     <>
       <div
-        className={drawerOpen ? "lista-content blurred" : "lista-content"}
         ref={wrapperRef}
+        style={{
+          minHeight: "100vh",
+          background: "linear-gradient(180deg,#F8FAFC 0%,#F1F5F9 100%)"
+        }}
       >
-        <div
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 1000,
-            background: "#fff",
-            padding: "12px",
-            display: "flex",
-            gap: 10,
-          }}
-        >
-          <button
-            onClick={() => setFiltersOpen(true)}
-            style={{
-              padding: "10px 14px",
-              borderRadius: 20,
-              border: "none",
-              background: "#111",
-              color: "#fff",
-              fontWeight: 600,
-            }}
-          >
+
+        {/* SEARCH */}
+        <div style={{ position:"sticky", top:0, zIndex:1000, background:"#ffffffdd", backdropFilter:"blur(10px)", padding:"12px", display:"flex", gap:10 }}>
+          <button onClick={()=>setFiltersOpen(true)} style={{ padding:"10px 14px", borderRadius:20, border:"none", background:"#111", color:"#fff", fontWeight:600 }}>
             Filtros
           </button>
 
-          <div
-            style={{
-              flex: 1,
-              position: "relative",
-              display: "flex",
-              alignItems: "center",
-              background: "#F3F3F3",
-              borderRadius: 20,
-              padding: "0 12px",
-            }}
-          >
+          <div style={{ flex:1, display:"flex", alignItems:"center", background:"#EEF2F6", borderRadius:20, padding:"0 12px" }}>
             <Search size={16} color="#666" />
-            <input
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value)
-                setShowSuggestions(true)
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              onKeyDown={handleKeyDown}
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
               placeholder="Buscar experiencias..."
-              style={{
-                border: "none",
-                background: "transparent",
-                outline: "none",
-                padding: "10px",
-                flex: 1,
-              }}
+              style={{ border:"none", background:"transparent", outline:"none", padding:"10px", flex:1 }}
             />
-
-            {showSuggestions && suggestions.length > 0 && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "110%",
-                  left: 0,
-                  right: 0,
-                  background: "#fff",
-                  borderRadius: 14,
-                  boxShadow: "0 10px 24px rgba(0,0,0,0.12)",
-                  overflow: "hidden",
-                  zIndex: 50,
-                }}
-              >
-                {suggestions.map((exp, i) => (
-                  <div
-                    key={exp.id}
-                    onClick={() => selectExperience(exp)}
-                    style={{
-                      padding: "10px 12px",
-                      background: i === highlightIndex ? "#F3EFEA" : "#fff",
-                      cursor: "pointer",
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "center",
-                    }}
-                  >
-                    <img src={getActivityIcon(exp.activity_key)} width={18} height={18} />
-                    <span>{exp.title}</span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
-        <ListView
-          searchQuery={searchQuery}
-          activeCategories={activeCategories}
-          activeFormats={activeFormats}
-          activeCities={activeCities}
-          activeAmbiances={activeAmbiances}
-          indoorState={indoorState}
-          onSelect={selectExperience}
-        />
+        {/* SECTIONS */}
+        <div style={{ paddingBottom:90 }}>
+          {Object.entries(grouped).map(([category, items]) =>
+            items.length > 0 && (
+              <section key={category} style={{ marginBottom:18 }}>
+
+                <div style={{ padding:"0 20px", marginBottom:8, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                    <div style={{ width:6, height:22, borderRadius:4, background:categoryColors[category] }} />
+                    <h2 style={{ fontSize:18, fontWeight:650 }}>{category.charAt(0).toUpperCase()+category.slice(1)}</h2>
+                  </div>
+                  <ArrowRight size={18} opacity={0.4}/>
+                </div>
+
+                <div style={{ display:"flex", gap:12, overflowX:"auto", padding:"0 20px" }}>
+                  {items.map((exp, i) => (
+                    <ExperienceCard
+                      key={exp.id}
+                      exp={exp}
+                      popular={i < 2}
+                      isFav={favorites.includes(exp.id)}
+                      onFav={()=>toggleFav(exp.id)}
+                      onClick={()=>selectExperience(exp)}
+                    />
+                  ))}
+                </div>
+
+              </section>
+            )
+          )}
+        </div>
       </div>
 
-      <BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        {selectedExperience && (
-          <ExperienceExploreMeta
-            exp={selectedExperience}
-            onChoose={() => {
-              setDrawerOpen(false)
-              router.push("/reservar/fechas")
-            }}
-          />
-        )}
+      <BottomSheet open={drawerOpen} onClose={()=>setDrawerOpen(false)}>
+        {selectedExperience && <ExperienceExploreMeta exp={selectedExperience} onChoose={()=>router.push("/reservar/fechas")} />}
       </BottomSheet>
 
       <FiltersDrawer
-  open={filtersOpen}
-  onClose={() => setFiltersOpen(false)}
-  resultCount={filteredExperiences.length}
-  onReset={resetFilters}
-  activityFilters={activityFilters}
-
-  activeActivities={activeActivities}
-  setActiveActivities={setActiveActivities}   // ✅ AJOUTER CETTE LIGNE
-  toggleActivity={(id: ActivityKey) =>
-    setActiveActivities(prev =>
-      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
-    )
-  }
-
-  cities={availableCities}
-  activeCities={activeCities}
-  toggleCity={(c: string) =>
-    setActiveCities(prev =>
-      prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]
-    )
-  }
-
-  activeFormats={activeFormats}
-  toggleFormat={(f: Format) =>
-    setActiveFormats(prev =>
-      prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]
-    )
-  }
-
-  activeAmbiances={activeAmbiances}
-  toggleAmbiance={(a: string) =>
-    setActiveAmbiances(prev =>
-      prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]
-    )
-  }
-
-  indoorState={indoorState}
-  setIndoorState={setIndoorState}
-/>
+        open={filtersOpen}
+        onClose={()=>setFiltersOpen(false)}
+        resultCount={filteredExperiences.length}
+        onReset={()=>{}}
+        activityFilters={activityFilters}
+        activeActivities={activeActivities}
+        setActiveActivities={setActiveActivities}
+        toggleActivity={(id)=>setActiveActivities(p=>p.includes(id)?p.filter(a=>a!==id):[...p,id])}
+        cities={[]} activeCities={[]} toggleCity={()=>{}}
+        activeFormats={[]} toggleFormat={()=>{}}
+        activeAmbiances={[]} toggleAmbiance={()=>{}}
+        indoorState="any" setIndoorState={()=>{}}
+      />
     </>
+  )
+}
+
+/* CARD */
+
+function ExperienceCard({ exp, onClick, popular, isFav, onFav }: any) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        minWidth:210,
+        borderRadius:20,
+        overflow:"hidden",
+        background:"#FFFFFFE6",
+        backdropFilter:"blur(8px)",
+        WebkitBackdropFilter:"blur(8px)",
+        border:"1px solid rgba(255,255,255,0.4)",
+        boxShadow:"0 8px 24px rgba(0,0,0,0.06)",
+        cursor:"pointer"
+      }}
+    >
+      <div style={{ position:"relative" }}>
+        <img src={exp.image} style={{ width:"100%", height:140, objectFit:"cover" }} />
+
+        {popular && (
+          <div style={{ position:"absolute", top:8, left:8, background:"#fff", padding:"4px 8px", borderRadius:12, fontSize:12, fontWeight:600 }}>
+            Popular
+          </div>
+        )}
+
+        <Heart size={22} onClick={(e)=>{e.stopPropagation();onFav()}}
+          style={{ position:"absolute", top:8, right:8, color:isFav?"#E11D48":"#fff", fill:isFav?"#E11D48":"rgba(0,0,0,0.35)" }}
+        />
+      </div>
+
+      <div style={{ padding:"10px 12px 14px" }}>
+        <div style={{ fontWeight:600, fontSize:14 }}>{exp.title}</div>
+        <div style={{ fontSize:12, opacity:0.6, marginTop:6, display:"flex", gap:10 }}>
+          <span style={{ display:"flex", alignItems:"center", gap:4 }}><Clock size={13}/> {exp.duration}</span>
+          <span style={{ display:"flex", alignItems:"center", gap:4 }}><Users size={13}/> {exp.format}</span>
+        </div>
+      </div>
+    </div>
   )
 }
