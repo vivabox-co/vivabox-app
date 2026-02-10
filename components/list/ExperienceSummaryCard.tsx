@@ -3,11 +3,11 @@ import { categoryColors } from "@/lib/map/categoryColors"
 type Props = {
   title: string
   subtitle?: string
-  location: string
-  format: string
-  image: string
-  date: string
-  time: string
+  location?: string
+  format?: string
+  image?: string
+  date?: string
+  time?: string
   category: string
   onClick?: () => void
 }
@@ -23,6 +23,12 @@ export default function ExperienceSummaryCard({
   category,
   onClick,
 }: Props) {
+
+  const safeImage = image || "/images/placeholder.jpg"
+  const safeLocation = location || ""
+  const safeFormat = format || ""
+  const hasDate = date && time
+
   return (
     <div
       onClick={onClick}
@@ -51,7 +57,7 @@ export default function ExperienceSummaryCard({
         {/* IMAGE */}
         <div style={{ width: 130, minHeight: 150 }}>
           <img
-            src={image}
+            src={safeImage}
             alt={title}
             style={{
               width: "100%",
@@ -86,41 +92,41 @@ export default function ExperienceSummaryCard({
             </p>
           )}
 
-          <div
-            style={{
-              fontSize: 13,
-              color: "#888",
-              marginBottom: 4,
-            }}
-          >
-            {location}
-          </div>
+          {safeLocation && (
+            <div style={{ fontSize: 13, color: "#888", marginBottom: 4 }}>
+              {safeLocation}
+            </div>
+          )}
 
-          <div
-            style={{
-              fontSize: 13,
-              color: "#888",
-              marginBottom: 10,
-              textTransform: "capitalize",
-            }}
-          >
-            {format}
-          </div>
+          {safeFormat && (
+            <div
+              style={{
+                fontSize: 13,
+                color: "#888",
+                marginBottom: 10,
+                textTransform: "capitalize",
+              }}
+            >
+              {safeFormat}
+            </div>
+          )}
 
           {/* PILULE DATE */}
-          <div
-            style={{
-              display: "inline-block",
-              background: "#F3EFEA",
-              padding: "6px 12px",
-              borderRadius: 999,
-              fontSize: 13,
-              fontWeight: 500,
-              color: "#333",
-            }}
-          >
-            {date} · {time}
-          </div>
+          {hasDate && (
+            <div
+              style={{
+                display: "inline-block",
+                background: "#F3EFEA",
+                padding: "6px 12px",
+                borderRadius: 999,
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#333",
+              }}
+            >
+              {date} · {time}
+            </div>
+          )}
         </div>
       </div>
     </div>

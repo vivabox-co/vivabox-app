@@ -76,17 +76,34 @@ export default function FavoritosPage() {
 
       {/* 🔥 DRAWER UNIFIÉ */}
       {/* DRAWER UNIFIÉ (identique à mapa) */}
-<BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-  {selectedExperience && (
-    <ExperienceExploreMeta
-      exp={selectedExperience}
-      onChoose={() => {
-        setDrawerOpen(false)
-        router.push("/reservar/fechas")
-      }}
-    />
-  )}
-</BottomSheet>
+<BottomSheet
+  open={drawerOpen}
+  onClose={() => setDrawerOpen(false)}
+  body={
+    selectedExperience && (
+      <ExperienceExploreMeta
+        exp={selectedExperience}
+        onChoose={() => {
+          setDrawerOpen(false)
+          router.push("/reservar/fechas")
+        }}
+      />
+    )
+  }
+  footer={
+    selectedExperience && (
+      <button
+        className="cta-button"
+        onClick={() => {
+          setDrawerOpen(false)
+          router.push("/reservar/fechas")
+        }}
+      >
+        Elegir esta experiencia
+      </button>
+    )
+  }
+/>
 
 
       {/* MODAL REMOVE FAVORITE */}

@@ -32,7 +32,7 @@ export default function SeguimientoPage() {
     if (stored) setBooking(JSON.parse(stored))
   }, [])
 
-  /* Recharger la vraie expérience */
+  /* Charger vraie expérience */
   useEffect(() => {
     if (!booking?.experienceId) return
     fetchExperiences().then((list) => {
@@ -41,7 +41,7 @@ export default function SeguimientoPage() {
     })
   }, [booking])
 
-  /* Simulation évolution status */
+  /* Simulation status */
   useEffect(() => {
     if (!booking) return
 
@@ -62,6 +62,7 @@ export default function SeguimientoPage() {
     }
   }, [booking])
 
+  /* ⛔ Si booking pas encore prêt */
   if (!booking) {
     return (
       <div style={{ padding: 24, minHeight: "100vh", background: "#FAF8F5" }}>
@@ -91,6 +92,8 @@ export default function SeguimientoPage() {
     localStorage.setItem("currentBooking", JSON.stringify(updated))
   }
 
+  const snapshot = booking.experienceSnapshot || {}
+
   return (
     <>
       <div style={{ padding: "16px 16px 120px", background: "#FAF8F5", minHeight: "100vh" }}>
@@ -101,11 +104,11 @@ export default function SeguimientoPage() {
         {/* CARD EXPERIENCE */}
         <div style={{ marginBottom: 18 }}>
           <ExperienceSummaryCard
-            title={booking.experienceSnapshot.title}
+            title={snapshot.title || "Experiencia"}
             subtitle=""
-            location={booking.experienceSnapshot.zone}
+            location={snapshot.zone || ""}
             format=""
-            image={booking.experienceSnapshot.image}
+            image={snapshot.image || "/images/placeholder.jpg"}
             date={booking.date}
             time={booking.time}
             category={"gastro"}
@@ -118,7 +121,7 @@ export default function SeguimientoPage() {
           />
         </div>
 
-        {/* DEBUG STATUS NAV */}
+        {/* DEBUG NAV */}
         <div style={{
           display: "flex",
           justifyContent: "flex-end",
@@ -134,28 +137,32 @@ export default function SeguimientoPage() {
           </button>
         </div>
 
-        {/* TIMELINE */}
-        <div style={{ marginTop: 8 }}>
-          <BookingTimeline status={status} category={"gastro"} />
-        </div>
+        <BookingTimeline status={status} category={"gastro"} />
 
-        {/* STATUS BLOCK */}
         <div style={{ marginTop: 28, marginBottom: 60 }}>
           <DynamicStatusBlock status={status} />
         </div>
       </div>
 
       {/* BOTTOM SHEET */}
-      <BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        {realExperience && (
-          <ExperienceBookedContent
-            exp={realExperience}
-            date={booking.date}
-            time={booking.time}
-            status={status}
-          />
-        )}
-      </BottomSheet>
+      <BottomSheet
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        body={
+          realExperience ? (
+            <ExperienceBookedContent
+              exp={realExperience}
+              date={booking.date}
+              time={booking.time}
+              status={status}
+            />
+          ) : (
+            <div style={{ padding: 40, textAlign: "center" }}>
+              Cargando experiencia...
+            </div>
+          )
+        }
+      />
     </>
   )
 }

@@ -7,7 +7,7 @@ import { Calendar, Clock, Users, Sunrise, Sun, Sunset } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
 import TimePickerModal from "@/components/ui/TimePickerModal"
 
-type Moment = "morning" | "midday" | "afternoon" | null
+type Moment = "morning" | "afternoon" | "night" | null
 
 export default function FechasPage() {
   const { selectedExperience, setSelectedDate, setSelectedTime, setHideNav } = useUI()
@@ -72,10 +72,7 @@ export default function FechasPage() {
           </div>
 
           <div style={{ marginTop: 14 }}>
-            <button
-              onClick={() => setOpenTimePicker(true)}
-              style={timeBtn}
-            >
+            <button onClick={() => setOpenTimePicker(true)} style={timeBtn}>
               Elegir hora exacta
             </button>
 
@@ -89,7 +86,7 @@ export default function FechasPage() {
 
         {/* PERSONAS */}
         <Card icon={<Users size={20} />} title="Personas">
-          <Chips options={[1,2,3,4,5]} selected={people} onSelect={setPeople} />
+          <Chips options={[1, 2, 3, 4, 5]} selected={people} onSelect={setPeople} />
           <p style={{ fontSize: 12, opacity: 0.6, marginTop: 6 }}>
             Podemos ayudarte a organizar personas adicionales si lo necesitás.
           </p>
@@ -120,6 +117,7 @@ export default function FechasPage() {
           onConfirm={(t: string) => {
             setStrictTime(t)
             setMomentBlock(null)
+            setOpenTimePicker(false)
           }}
         />
       )}
@@ -172,19 +170,19 @@ function MomentChip({ icon, label, value, momentBlock, setMomentBlock, setStrict
 
 /* ---------- STYLES ---------- */
 
-const chipStyle = (active:boolean)=>({
-  padding:"10px 14px",
-  borderRadius:999,
-  border:active?"2px solid #111":"1px solid #ddd",
-  background:active?"#111":"#fff",
-  color:active?"#fff":"#333",
-  fontWeight:500,
-  cursor:"pointer"
+const chipStyle = (active: boolean) => ({
+  padding: "10px 14px",
+  borderRadius: 999,
+  border: active ? "2px solid #111" : "1px solid #ddd",
+  background: active ? "#111" : "#fff",
+  color: active ? "#fff" : "#333",
+  fontWeight: 500,
+  cursor: "pointer"
 })
 
-const card={marginTop:22,padding:18,borderRadius:18,background:"#F7F5F2"}
-const cardHeader={display:"flex",gap:8,alignItems:"center",fontWeight:600,marginBottom:12}
-const dateField={padding:16,borderRadius:16,background:"#fff",border:"1px solid #ddd",textAlign:"center" as const,fontWeight:600,cursor:"pointer"}
-const timeBtn={padding:"10px 14px",borderRadius:999,border:"1px solid #ddd",background:"#fff",fontWeight:500}
-const cta={marginTop:30,width:"100%",padding:16,borderRadius:14,background:"#111",color:"#fff",fontSize:16,fontWeight:600,border:"none"}
-const sla={textAlign:"center" as const,marginTop:14,fontSize:13,color:"#666"}
+const card = { marginTop: 22, padding: 18, borderRadius: 18, background: "#F7F5F2" }
+const cardHeader = { display: "flex", gap: 8, alignItems: "center", fontWeight: 600, marginBottom: 12 }
+const dateField = { padding: 16, borderRadius: 16, background: "#fff", border: "1px solid #ddd", textAlign: "center" as const, fontWeight: 600, cursor: "pointer" }
+const timeBtn = { padding: "10px 14px", borderRadius: 999, border: "1px solid #ddd", background: "#fff", fontWeight: 500 }
+const cta = { marginTop: 30, width: "100%", padding: 16, borderRadius: 14, background: "#111", color: "#fff", fontSize: 16, fontWeight: 600, border: "none" }
+const sla = { textAlign: "center" as const, marginTop: 14, fontSize: 13, color: "#666" }

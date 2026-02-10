@@ -1,5 +1,6 @@
 "use client"
-import { useState } from "react"
+
+import { useEffect, useRef, useState } from "react"
 
 type Props = {
   onClose: () => void
@@ -7,33 +8,31 @@ type Props = {
 }
 
 export default function TimePickerModal({ onClose, onConfirm }: Props) {
-  const [hour, setHour] = useState(14)
-  const [minute, setMinute] = useState(0)
+  const hours = Array.from({ length: 13 }, (_, i) =>
+    (i + 8).toString().padStart(2, "0")
+  ) // 08 → 20
 
-  const hours = Array.from({ length: 24 }, (_, i) => i)
-  const minutes = [0, 15, 30, 45]
+  const [hour, setHour] = useState("12")
+
+  function handleConfirm() {
+    onConfirm(`${hour}:00`)
+    onClose()
+  }
 
   return (
     <div style={overlay} onClick={onClose}>
-      <div style={modal} onClick={e => e.stopPropagation()}>
-
-        <div style={header}>Elegí una hora</div>
+      <div style={drawer} onClick={(e) => e.stopPropagation()}>
+        <h3 style={title}>Elegí una hora</h3>
 
         <div style={pickerRow}>
-          <Wheel values={hours} selected={hour} set={setHour} />
-          <div style={colon}>:</div>
-          <Wheel values={minutes} selected={minute} set={setMinute} />
+          <HourWheel values={hours} selected={hour} setSelected={setHour} />
+
+          <div style={minuteFixed}>
+            00
+          </div>
         </div>
 
-        <button
-          style={confirmBtn}
-          onClick={() => {
-            const h = String(hour).padStart(2, "0")
-            const m = String(minute).padStart(2, "0")
-            onConfirm(`${h}:${m}`)
-            onClose()
-          }}
-        >
+        <button onClick={handleConfirm} style={confirmBtn}>
           Confirmar hora
         </button>
       </div>
@@ -41,33 +40,183 @@ export default function TimePickerModal({ onClose, onConfirm }: Props) {
   )
 }
 
-function Wheel({ values, selected, set }: any) {
+/* ---------- HOUR WHEEL ---------- */
+
+function HourWheel({ values, selected, setSelected }: any) {
+  const ref = useRef<HTMLDivElement>(null)
+  const itemHeight = 64
+  const containerHeight = 192
+  const spacerHeight = containerHeight / 2 - itemHeight / 2
+
+  let scrollTimeout: any = null
+
+  function snapToCenter() {
+    const el = ref.current
+    if (!el) return
+
+    const center = el.scrollTop + el.clientHeight / 2
+    const index = Math.round((center - spacerHeight) / itemHeight - 0.5)
+
+    const newValue = values[index]
+    if (newValue) {
+      setSelected(newValue)
+
+      const offset =
+        index * itemHeight +
+        spacerHeight -
+        el.clientHeight / 2 +
+        itemHeight / 2
+
+      el.scrollTo({
+        top: offset,
+        behavior: "smooth"
+      })
+    }
+  }
+
+  function handleScroll() {
+    if (scrollTimeout) clearTimeout(scrollTimeout)
+    scrollTimeout = setTimeout(() => {
+      snapToCenter()
+    }, 80)
+  }
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    const index = values.indexOf(selected)
+    const offset =
+      index * itemHeight +
+      spacerHeight -
+      el.clientHeight / 2 +
+      itemHeight / 2
+
+    el.scrollTo({ top: offset })
+  }, [])
+
   return (
-    <div style={wheel}>
-      {values.map((v: number) => (
+    <div
+      ref={ref}
+      onScroll={handleScroll}
+      style={{
+        height: containerHeight,
+        overflowY: "scroll",
+        scrollBehavior: "smooth",
+        scrollbarWidth: "none"
+      }}
+    >
+      {/* spacer haut */}
+      <div style={{ height: spacerHeight }} />
+
+      {values.map((v: string) => (
         <div
           key={v}
-          onClick={() => set(v)}
           style={{
-            ...wheelItem,
-            opacity: selected === v ? 1 : 0.35,
-            fontSize: selected === v ? 28 : 20,
-            fontWeight: selected === v ? 700 : 400
+            height: itemHeight,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 48,
+            fontWeight: 700,
+            color: selected === v ? "#111" : "#bbb",
+            transition: "color .2s"
           }}
         >
-          {String(v).padStart(2, "0")}
+          {v}
         </div>
       ))}
+
+      {/* spacer bas */}
+      <div style={{ height: spacerHeight }} />
     </div>
   )
 }
 
-/* STYLES */
-const overlay = { position:"fixed" as const, inset:0, background:"rgba(0,0,0,.35)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:3000 }
-const modal = { width:"100%", maxWidth:500, background:"#111", color:"white", borderRadius:"28px 28px 0 0", padding:"26px 20px 40px" }
-const header = { textAlign:"center" as const, fontSize:18, fontWeight:600, marginBottom:20 }
-const pickerRow = { display:"flex", justifyContent:"center", alignItems:"center", gap:18 }
-const colon = { fontSize:30, fontWeight:600 }
-const wheel = { height:180, overflow:"auto" as const, textAlign:"center" as const }
-const wheelItem = { padding:"6px 0", cursor:"pointer", transition:"all .15s" }
-const confirmBtn = { marginTop:28, width:"100%", padding:16, borderRadius:14, border:"none", background:"white", color:"#111", fontWeight:600 }
+/* ---------- STYLES ---------- */
+
+const overlay = {
+  position: "fixed" as const,
+  inset: 0,
+  background: "rgba(0,0,0,0.25)",
+  display: "flex",
+  alignItems: "flex-end",
+  justifyContent: "center",
+  zIndex: 3000,
+}
+
+const drawer = {
+  width: "100%",
+  maxWidth: 500,
+  background: "#fff",
+  borderRadius: "28px 28px 0 0",
+  padding: "28px 20px 34px",
+  boxShadow: "0 -12px 40px rgba(0,0,0,0.12)",
+  textAlign: "center" as const,
+}
+
+const title = {
+  fontSize: 18,
+  fontWeight: 600,
+  marginBottom: 24,
+}
+
+const pickerRow = {
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: 28,
+  marginBottom: 32,
+}
+
+const minuteFixed = {
+  fontSize: 48,
+  fontWeight: 700,
+  width: 80,
+}
+
+const wheelWrapper = {
+  position: "relative" as const,
+  height: 190,
+  width: 110,
+  overflow: "hidden",
+}
+
+const centerLine = {
+  position: "absolute" as const,
+  top: "50%",
+  left: 0,
+  right: 0,
+  height: 64,
+  transform: "translateY(-50%)",
+  borderTop: "2px solid #111",
+  borderBottom: "2px solid #111",
+  pointerEvents: "none" as const,
+}
+
+const wheel = {
+  height: "100%",
+  overflowY: "scroll" as const,
+  scrollbarWidth: "none" as const,
+}
+
+const wheelItem = {
+  height: 64,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 46,
+  fontWeight: 600,
+}
+
+const confirmBtn = {
+  width: "100%",
+  padding: 16,
+  borderRadius: 14,
+  border: "none",
+  background: "#111",
+  color: "#fff",
+  fontSize: 16,
+  fontWeight: 600,
+  cursor: "pointer",
+}

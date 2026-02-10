@@ -114,9 +114,34 @@ export default function ListaPage() {
         </div>
       </div>
 
-      <BottomSheet open={drawerOpen} onClose={()=>setDrawerOpen(false)}>
-        {selectedExperience && <ExperienceExploreMeta exp={selectedExperience} onChoose={()=>router.push("/reservar/fechas")} />}
-      </BottomSheet>
+      <BottomSheet
+  open={drawerOpen}
+  onClose={() => setDrawerOpen(false)}
+  body={
+    selectedExperience && (
+      <ExperienceExploreMeta
+        exp={selectedExperience}
+        onChoose={() => {
+          setDrawerOpen(false)
+          router.push("/reservar/fechas")
+        }}
+      />
+    )
+  }
+  footer={
+    selectedExperience && (
+      <button
+        className="cta-button"
+        onClick={() => {
+          setDrawerOpen(false)
+          router.push("/reservar/fechas")
+        }}
+      >
+        Elegir esta experiencia
+      </button>
+    )
+  }
+/>
 
       <FiltersDrawer
         open={filtersOpen}

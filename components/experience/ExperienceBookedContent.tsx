@@ -23,33 +23,19 @@ export default function ExperienceBookedContent({ exp, date, time, status }: Pro
 
   const color = categoryColors[exp.category] || "#ddd"
   const isConfirmed = status === "confirmed" || status === "done"
-
-  // 🔥 Le nom du prestataire = colonne "id" du sheet
-  const providerName = exp.id
+  const providerName = exp.id || "—"
 
   return (
-    <div style={{ paddingBottom: 40 }}>
+    <div>
       {/* IMAGE */}
-      <div style={{ position: "relative", height: 200, overflow: "hidden", borderRadius: 18 }}>
+      <div style={heroWrap}>
         <img
-          src={exp.image}
+          src={exp.image || "/images/placeholder.jpg"}
           alt={exp.title}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          style={heroImg}
         />
 
-        <div
-          style={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            background: color,
-            color: "white",
-            padding: "6px 12px",
-            borderRadius: 999,
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
+        <div style={{ ...categoryBadge, background: color }}>
           {exp.category}
         </div>
       </div>
@@ -57,36 +43,16 @@ export default function ExperienceBookedContent({ exp, date, time, status }: Pro
       <div style={{ padding: "16px" }}>
         <h2 style={{ marginBottom: 4 }}>{exp.title}</h2>
 
-        {/* 🔥 PRESTATAIRE visible uniquement après confirmation */}
+        {/* PRESTATAIRE */}
         {isConfirmed && (
-          <div
-            style={{
-              fontSize: 13,
-              color: "#555",
-              fontWeight: 500,
-              marginBottom: 6,
-            }}
-          >
+          <div style={providerStyle}>
             Prestador: {providerName}
           </div>
         )}
 
         {/* DATE */}
         {date && time && (
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              marginTop: 6,
-              padding: "6px 12px",
-              borderRadius: 999,
-              background: "#F3EFEA",
-              fontSize: 13,
-              color: "#444",
-              fontWeight: 500,
-            }}
-          >
+          <div style={datePill}>
             <Calendar size={14} />
             <span>{date}</span>
             <Clock size={14} />
@@ -96,12 +62,10 @@ export default function ExperienceBookedContent({ exp, date, time, status }: Pro
 
         {/* DESCRIPTION */}
         {exp.shortDescription && (
-          <p style={{ marginTop: 12, color: "#444", lineHeight: 1.5 }}>
-            {exp.shortDescription}
-          </p>
+          <p style={description}>{exp.shortDescription}</p>
         )}
 
-        {/* INFOS révélées après confirmation */}
+        {/* INFOS révélées */}
         {isConfirmed ? (
           <div style={{ marginTop: 14 }}>
             <InfoRow icon={MapPin} value={exp.zone} />
@@ -109,22 +73,13 @@ export default function ExperienceBookedContent({ exp, date, time, status }: Pro
             <InfoRow icon={Users} value={exp.format} />
           </div>
         ) : (
-          <div
-            style={{
-              marginTop: 14,
-              padding: 14,
-              borderRadius: 12,
-              background: "#F3EFEA",
-              fontSize: 13,
-              color: "#555",
-            }}
-          >
+          <div style={pendingBox}>
             Te compartiremos los detalles exactos del lugar una vez confirmemos la fecha.
           </div>
         )}
 
-        {/* QUÉ INCLUYE */}
-        {exp.includes && exp.includes.length > 0 && (
+        {/* INCLUDES */}
+        {!!exp.includes?.length && (
           <Section title="Qué incluye">
             {exp.includes.map((item, i) => (
               <Bullet key={i} text={item} />
@@ -132,8 +87,8 @@ export default function ExperienceBookedContent({ exp, date, time, status }: Pro
           </Section>
         )}
 
-        {/* IMPORTANTE SABER */}
-        {exp.importantToKnow && exp.importantToKnow.length > 0 && (
+        {/* IMPORTANT */}
+        {!!exp.importantToKnow?.length && (
           <Section title="A tener en cuenta">
             {exp.importantToKnow.map((item, i) => (
               <Bullet key={i} text={item} />
@@ -147,7 +102,14 @@ export default function ExperienceBookedContent({ exp, date, time, status }: Pro
 
 /* ---------- UI PARTS ---------- */
 
-function InfoRow({ icon: Icon, value }: any) {
+function InfoRow({
+  icon: Icon,
+  value,
+}: {
+  icon: React.ComponentType<{ size?: number }>
+  value?: string
+}) {
+  if (!value) return null
   return (
     <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
       <Icon size={16} />
@@ -156,7 +118,7 @@ function InfoRow({ icon: Icon, value }: any) {
   )
 }
 
-function Section({ title, children }: any) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginTop: 22 }}>
       <div style={{ fontWeight: 600, marginBottom: 8 }}>{title}</div>
@@ -172,4 +134,65 @@ function Bullet({ text }: { text: string }) {
       <div>{text}</div>
     </div>
   )
+}
+
+/* ---------- STYLES ---------- */
+
+const heroWrap: React.CSSProperties = {
+  position: "relative",
+  height: 200,
+  overflow: "hidden",
+  borderRadius: 18,
+}
+
+const heroImg: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+}
+
+const categoryBadge: React.CSSProperties = {
+  position: "absolute",
+  top: 12,
+  right: 12,
+  color: "white",
+  padding: "6px 12px",
+  borderRadius: 999,
+  fontSize: 12,
+  fontWeight: 600,
+}
+
+const providerStyle: React.CSSProperties = {
+  fontSize: 13,
+  color: "#555",
+  fontWeight: 500,
+  marginBottom: 6,
+}
+
+const datePill: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  marginTop: 6,
+  padding: "6px 12px",
+  borderRadius: 999,
+  background: "#F3EFEA",
+  fontSize: 13,
+  color: "#444",
+  fontWeight: 500,
+}
+
+const description: React.CSSProperties = {
+  marginTop: 12,
+  color: "#444",
+  lineHeight: 1.5,
+}
+
+const pendingBox: React.CSSProperties = {
+  marginTop: 14,
+  padding: 14,
+  borderRadius: 12,
+  background: "#F3EFEA",
+  fontSize: 13,
+  color: "#555",
 }

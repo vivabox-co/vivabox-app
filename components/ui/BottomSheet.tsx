@@ -1,46 +1,76 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 
 type BottomSheetProps = {
   open: boolean
   onClose: () => void
-  children: React.ReactNode
+  body: React.ReactNode
+  footer?: React.ReactNode
 }
 
 export default function BottomSheet({
   open,
   onClose,
-  children,
+  body,
+  footer,
 }: BottomSheetProps) {
-  const [expanded, setExpanded] = useState(false)
+  const MIN_HEIGHT = 50
+  const MAX_HEIGHT = 80
+  const DRAG_SPEED = 0.35
+  const SNAP_THRESHOLD = 4
 
-  const startY = useRef<number | null>(null)
-  const deltaY = useRef(0)
+  const [height, setHeight] = useState(MIN_HEIGHT)
 
+  const lastY = useRef<number | null>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+
+  /* RESET HEIGHT À CHAQUE OUVERTURE */
+  useEffect(() => {
+    if (open) setHeight(MIN_HEIGHT)
+  }, [open])
+
+  /* ⚠️ Hooks DOIVENT être au-dessus des returns conditionnels */
   if (!open) return null
 
   function handleTouchStart(e: React.TouchEvent) {
-    startY.current = e.touches[0].clientY
+    lastY.current = e.touches[0].clientY
   }
 
   function handleTouchMove(e: React.TouchEvent) {
-    if (startY.current === null) return
-    deltaY.current = e.touches[0].clientY - startY.current
+    if (lastY.current === null) return
+
+    const currentY = e.touches[0].clientY
+    const delta = lastY.current - currentY
+    const bodyEl = bodyRef.current
+    if (!bodyEl) return
+
+    const scrollingUp = delta > 0
+    const scrollingDown = delta < 0
+    const atTop = bodyEl.scrollTop <= 0
+    const atMaxHeight = height >= MAX_HEIGHT
+
+    /* 🚀 PHASE 1 — EXPANSION AVANT SCROLL */
+    if (!atMaxHeight && scrollingUp) {
+      e.preventDefault()
+      bodyEl.scrollTop = 0   // 🔥 bloque le scroll contenu
+      setHeight(h => Math.min(MAX_HEIGHT, h + Math.abs(delta) * DRAG_SPEED))
+    }
+
+    /* 🔽 PHASE 2 — RÉDUCTION SHEET */
+    else if (scrollingDown && atTop && height > MIN_HEIGHT) {
+      e.preventDefault()
+      setHeight(h => Math.max(MIN_HEIGHT, h - Math.abs(delta) * DRAG_SPEED))
+    }
+
+    lastY.current = currentY
   }
 
   function handleTouchEnd() {
-    if (startY.current === null) return
+    if (height > MAX_HEIGHT - SNAP_THRESHOLD) setHeight(MAX_HEIGHT)
+    else if (height < MIN_HEIGHT + SNAP_THRESHOLD) setHeight(MIN_HEIGHT)
 
-    if (deltaY.current < -50) setExpanded(true)
-
-    if (deltaY.current > 50) {
-      if (expanded) setExpanded(false)
-      else onClose()
-    }
-
-    startY.current = null
-    deltaY.current = 0
+    lastY.current = null
   }
 
   return (
@@ -48,13 +78,19 @@ export default function BottomSheet({
       <div className="sheet-overlay" onClick={onClose} />
 
       <div
-        className={`bottom-sheet ${expanded ? "expanded" : ""}`}
+        className="bottom-sheet"
+        style={{ height: `${height}vh` }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         <div className="sheet-handle" />
-        <div className="sheet-content">{children}</div>
+
+        <div ref={bodyRef} className="sheet-body">
+          {body}
+        </div>
+
+        {footer && <div className="sheet-footer">{footer}</div>}
       </div>
     </>
   )

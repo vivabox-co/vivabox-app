@@ -26,8 +26,6 @@ export default function MapaPage() {
   const { selectedExperience, setSelectedExperience, drawerOpen, setDrawerOpen } =
     useUI()
 
-  /* ================= FILTER STATE ================= */
-
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [experiences, setExperiences] = useState<Experience[]>([])
 
@@ -49,13 +47,9 @@ export default function MapaPage() {
   const [indoorState, setIndoorState] =
     useState<"indoor" | "outdoor" | "any">("any")
 
-  /* ================= LOAD DATA ================= */
-
   useEffect(() => {
     fetchExperiences().then(setExperiences)
   }, [])
-
-  /* ================= AVAILABLE CITIES ================= */
 
   const availableCities = useMemo(() => {
     const set = new Set<string>()
@@ -63,14 +57,10 @@ export default function MapaPage() {
     return Array.from(set).sort()
   }, [experiences])
 
-  /* ================= DYNAMIC ACTIVITY FILTERS ================= */
-
   const activityFilters = useMemo(
     () => buildActivityFilters(experiences),
     [experiences]
   )
-
-  /* ================= CENTRAL FILTER ENGINE ================= */
 
   const filterResult = useMemo(() => {
     return filterExperiences(experiences, {
@@ -93,8 +83,6 @@ export default function MapaPage() {
 
   const filteredExperiences = filterResult.filteredExperiences
 
-  /* ================= RESET ================= */
-
   const resetFilters = () => {
     setActiveActivities([])
     setActiveCategories(["gastro", "bienestar", "aventura", "cultura", "estancias"])
@@ -103,8 +91,6 @@ export default function MapaPage() {
     setActiveAmbiances([])
     setIndoorState("any")
   }
-
-  /* ================= UI ================= */
 
   return (
     <>
@@ -143,58 +129,71 @@ export default function MapaPage() {
         />
       </div>
 
-      <BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        {selectedExperience && (
-          <ExperienceExploreMeta
-            exp={selectedExperience}
-            onChoose={() => {
-              setDrawerOpen(false)
-              router.push("/reservar/fechas")
-            }}
-          />
-        )}
-      </BottomSheet>
+      {/* ✅ BOTTOM SHEET CORRIGÉ */}
+      <BottomSheet
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        body={
+          selectedExperience && (
+            <ExperienceExploreMeta
+              exp={selectedExperience}
+              onChoose={() => {
+                setDrawerOpen(false)
+                router.push("/reservar/fechas")
+              }}
+            />
+          )
+        }
+        footer={
+          selectedExperience && (
+            <button
+              className="cta-button"
+              onClick={() => {
+                setDrawerOpen(false)
+                router.push("/reservar/fechas")
+              }}
+            >
+              Elegir esta experiencia
+            </button>
+          )
+        }
+      />
 
       <FiltersDrawer
-  open={filtersOpen}
-  onClose={() => setFiltersOpen(false)}
-  resultCount={filteredExperiences.length}
-  onReset={resetFilters}
-  activityFilters={activityFilters}
-
-  activeActivities={activeActivities}
-  setActiveActivities={setActiveActivities}   // ✅ AJOUTER
-  toggleActivity={(id: ActivityKey) =>
-    setActiveActivities(prev =>
-      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
-    )
-  }
-
-  cities={availableCities}
-  activeCities={activeCities}
-  toggleCity={(c: string) =>
-    setActiveCities(prev =>
-      prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]
-    )
-  }
-
-  activeFormats={activeFormats}
-  toggleFormat={(f: Format) =>
-    setActiveFormats(prev =>
-      prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]
-    )
-  }
-
-  activeAmbiances={activeAmbiances}
-  toggleAmbiance={(a: string) =>
-    setActiveAmbiances(prev =>
-      prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]
-    )
-  }
-
-  indoorState={indoorState}
-  setIndoorState={setIndoorState}
-/>
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        resultCount={filteredExperiences.length}
+        onReset={resetFilters}
+        activityFilters={activityFilters}
+        activeActivities={activeActivities}
+        setActiveActivities={setActiveActivities}
+        toggleActivity={(id: ActivityKey) =>
+          setActiveActivities(prev =>
+            prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+          )
+        }
+        cities={availableCities}
+        activeCities={activeCities}
+        toggleCity={(c: string) =>
+          setActiveCities(prev =>
+            prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]
+          )
+        }
+        activeFormats={activeFormats}
+        toggleFormat={(f: Format) =>
+          setActiveFormats(prev =>
+            prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]
+          )
+        }
+        activeAmbiances={activeAmbiances}
+        toggleAmbiance={(a: string) =>
+          setActiveAmbiances(prev =>
+            prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]
+          )
+        }
+        indoorState={indoorState}
+        setIndoorState={setIndoorState}
+      />
     </>
   )
 }

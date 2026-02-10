@@ -2,7 +2,23 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Map, List, Heart, Clock, Sparkles, MessageCircle } from "lucide-react";
+import { Map, List, Heart, Clock, MessageCircle } from "lucide-react";
+
+/* 🔥 Logo comme composant icône */
+function LogoIcon({ size = 20 }: { size?: number }) {
+  return (
+    <img
+      src="/logo/LogoVivaboxSVG.svg"
+      alt="Vivabox"
+      style={{
+        width: size,
+        height: size,
+        objectFit: "contain",
+        display: "block",
+      }}
+    />
+  );
+}
 
 type Item = {
   href?: string;
@@ -30,7 +46,7 @@ const bookingItems: Item[] = [
       router.push(`/reservar/seguimiento/${booking.id}`);
     },
   },
-  { href: "/experiencia", label: "Tu experiencia", Icon: Sparkles },
+  { href: "/experiencia", label: "Tu experiencia", Icon: (props) => <LogoIcon size={36} /> },
   { href: "/ayuda", label: "Ayuda", Icon: MessageCircle },
 ];
 
@@ -59,7 +75,6 @@ export default function BottomNav() {
         const active = isActive(item);
         const Icon = item.Icon;
 
-        // 🔥 CAS SPÉCIAL : Seguimiento (route dynamique)
         if (item.action) {
           return (
             <div
@@ -73,7 +88,6 @@ export default function BottomNav() {
           );
         }
 
-        // 🔹 CAS NORMAL
         return (
           <Link
             key={item.href}
