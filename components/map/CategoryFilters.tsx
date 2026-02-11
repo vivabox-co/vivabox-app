@@ -1,6 +1,6 @@
 "use client"
 
-import { categories } from "@/lib/map/categories"
+import { categories } from "@/lib/map/categoryLabels"
 import { categoryColors } from "@/lib/map/categoryColors"
 import { Category } from "@/lib/data/types"   // ✅ TYPE OFFICIEL
 

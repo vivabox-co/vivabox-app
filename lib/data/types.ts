@@ -41,26 +41,31 @@ type ExtraPersonOption = {
 ================================ */
 
 export type Experience = {
-  /* 🔹 IDENTITÉ */
-  id: string                  // 🔥 = nom prestataire
+  /* 🔹 IDENTITÉ (technique vs affichage) */
+  id: string                    // ID technique stable (slug/uuid)
   title: string
   subtitle?: string
 
+  providerName: string
+
   category: Category
-  activity_key: ActivityKey  // 🔥 dynamique
+  activity_key: ActivityKey
 
   /* 🔹 LOCALISATION */
   lat: number
   lng: number
   zone: string
+  city?: string
   distance?: string
-  city?: string               // 🔥 filtre ville depuis sheet
 
   /* 🔹 MÉTA RAPIDE (cards) */
   duration: string
   durationType?: DurationType
   format: Format
-  image: string
+
+  image: string                 // image principale
+  gallery?: string[]            // images secondaires (fiche)
+
   vivanote: string
 
   /* 🔴 CONTENU PRODUIT */
@@ -76,6 +81,11 @@ export type Experience = {
   /* 🔴 FILTRAGE INTELLIGENT */
   ambiance?: string[]
   environment?: Environment
+
+  /* 🔑 DONNÉES UTILISÉES APRÈS CONFIRMATION */
+  address?: string              // affiché après confirmation
+  meetingPointNote?: string
+  providerPhone?: string
 
   /* 🔴 LOGIQUE RÉSERVATION */
   needsPhone: boolean

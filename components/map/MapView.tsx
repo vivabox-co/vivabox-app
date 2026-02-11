@@ -215,7 +215,6 @@ export default function MapView({
                           <div style={{ fontSize: 14, fontWeight: 600 }}>{exp.title}</div>
 
                           <MetaRow icon={MapPin} text={exp.city || exp.zone} />
-                          <MetaRow icon={Clock} text={exp.duration} />
                           <MetaRow icon={Users} text={formatLabel(exp.format)} />
 
                           <button

@@ -10,8 +10,18 @@ import ExperienceExploreMeta from "@/components/experience/ExperienceExploreMeta
 import FiltersDrawer from "@/components/filters/FiltersDrawer"
 import { useUI } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
-import { Search, ArrowRight, Heart, Clock, Users } from "lucide-react"
+import { Search, ArrowRight, Heart, MapPin, Users } from "lucide-react"
 import { categoryColors } from "@/lib/map/categoryColors"
+import { categoryLabel } from "@/lib/map/categoryLabels"
+import { formatLabel } from "@/lib/map/formatLabels"
+
+const categoryOrder: Category[] = [
+  "gastro",
+  "aventura",
+  "bienestar",
+  "cultura",
+  "estancias",
+]
 
 export default function ListaPage() {
   const router = useRouter()
@@ -22,7 +32,6 @@ export default function ListaPage() {
     setSelectedExperience,
     drawerOpen,
     setDrawerOpen,
-    favorites,
     toggleFavorite,
     isFavorite
   } = useUI()
@@ -55,23 +64,30 @@ export default function ListaPage() {
   }, [filteredExperiences])
 
   function selectExperience(exp: Experience) {
-    setSelectedExperience(exp)
-    setDrawerOpen(true)
+  if (!exp?.id) {
+    console.error("Experience sans ID sélectionnée", exp)
+    return
   }
+
+  setSelectedExperience(exp)
+  setDrawerOpen(true)
+}
 
   return (
     <>
-      <div ref={wrapperRef} style={{ minHeight: "100vh", background: "linear-gradient(180deg,#F8FAFC 0%,#F1F5F9 100%)" }}>
+      <div ref={wrapperRef} style={{ minHeight: "100vh", background: "#F7F8FA" }}>
 
         {/* SEARCH */}
-        <div style={{ position:"sticky", top:0, zIndex:1000, background:"#ffffffdd", backdropFilter:"blur(10px)", padding:"12px", display:"flex", gap:10 }}>
+        <div style={{ position:"sticky", top:0, zIndex:1000, background:"transparent", padding:"18px", display:"flex", gap:10 }}>
           <button onClick={()=>setFiltersOpen(true)} style={{ padding:"10px 14px", borderRadius:20, border:"none", background:"#111", color:"#fff", fontWeight:600 }}>
             Filtros
           </button>
 
           <div style={{ flex:1, display:"flex", alignItems:"center", background:"#EEF2F6", borderRadius:20, padding:"0 12px" }}>
             <Search size={16} color="#666" />
-            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder="Buscar experiencias..."
               style={{ border:"none", background:"transparent", outline:"none", padding:"10px", flex:1 }}
             />
@@ -80,64 +96,79 @@ export default function ListaPage() {
 
         {/* SECTIONS */}
         <div style={{ paddingBottom:90 }}>
-          {Object.entries(grouped).map(([category, items]) =>
-            items.length > 0 && (
-              <section key={category} style={{ marginBottom:18 }}>
+          {categoryOrder.map((category) => {
+            const items = grouped[category]
+            if (!items.length) return null
 
-                <div style={{ padding:"0 20px", marginBottom:8, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            return (
+              <section key={category} style={{ marginBottom: 10 }}>
+                <div style={{ padding:"0 20px", marginBottom:6, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                     <div style={{ width:6, height:22, borderRadius:4, background:categoryColors[category] }} />
-                    <h2 style={{ fontSize:18, fontWeight:650 }}>{category.charAt(0).toUpperCase()+category.slice(1)}</h2>
+                    <h2 style={{ margin:0 }}>{categoryLabel(category)}</h2>
                   </div>
                   <ArrowRight size={18} opacity={0.4}/>
                 </div>
 
-                <div style={{ display:"flex", gap:12, overflowX:"auto", padding:"0 20px" }}>
-                  {items.map((exp, i) => (
-                    <ExperienceCard
-                      key={exp.id}
-                      exp={exp}
-                      popular={i < 2}
-                      isFav={isFavorite(exp.id)}
-                      onFav={()=>toggleFavorite(exp.id)}
-                      onClick={()=>selectExperience(exp)}
-                    />
-                  ))}
+                {/* SHADOW WRAPPER */}
+                <div style={{ padding:"6px 0 4px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      overflowX: "auto",
+                      padding: "6px 20px 18px",
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                    }}
+                    className="hide-scrollbar"
+                  >
+                    {items.map((exp, i) => (
+                      <ExperienceCard
+                        key={exp.id}
+                        exp={exp}
+                        popular={i < 2}
+                        isFav={isFavorite(exp.id)}
+                        onFav={()=>toggleFavorite(exp.id)}
+                        onClick={()=>selectExperience(exp)}
+                      />
+                    ))}
+                  </div>
                 </div>
-
               </section>
             )
-          )}
+          })}
         </div>
       </div>
 
       <BottomSheet
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        body={
-          selectedExperience && (
-            <ExperienceExploreMeta
-              exp={selectedExperience}
-              onChoose={() => {
-                setDrawerOpen(false)
-                router.push("/reservar/fechas")
-              }}
-            />
-          )
-        }
-        footer={
-          selectedExperience && (
-            <button
-              className="cta-button"
-              onClick={() => {
-                setDrawerOpen(false)
-                router.push("/reservar/fechas")
-              }}
-            >
-              Elegir esta experiencia
-            </button>
-          )
-        }
+        body={selectedExperience && (
+          <ExperienceExploreMeta
+            exp={selectedExperience}
+            onChoose={() => {
+              if (!selectedExperience?.id) return
+              setDrawerOpen(false)
+              router.push("/reservar/fechas")
+            }}
+          />
+        )}
+        footer={selectedExperience && (
+          <button
+            className="cta-button"
+            onClick={() => {
+              if (!selectedExperience?.id) {
+                console.error("Aucune expérience valide sélectionnée")
+                return
+              }
+              setDrawerOpen(false)
+              router.push("/reservar/fechas")
+            }}
+          >
+            Elegir esta experiencia
+          </button>
+        )}
       />
 
       <FiltersDrawer
@@ -162,19 +193,16 @@ export default function ListaPage() {
 
 function ExperienceCard({ exp, onClick, popular, isFav, onFav }: any) {
   return (
-    <div
-      onClick={onClick}
-      style={{
-        minWidth:210,
-        borderRadius:20,
-        overflow:"hidden",
-        background:"#FFFFFFE6",
-        backdropFilter:"blur(8px)",
-        border:"1px solid rgba(255,255,255,0.4)",
-        boxShadow:"0 8px 24px rgba(0,0,0,0.06)",
-        cursor:"pointer"
-      }}
-    >
+    <div onClick={onClick} style={{
+      minWidth:210,
+      borderRadius:20,
+      overflow:"hidden",
+      background:"#FFFFFFE6",
+      backdropFilter:"blur(8px)",
+      border:"1px solid rgba(255,255,255,0.4)",
+      boxShadow:"0 12px 32px rgba(0,0,0,0.08)",
+      cursor:"pointer"
+    }}>
       <div style={{ position:"relative" }}>
         <img src={exp.image} style={{ width:"100%", height:140, objectFit:"cover" }} />
 
@@ -184,37 +212,33 @@ function ExperienceCard({ exp, onClick, popular, isFav, onFav }: any) {
           </div>
         )}
 
-        <div
-          onClick={(e)=>{ e.stopPropagation(); onFav() }}
-          style={{
-            position:"absolute",
-            top:10,
-            right:10,
-            width:36,
-            height:36,
-            borderRadius:"50%",
-            background:"rgba(255,255,255,0.9)",
-            display:"flex",
-            alignItems:"center",
-            justifyContent:"center",
-            boxShadow:"0 4px 12px rgba(0,0,0,0.12)",
-            backdropFilter:"blur(6px)"
-          }}
-        >
-          <Heart
-            size={18}
-            strokeWidth={2.4}
-            color={isFav ? "#E11D48" : "#333"}
-            fill={isFav ? "#E11D48" : "transparent"}
-          />
+        <div onClick={(e)=>{ e.stopPropagation(); onFav() }} style={{
+          position:"absolute",
+          top:10,
+          right:10,
+          width:36,
+          height:36,
+          borderRadius:"50%",
+          background:"rgba(255,255,255,0.9)",
+          display:"flex",
+          alignItems:"center",
+          justifyContent:"center",
+          boxShadow:"0 4px 12px rgba(0,0,0,0.12)",
+          backdropFilter:"blur(6px)"
+        }}>
+          <Heart size={18} strokeWidth={2.4} color={isFav ? "#E11D48" : "#333"} fill={isFav ? "#E11D48" : "transparent"} />
         </div>
       </div>
 
-      <div style={{ padding:"10px 12px 14px" }}>
+      <div style={{ padding:"10px 12px 2px" }}>
         <div style={{ fontWeight:600, fontSize:14 }}>{exp.title}</div>
         <div style={{ fontSize:12, opacity:0.6, marginTop:6, display:"flex", gap:10 }}>
-          <span style={{ display:"flex", alignItems:"center", gap:4 }}><Clock size={13}/> {exp.duration}</span>
-          <span style={{ display:"flex", alignItems:"center", gap:4 }}><Users size={13}/> {exp.format}</span>
+          <span style={{ display:"flex", alignItems:"center", gap:4 }}>
+            <MapPin size={13}/> {exp.city || exp.zone}
+          </span>
+          <span style={{ display:"flex", alignItems:"center", gap:4 }}>
+            <Users size={13}/> {formatLabel(exp.format)}
+          </span>
         </div>
       </div>
     </div>

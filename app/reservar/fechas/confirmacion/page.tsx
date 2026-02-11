@@ -3,33 +3,50 @@
 import { useRouter } from "next/navigation"
 import { Check } from "lucide-react"
 import { useEffect, useState } from "react"
-
-type Experience = {
-  name: string
-  image: string
-}
+import { useUI } from "@/components/ui/UIContext"
+import { Experience } from "@/lib/data/types"
+import { generateId } from "@/lib/utils/generateId"
+import { BookingStatus } from "@/components/ui/BookingTimeline"
 
 export default function ConfirmacionPage() {
   const router = useRouter()
+  const { setHideNav, selectedExperience } = useUI()
   const [experience, setExperience] = useState<Experience | null>(null)
 
   useEffect(() => {
-    const data = localStorage.getItem("selectedExperience")
-    if (data) {
-      try {
-        const parsed: Experience = JSON.parse(data)
-        console.log("EXPERIENCE:", parsed)
-        setExperience(parsed)
-      } catch (e) {
-        console.error("Error parsing experience", e)
+    setHideNav(true)
+
+    if (selectedExperience) {
+      setExperience(selectedExperience)
+
+      const dateStored = localStorage.getItem("selectedDates")
+      const timeStored = localStorage.getItem("selectedTime")
+
+      const booking = {
+        id: generateId(), // ✅ ID propre
+        experienceId: selectedExperience.id,
+        date: dateStored ? JSON.parse(dateStored)[0] : null,
+        time: timeStored ? JSON.parse(timeStored)[0] : null,
+        status: "requested" as BookingStatus,
+
+        experienceSnapshot: {
+          id: selectedExperience.id,
+          title: selectedExperience.title,
+          image: selectedExperience.image,
+          zone: selectedExperience.zone,
+          category: selectedExperience.category,
+          providerName: selectedExperience.providerName,
+        },
       }
+
+      localStorage.setItem("currentBooking", JSON.stringify(booking))
     }
-  }, [])
+
+    return () => setHideNav(false)
+  }, [selectedExperience, setHideNav])
 
   return (
     <div style={wrapperStyle}>
-
-      {/* 🌅 Background dynamique */}
       <div
         style={{
           ...backgroundStyle,
@@ -46,12 +63,12 @@ export default function ConfirmacionPage() {
           <h2 style={h2}>Listo, ya está en marcha</h2>
 
           <p style={text}>
-            Vivabox ya está coordinando tu momento con el lugar.  
-            Te avisamos muy pronto para que solo te prepares a disfrutar.
+            <strong>Ya lo estamos coordinando con el lugar.</strong><br />
+            Solo prepárate para disfrutar.
           </p>
 
           <button
-            onClick={() => router.push("/reservar/seguimiento/1")}
+            onClick={() => router.push("/reservar/seguimiento/" + (experience?.id || "1"))}
             style={btnStyle}
           >
             Ver seguimiento
@@ -62,7 +79,7 @@ export default function ConfirmacionPage() {
   )
 }
 
-/* ================= STYLES TS SAFE ================= */
+/* ================= STYLES ================= */
 
 const wrapperStyle: React.CSSProperties = {
   minHeight: "100dvh",

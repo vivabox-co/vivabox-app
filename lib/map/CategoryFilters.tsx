@@ -1,34 +1,41 @@
 "use client";
 
-import { categories } from "../../lib/map/categories";
-import { categoryColors } from "../../lib/map/categoryColors";
+import { Category } from "@/lib/data/types";
+import { categoryColors } from "@/lib/map/categoryColors";
+import { categoryLabel } from "@/lib/map/categoryLabels";
 
 type Props = {
-  active: string[];
-  onToggle: (key: string) => void;
+  active: Category[];
+  onToggle: (key: Category) => void;
 };
+
+const categoryOrder: Category[] = [
+  "gastro",
+  "bienestar",
+  "aventura",
+  "cultura",
+  "estancias",
+];
 
 export default function CategoryFilters({ active, onToggle }: Props) {
   return (
-    <div
-      style={{
-        position: "absolute",
-        top: 12,
-        left: 12,
-        right: 12,
-        display: "flex",
-        gap: 8,
-        overflowX: "auto",
-        zIndex: 1000,
-      }}
-    >
-      {categories.map((cat) => {
-        const isActive = active.includes(cat.key);
+    <div style={{
+      position: "absolute",
+      top: 12,
+      left: 12,
+      right: 12,
+      display: "flex",
+      gap: 8,
+      overflowX: "auto",
+      zIndex: 1000,
+    }}>
+      {categoryOrder.map((cat) => {
+        const isActive = active.includes(cat);
 
         return (
           <button
-            key={cat.key}
-            onClick={() => onToggle(cat.key)}
+            key={cat}
+            onClick={() => onToggle(cat)}
             style={{
               padding: "6px 10px",
               fontSize: 13,
@@ -37,12 +44,12 @@ export default function CategoryFilters({ active, onToggle }: Props) {
               cursor: "pointer",
               border: "none",
               background: isActive
-                ? categoryColors[cat.key]
+                ? categoryColors[cat]
                 : "#f1f1f1",
               color: isActive ? "white" : "#333",
             }}
           >
-            {cat.label}
+            {categoryLabel(cat)}
           </button>
         );
       })}

@@ -123,9 +123,14 @@ export default function MapaPage() {
           indoorState={indoorState}
           activeActivities={activeActivities}
           onSelect={(exp: Experience) => {
-            setSelectedExperience(exp)
-            setDrawerOpen(true)
-          }}
+  if (!exp?.id) {
+    console.error("Experience sélectionnée sans ID", exp)
+    return
+  }
+
+  setSelectedExperience(exp)
+  setDrawerOpen(true)
+}}
         />
       </div>
 
@@ -149,9 +154,14 @@ export default function MapaPage() {
             <button
               className="cta-button"
               onClick={() => {
-                setDrawerOpen(false)
-                router.push("/reservar/fechas")
-              }}
+  if (!selectedExperience?.id) {
+    console.error("Aucune expérience valide sélectionnée")
+    return
+  }
+
+  setDrawerOpen(false)
+  router.push("/reservar/fechas")
+}}
             >
               Elegir esta experiencia
             </button>

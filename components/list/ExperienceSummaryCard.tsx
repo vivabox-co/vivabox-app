@@ -1,14 +1,18 @@
+import { MapPin, Users } from "lucide-react"
 import { categoryColors } from "@/lib/map/categoryColors"
+import { formatLabel } from "@/lib/map/formatLabels"
+import { Format } from "@/lib/data/types"
 
 type Props = {
   title: string
   subtitle?: string
   location?: string
-  format?: string
+  format?: Format
   image?: string
   date?: string
   time?: string
   category: string
+  badge?: string | null
   onClick?: () => void
 }
 
@@ -21,113 +25,111 @@ export default function ExperienceSummaryCard({
   date,
   time,
   category,
+  badge,
   onClick,
 }: Props) {
-
   const safeImage = image || "/images/placeholder.jpg"
-  const safeLocation = location || ""
-  const safeFormat = format || ""
-  const hasDate = date && time
+  const hasDate = Boolean(date && time)
 
   return (
     <div
       onClick={onClick}
       style={{
+        display: "flex",
         background: "#FFFFFF",
-        borderRadius: 22,
+        borderRadius: 28,
+        boxShadow: "0 6px 22px rgba(0,0,0,0.05)",
         overflow: "hidden",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
-        marginBottom: 24,
-        borderLeft: `6px solid ${categoryColors[category] || "#ddd"}`,
+        marginBottom: 26,
         cursor: onClick ? "pointer" : "default",
-        transition: "transform 0.15s ease, box-shadow 0.15s ease",
-      }}
-      onMouseEnter={(e) => {
-        if (onClick) {
-          e.currentTarget.style.transform = "translateY(-2px)"
-          e.currentTarget.style.boxShadow = "0 14px 34px rgba(0,0,0,0.08)"
-        }
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)"
-        e.currentTarget.style.boxShadow = "0 10px 30px rgba(0,0,0,0.06)"
       }}
     >
-      <div style={{ display: "flex" }}>
-        {/* IMAGE */}
-        <div style={{ width: 130, minHeight: 150 }}>
-          <img
-            src={safeImage}
-            alt={title}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
+      {/* 🎯 IMAGE VERTICALE IMMERSIVE */}
+      <div
+        style={{
+          width: 120,
+          position: "relative",
+          flexShrink: 0,
+        }}
+      >
+        <img
+          src={safeImage}
+          alt={title}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderLeft: `6px solid ${categoryColors[category] || "#ddd"}`,
+          }}
+        />
+      </div>
+
+      {/* 🧠 CONTENU */}
+      <div style={{ padding: 22, flex: 1 }}>
+        <h3 style={{ margin: 0, fontSize: 21, fontWeight: 600, lineHeight: 1.25 }}>
+          {title}
+        </h3>
+
+        {subtitle && (
+          <p style={{ margin: "6px 0 12px", fontSize: 14, color: "#6b6b6b" }}>
+            {subtitle}
+          </p>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
+          {location && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "#666" }}>
+              <MapPin size={14} />
+              {location}
+            </div>
+          )}
+
+          {format && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "#666" }}>
+              <Users size={14} />
+              {formatLabel(format)}
+            </div>
+          )}
         </div>
 
-        {/* TEXTE */}
-        <div style={{ padding: 16, flex: 1 }}>
-          <h3
+        {badge && (
+          <div
             style={{
-              margin: 0,
-              fontSize: 18,
-              lineHeight: "1.2",
-              fontWeight: 600,
+              marginTop: 14,
+              display: "inline-block",
+              background: "#F1EFEA",
+              padding: "6px 12px",
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 500,
+              color: "#444",
             }}
           >
-            {title}
-          </h3>
+            {badge}
+          </div>
+        )}
 
-          {subtitle && (
-            <p
-              style={{
-                margin: "6px 0 10px",
-                fontSize: 14,
-                color: "#6b6b6b",
-              }}
-            >
-              {subtitle}
-            </p>
-          )}
-
-          {safeLocation && (
-            <div style={{ fontSize: 13, color: "#888", marginBottom: 4 }}>
-              {safeLocation}
-            </div>
-          )}
-
-          {safeFormat && (
-            <div
-              style={{
-                fontSize: 13,
-                color: "#888",
-                marginBottom: 10,
-                textTransform: "capitalize",
-              }}
-            >
-              {safeFormat}
-            </div>
-          )}
-
-          {/* PILULE DATE */}
-          {hasDate && (
-            <div
-              style={{
-                display: "inline-block",
-                background: "#F3EFEA",
-                padding: "6px 12px",
-                borderRadius: 999,
-                fontSize: 13,
-                fontWeight: 500,
-                color: "#333",
-              }}
-            >
-              {date} · {time}
-            </div>
-          )}
-        </div>
+        {hasDate && (
+          <div
+            style={{
+              marginTop: 12,
+              display: "inline-block",
+              background: "#F3EFEA",
+              padding: "6px 12px",
+              borderRadius: 999,
+              fontSize: 13,
+              fontWeight: 500,
+            }}
+          >
+            {date} · {time}
+          </div>
+        )}
       </div>
     </div>
   )

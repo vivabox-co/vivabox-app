@@ -15,10 +15,8 @@ export default function FechasPage() {
 
   const [selectedDates, setSelectedDates] = useState<string[]>([])
   const [openCalendar, setOpenCalendar] = useState(false)
-
   const [momentBlock, setMomentBlock] = useState<Moment>(null)
   const [strictTime, setStrictTime] = useState<string[] | null>(null)
-
   const [people, setPeople] = useState(2)
   const [openTimePicker, setOpenTimePicker] = useState(false)
 
@@ -32,18 +30,31 @@ export default function FechasPage() {
 
   function handleSubmit() {
     if (!momentBlock && !strictTime) return
-
     const finalTime: string[] = strictTime ? strictTime : [momentBlock!]
     setSelectedTime(finalTime)
 
-    // 🔥 SAUVEGARDE POUR PAGE CONFIRMATION
-    localStorage.setItem(
-      "selectedExperience",
-      JSON.stringify({
-        name: exp.title,
-        image: exp.image,
-      })
-    )
+    function handleSubmit() {
+  if (!momentBlock && !strictTime) return
+
+  const finalTime: string[] = strictTime ? strictTime : [momentBlock!]
+  setSelectedTime(finalTime)
+
+  const bookingData = {
+    experienceId: exp.id, // 🔑 ESSENTIEL
+    experienceSnapshot: {
+      title: exp.title,
+      image: exp.image,
+      zone: exp.zone,
+      category: exp.category,
+    },
+    date: selectedDates[0] || null,
+    time: finalTime[0] || null,
+    people,
+    status: "requested", // premier état timeline
+  }
+
+  router.push("/reservar/fechas/confirmacion")
+}
 
     router.push("/reservar/fechas/confirmacion")
   }
@@ -51,11 +62,16 @@ export default function FechasPage() {
   return (
     <>
       <div style={pageWrap}>
-        <img src={exp.image} style={heroImg} />
-        <h2 style={{ marginTop: 18 }}>{exp.title}</h2>
 
-        <p style={{ color: "#666", marginTop: 6 }}>
-          Uno o varios días que te ilusionen. <strong>Nosotros coordinamos.</strong>
+        {/* 🔥 HERO IMMERSION */}
+        <div style={heroWrapper}>
+          <img src={exp.image || "/images/placeholder.jpg"} style={heroImage} />
+          <div style={heroGradient} />
+          <div style={heroTitle}>{exp.title}</div>
+        </div>
+
+        <p style={subtitle}>
+          Elige fechas. <strong>Nosotros coordinamos.</strong>
         </p>
 
         <Card icon={<Calendar size={20} />} title="Días">
@@ -81,14 +97,6 @@ export default function FechasPage() {
             <button onClick={() => setOpenTimePicker(true)} style={strictTime ? timeFilledBtn : timeOutlineBtn}>
               Indicar hora
             </button>
-            {strictTime && (
-              <div style={timeValueWrap}>
-                <span>{strictTime.join(" • ")}</span>
-                {strictTime.length === 1 && (
-                  <span style={addHint} onClick={() => setOpenTimePicker(true)}>+ puedes añadir otra</span>
-                )}
-              </div>
-            )}
           </div>
         </Card>
 
@@ -126,7 +134,7 @@ export default function FechasPage() {
   )
 }
 
-/* ---------- COMPONENTS ---------- */
+/* ---------- UI ---------- */
 
 function Card({ icon, title, children }: any) {
   return <div style={card}><div style={cardHeader}>{icon}<span>{title}</span></div>{children}</div>
@@ -157,26 +165,71 @@ function MomentChip({ icon, label, value, momentBlock, setMomentBlock, setStrict
   )
 }
 
-/* ---------- STYLES TS SAFE ---------- */
+/* ---------- STYLES ---------- */
 
-const pageWrap: React.CSSProperties = { padding: 18, paddingBottom: 120 }
-const heroImg: React.CSSProperties = { width: "100%", borderRadius: 22 }
+const pageWrap: React.CSSProperties = { paddingBottom: 120 }
 
-const card: React.CSSProperties = { marginTop: 22, padding: 18, borderRadius: 18, background: "#F7F5F2" }
+const heroWrapper: React.CSSProperties = {
+  position: "relative",
+  width: "100%",
+  height: "40vh",
+  overflow: "hidden", // no radius = immersion
+}
+
+const heroImage: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+}
+
+const heroGradient: React.CSSProperties = {
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  right: 0,
+  height: "55%",
+  background: "linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0))",
+}
+
+const heroTitle: React.CSSProperties = {
+  position: "absolute",
+  bottom: 18,
+  left: 20,
+  right: 20,
+  color: "white",
+  fontSize: 22,
+  fontWeight: 700,
+  lineHeight: 1.2,
+}
+
+const subtitle: React.CSSProperties = { padding: 18, color: "#666" }
+
+const card: React.CSSProperties = {
+  margin: "0 18px 18px 18px",
+  padding: 18,
+  borderRadius: 18,
+  background: "#F7F5F2",
+}
+
 const cardHeader: React.CSSProperties = { display: "flex", gap: 8, alignItems: "center", fontWeight: 600, marginBottom: 12 }
 
 const chipsRow: React.CSSProperties = { display: "flex", gap: 8, flexWrap: "wrap" }
 
-const dateField: React.CSSProperties = { padding: 16, borderRadius: 16, background: "#fff", border: "1px solid #ddd", textAlign: "center", fontWeight: 600, cursor: "pointer" }
+const dateField: React.CSSProperties = {
+  padding: 16,
+  borderRadius: 16,
+  background: "#fff",
+  border: "1px solid #ddd",
+  textAlign: "center",
+  fontWeight: 600,
+  cursor: "pointer",
+}
 
 const timeRow: React.CSSProperties = { marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }
 const orLabel: React.CSSProperties = { fontSize: 16, opacity: 0.5 }
 
-const timeOutlineBtn: React.CSSProperties = { padding: "10px 16px", borderRadius: 999, border: "2px solid #111", background: "#fff", color: "#111", fontWeight: 500, cursor: "pointer" }
+const timeOutlineBtn: React.CSSProperties = { padding: "10px 16px", borderRadius: 999, border: "2px solid #111", background: "#fff", color: "#111" }
 const timeFilledBtn: React.CSSProperties = { ...timeOutlineBtn, background: "#111", color: "#fff" }
-
-const timeValueWrap: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#111" }
-const addHint: React.CSSProperties = { fontSize: 12, opacity: 0.5, cursor: "pointer" }
 
 const chipStyle = (active: boolean): React.CSSProperties => ({
   padding: "10px 14px",
@@ -184,8 +237,16 @@ const chipStyle = (active: boolean): React.CSSProperties => ({
   border: active ? "2px solid #111" : "1px solid #ddd",
   background: active ? "#111" : "#fff",
   color: active ? "#fff" : "#333",
-  fontWeight: 500,
-  cursor: "pointer"
 })
 
-const cta: React.CSSProperties = { marginTop: 30, width: "100%", padding: 16, borderRadius: 14, background: "#111", color: "#fff", fontSize: 16, fontWeight: 600, border: "none" }
+const cta: React.CSSProperties = {
+  margin: "24px 18px 0 18px",
+  width: "calc(100% - 36px)",
+  padding: 16,
+  borderRadius: 14,
+  background: "#111",
+  color: "#fff",
+  fontSize: 16,
+  fontWeight: 600,
+  border: "none",
+}

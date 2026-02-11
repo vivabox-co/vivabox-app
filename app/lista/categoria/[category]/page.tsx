@@ -99,17 +99,21 @@ export default function CategoryPage() {
         </div>
       </div>
 
-      <BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        {selectedExperience && (
-          <ExperienceExploreMeta
-            exp={selectedExperience}
-            onChoose={() => {
-              setDrawerOpen(false)
-              router.push("/reservar/fechas")
-            }}
-          />
-        )}
-      </BottomSheet>
+      <BottomSheet
+  open={drawerOpen}
+  onClose={() => setDrawerOpen(false)}
+  body={
+    selectedExperience && (
+      <ExperienceExploreMeta
+        exp={selectedExperience}
+        onChoose={() => {
+          setDrawerOpen(false)
+          router.push("/reservar/fechas")
+        }}
+      />
+    )
+  }
+/>
     </>
   )
 }

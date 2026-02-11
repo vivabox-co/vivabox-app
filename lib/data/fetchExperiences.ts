@@ -90,8 +90,10 @@ export async function fetchExperiences(): Promise<Experience[]> {
       /* 🔹 IDENTITÉ */
       id: clean(cols[0]),
       title: clean(cols[1]),
+      providerName: clean(cols[30]) || clean(cols[1]),
       category: normalizeCategory(cols[2]),
       activity_key: activityKey,
+  
 
       /* 🔹 LOCALISATION */
       lat,

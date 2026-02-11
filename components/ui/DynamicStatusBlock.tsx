@@ -12,32 +12,32 @@ export default function DynamicStatusBlock({ status }: Props) {
     { title: string; text: string; actions?: string[] }
   > = {
     requested: {
-      title: "Recibimos tu solicitud",
-      text: "Estamos empezando a coordinar tu experiencia para que todo salga perfecto.",
+      title: "Fechas recibidas",
+      text: "Ya tenemos tus fechas. Estamos empezando a coordinar con el lugar para que todo encaje perfectamente.",
       actions: ["Cambiar fechas", "Hablar con Mariana"],
     },
 
     waiting_provider: {
-      title: "Estamos gestionando todo por ti",
-      text: "Estamos verificando disponibilidad con el lugar. Te avisamos máximo en 48h.",
+      title: "Coordinando con el lugar",
+      text: "Estamos en contacto con el lugar para asegurar tu experiencia. Te avisamos apenas quede confirmada.",
       actions: ["Cambiar fechas", "Hablar con Mariana"],
     },
 
     confirmed: {
-      title: "Tu experiencia está confirmada 🎉",
-      text: "Pronto recibirás los detalles finales para que solo te preocupes por disfrutar.",
+      title: "Fecha confirmada ✨",
+      text: "Tu momento quedó agendado. Pronto podrás ver los detalles finales para ese día.",
       actions: ["Ver detalles"],
     },
 
     rejected: {
-      title: "No pudimos confirmar la fecha",
-      text: "Te contactaremos para proponerte una alternativa que funcione mejor.",
+      title: "Busquemos otra fecha",
+      text: "No pudimos confirmar esa opción, pero ya estamos viendo alternativas que funcionen mejor para ti.",
       actions: ["Hablar con Mariana"],
     },
 
     done: {
       title: "¿Cómo te fue?",
-      text: "Tu opinión ayuda a otros a elegir experiencias increíbles.",
+      text: "Tu opinión ayuda a otros a descubrir experiencias que valen la pena.",
       actions: ["Dejar opinión"],
     },
   }
