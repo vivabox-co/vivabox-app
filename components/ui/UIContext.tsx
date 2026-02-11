@@ -1,66 +1,71 @@
 "use client"
 
-import { createContext, useContext, useState } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 import { Experience } from "@/lib/data/types"
 
 export type SelectedExperience = Experience | null
 
 type UIContextType = {
-  // Drawer global
   drawerOpen: boolean
   setDrawerOpen: (open: boolean) => void
 
-  // Expérience affichée dans le drawer (map + liste)
   activeExperience: SelectedExperience
   setActiveExperience: (exp: SelectedExperience) => void
 
-  // Expérience choisie pour réservation
   selectedExperience: SelectedExperience
   setSelectedExperience: (exp: SelectedExperience) => void
 
-  // 🔥 Date et heure choisies pour la réservation
   selectedDate: string | null
   setSelectedDate: (d: string | null) => void
 
-  selectedTime: string | null
-  setSelectedTime: (t: string | null) => void
+  selectedTime: string[] | null
+  setSelectedTime: (time: string[]) => void
 
-  // Masquer la bottom nav
   hideNav: boolean
   setHideNav: (v: boolean) => void
 
-  // Favoris
+  // ⭐ FAVORIS GLOBAUX
   favorites: string[]
   toggleFavorite: (id: string) => void
+  isFavorite: (id: string) => boolean
 }
 
 const UIContext = createContext<UIContextType | null>(null)
 
 export function UIProvider({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [activeExperience, setActiveExperience] = useState<SelectedExperience>(null)
+  const [selectedExperience, setSelectedExperience] = useState<SelectedExperience>(null)
 
-  // Drawer (map/list)
-  const [activeExperience, setActiveExperience] =
-    useState<SelectedExperience>(null)
-
-  // Réservation (flow fechas)
-  const [selectedExperience, setSelectedExperience] =
-    useState<SelectedExperience>(null)
-
-  // 🔥 Nouveaux états réservation
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [selectedTime, setSelectedTime] = useState<string | null>(null)
+  const [selectedTime, setSelectedTime] = useState<string[] | null>(null)
 
   const [hideNav, setHideNav] = useState(false)
 
+  // ⭐ FAVORIS PERSISTANTS
   const [favorites, setFavorites] = useState<string[]>([])
 
+  // Charger au démarrage
+  useEffect(() => {
+    const saved = localStorage.getItem("vivabox_favorites")
+    if (saved) setFavorites(JSON.parse(saved))
+  }, [])
+
+  // Sauvegarder à chaque changement
+  useEffect(() => {
+    localStorage.setItem("vivabox_favorites", JSON.stringify(favorites))
+  }, [favorites])
+
   function toggleFavorite(id: string) {
-    setFavorites((prev) =>
+    setFavorites(prev =>
       prev.includes(id)
-        ? prev.filter((f) => f !== id)
+        ? prev.filter(f => f !== id)
         : [...prev, id]
     )
+  }
+
+  function isFavorite(id: string) {
+    return favorites.includes(id)
   }
 
   return (
@@ -85,6 +90,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
 
         favorites,
         toggleFavorite,
+        isFavorite,
       }}
     >
       {children}

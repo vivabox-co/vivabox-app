@@ -1,18 +1,24 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 type Props = {
   onClose: () => void
-  onSelect: (payload: {
-    date: string
-    dateFlex: number
-  }) => void
+  onSelect: (payload: { dates: string[] }) => void
+  initialDates?: string[]
 }
 
-export default function DatePickerModal({ onClose, onSelect }: Props) {
+export default function DatePickerModal({
+  onClose,
+  onSelect,
+  initialDates = []
+}: Props) {
+
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [selectedDay, setSelectedDay] = useState<number | null>(null)
-  const [dateFlex, setDateFlex] = useState<number>(1)
+  const [selectedDates, setSelectedDates] = useState<string[]>(initialDates)
+
+  useEffect(() => {
+    setSelectedDates(initialDates)
+  }, [initialDates])
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -31,110 +37,111 @@ export default function DatePickerModal({ onClose, onSelect }: Props) {
     const d = new Date(currentMonth)
     d.setMonth(d.getMonth() + offset)
     setCurrentMonth(d)
-    setSelectedDay(null)
   }
 
-  function handleSelect(day: number) {
+  function toggleDate(day: number) {
     const d = new Date(year, monthIndex, day)
     if (d < today) return
 
-    setSelectedDay(day)
+    const iso = d.toISOString().split("T")[0]
 
-    setTimeout(() => {
-      onSelect({
-        date: d.toISOString().split("T")[0],
-        dateFlex,
-      })
-      onClose()
-    }, 150)
+    setSelectedDates(prev => {
+      if (prev.includes(iso)) return prev.filter(date => date !== iso)
+      if (prev.length >= 3) return prev
+      return [...prev, iso]
+    })
   }
 
   const weekDays = ["L", "M", "M", "J", "V", "S", "D"]
 
   return (
-    <div style={overlay} onClick={onClose}>
-      <div style={modal} onClick={e => e.stopPropagation()}>
-        
-        {/* HEADER */}
-        <div style={header}>
-          <button onClick={() => changeMonth(-1)} style={navBtn}>‹</button>
-          <div style={monthLabel}>{monthName} {year}</div>
-          <button onClick={() => changeMonth(1)} style={navBtn}>›</button>
-        </div>
+    <>
+      <style>{styleTag}</style>
 
-        {/* WEEK DAYS */}
-        <div style={weekRow}>
-          {weekDays.map((d, i) => (
-            <div key={`wd-${i}`} style={weekDay}>{d}</div>
-          ))}
-        </div>
+      <div style={overlay} onClick={onClose}>
+        <div style={modal} onClick={e => e.stopPropagation()}>
 
-        {/* CALENDAR GRID */}
-        <div style={grid}>
-          {blanks.map((_, i) => <div key={`b-${i}`} />)}
-
-          {days.map(day => {
-            const fullDate = new Date(year, monthIndex, day)
-            const isPast = fullDate < today
-            const isSelected = selectedDay === day
-
-            return (
-              <button
-                key={`${year}-${monthIndex}-${day}`}
-                disabled={isPast}
-                onClick={() => handleSelect(day)}
-                style={{
-                  ...dayCell,
-                  opacity: isPast ? 0.25 : 1,
-                  background: isSelected ? "#111" : "transparent",
-                  color: isSelected ? "#fff" : "#111",
-                  transform: isSelected ? "scale(1.15)" : "scale(1)",
-                  boxShadow: isSelected ? "0 10px 22px rgba(0,0,0,0.28)" : "none",
-                  transition: "all .18s cubic-bezier(.2,.8,.4,1)",
-                  cursor: isPast ? "default" : "pointer",
-                }}
-              >
-                {day}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* DATE FLEXIBILITY */}
-        <div style={flexWrap}>
-          <div style={flexTitle}>Si no está disponible ese día…</div>
-          <div style={chipRow}>
-            <Chip label="Exacto" value={0} current={dateFlex} set={setDateFlex} />
-            <Chip label="±1 día" value={1} current={dateFlex} set={setDateFlex} />
-            <Chip label="±2 días" value={2} current={dateFlex} set={setDateFlex} />
-            <Chip label="±7 días" value={7} current={dateFlex} set={setDateFlex} />
+          {/* HEADER */}
+          <div style={header}>
+            <button onClick={() => changeMonth(-1)} style={navBtn}>‹</button>
+            <div style={monthLabel}>{monthName} {year}</div>
+            <button onClick={() => changeMonth(1)} style={navBtn}>›</button>
           </div>
+
+          {/* WEEK DAYS */}
+          <div style={weekRow}>
+            {weekDays.map((d, i) => (
+              <div key={`wd-${i}`} style={weekDay}>{d}</div>
+            ))}
+          </div>
+
+          {/* CALENDAR GRID */}
+          <div style={grid}>
+            {blanks.map((_, i) => <div key={`b-${i}`} />)}
+
+            {days.map(day => {
+              const fullDate = new Date(year, monthIndex, day)
+              const isPast = fullDate < today
+              const iso = fullDate.toISOString().split("T")[0]
+              const isSelected = selectedDates.includes(iso)
+
+              return (
+                <button
+                  key={`${year}-${monthIndex}-${day}`}
+                  disabled={isPast}
+                  onClick={() => toggleDate(day)}
+                  style={{
+                    ...dayCell,
+                    opacity: isPast ? 0.25 : 1,
+                    background: isSelected ? "#111" : "transparent",
+                    color: isSelected ? "#fff" : "#111",
+                    transform: isSelected ? "scale(1.12)" : "scale(1)",
+                    boxShadow: isSelected ? "0 10px 22px rgba(0,0,0,0.28)" : "none",
+                    transition: "all .22s cubic-bezier(.2,.8,.4,1)",
+                    animation: isSelected ? "pulse .35s ease" : "none",
+                    cursor: isPast ? "default" : "pointer",
+                  }}
+                >
+                  {day}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* STABLE INFO + CHIPS */}
+          <div style={stableZone}>
+            <div style={stableHeaderRow}>
+              <div style={stableTitle}>Tus días elegidos</div>
+              <div style={stableHint}>
+                {selectedDates.length === 0 && "Elige uno o varios días"}
+                {selectedDates.length === 1 && "Puedes añadir otros días"}
+              </div>
+            </div>
+
+            <div style={chipsRow}>
+              {selectedDates.map(d => (
+                <div key={d} style={chipItem}>
+                  {new Date(d).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CTA */}
+          <button
+            onClick={() => {
+              if (selectedDates.length === 0) return
+              onSelect({ dates: selectedDates })
+              onClose()
+            }}
+            style={ctaBtn}
+          >
+            Elegir estos días
+          </button>
+
         </div>
-
       </div>
-    </div>
-  )
-}
-
-/* ---------- CHIP BUTTON ---------- */
-function Chip({ label, value, current, set }: any) {
-  const active = current === value
-  return (
-    <button
-      onClick={() => set(value)}
-      style={{
-        padding: "10px 14px",
-        borderRadius: 20,
-        border: active ? "2px solid #111" : "1px solid #ddd",
-        background: active ? "#111" : "#fff",
-        color: active ? "#fff" : "#111",
-        fontSize: 13,
-        fontWeight: 500,
-        cursor: "pointer",
-      }}
-    >
-      {label}
-    </button>
+    </>
   )
 }
 
@@ -166,6 +173,57 @@ const weekDay = { textAlign: "center" as const, fontSize: 12, opacity: .5 }
 const grid = { display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 10 }
 const dayCell = { height: 46, borderRadius: 16, border: "none", fontSize: 14, fontWeight: 500 }
 
-const flexWrap = { marginTop: 22, paddingTop: 18, borderTop: "1px solid #eee" }
-const flexTitle = { fontSize: 14, fontWeight: 600, marginBottom: 12 }
-const chipRow = { display: "flex", flexWrap: "wrap" as const, gap: 8 }
+const stableZone = {
+  marginTop: 20,
+  minHeight: 80,
+  padding: 14,
+  borderRadius: 16,
+  background: "#F7F5F2",
+  display: "flex",
+  flexDirection: "column" as const,
+  justifyContent: "space-between"
+}
+
+const stableHeaderRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center"
+}
+
+const stableTitle = { fontSize: 12, opacity: 0.6 }
+const stableHint = { fontSize: 12, opacity: 0.5, textAlign: "right" as const, minWidth: 140 }
+
+const chipsRow = { display: "flex", flexWrap: "wrap" as const, gap: 8, marginTop: 10 }
+
+const chipItem = {
+  padding: "8px 12px",
+  borderRadius: 999,
+  background: "#fff",
+  fontSize: 13,
+  fontWeight: 500,
+  animation: "fadeIn .25s ease"
+}
+
+const ctaBtn = {
+  marginTop: 24,
+  width: "100%",
+  padding: 16,
+  borderRadius: 14,
+  background: "#111",
+  color: "#fff",
+  fontWeight: 600,
+  border: "none"
+}
+
+const styleTag = `
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.16); }
+  100% { transform: scale(1.12); }
+}
+`

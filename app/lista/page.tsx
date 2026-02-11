@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Experience, Category, Format, ActivityKey } from "@/lib/data/types"
+import { Experience, Category, ActivityKey } from "@/lib/data/types"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
 import { filterExperiences } from "@/lib/product/filterExperiences"
 import { buildActivityFilters } from "@/lib/product/buildActivityFilters"
@@ -17,10 +17,17 @@ export default function ListaPage() {
   const router = useRouter()
   const wrapperRef = useRef<HTMLDivElement>(null)
 
-  const { selectedExperience, setSelectedExperience, drawerOpen, setDrawerOpen } = useUI()
+  const {
+    selectedExperience,
+    setSelectedExperience,
+    drawerOpen,
+    setDrawerOpen,
+    favorites,
+    toggleFavorite,
+    isFavorite
+  } = useUI()
 
   const [experiences, setExperiences] = useState<Experience[]>([])
-  const [favorites, setFavorites] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [activeActivities, setActiveActivities] = useState<ActivityKey[]>([])
@@ -47,10 +54,6 @@ export default function ListaPage() {
     return map
   }, [filteredExperiences])
 
-  function toggleFav(id: string) {
-    setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id])
-  }
-
   function selectExperience(exp: Experience) {
     setSelectedExperience(exp)
     setDrawerOpen(true)
@@ -58,13 +61,7 @@ export default function ListaPage() {
 
   return (
     <>
-      <div
-        ref={wrapperRef}
-        style={{
-          minHeight: "100vh",
-          background: "linear-gradient(180deg,#F8FAFC 0%,#F1F5F9 100%)"
-        }}
-      >
+      <div ref={wrapperRef} style={{ minHeight: "100vh", background: "linear-gradient(180deg,#F8FAFC 0%,#F1F5F9 100%)" }}>
 
         {/* SEARCH */}
         <div style={{ position:"sticky", top:0, zIndex:1000, background:"#ffffffdd", backdropFilter:"blur(10px)", padding:"12px", display:"flex", gap:10 }}>
@@ -101,8 +98,8 @@ export default function ListaPage() {
                       key={exp.id}
                       exp={exp}
                       popular={i < 2}
-                      isFav={favorites.includes(exp.id)}
-                      onFav={()=>toggleFav(exp.id)}
+                      isFav={isFavorite(exp.id)}
+                      onFav={()=>toggleFavorite(exp.id)}
                       onClick={()=>selectExperience(exp)}
                     />
                   ))}
@@ -115,33 +112,33 @@ export default function ListaPage() {
       </div>
 
       <BottomSheet
-  open={drawerOpen}
-  onClose={() => setDrawerOpen(false)}
-  body={
-    selectedExperience && (
-      <ExperienceExploreMeta
-        exp={selectedExperience}
-        onChoose={() => {
-          setDrawerOpen(false)
-          router.push("/reservar/fechas")
-        }}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        body={
+          selectedExperience && (
+            <ExperienceExploreMeta
+              exp={selectedExperience}
+              onChoose={() => {
+                setDrawerOpen(false)
+                router.push("/reservar/fechas")
+              }}
+            />
+          )
+        }
+        footer={
+          selectedExperience && (
+            <button
+              className="cta-button"
+              onClick={() => {
+                setDrawerOpen(false)
+                router.push("/reservar/fechas")
+              }}
+            >
+              Elegir esta experiencia
+            </button>
+          )
+        }
       />
-    )
-  }
-  footer={
-    selectedExperience && (
-      <button
-        className="cta-button"
-        onClick={() => {
-          setDrawerOpen(false)
-          router.push("/reservar/fechas")
-        }}
-      >
-        Elegir esta experiencia
-      </button>
-    )
-  }
-/>
 
       <FiltersDrawer
         open={filtersOpen}
@@ -173,7 +170,6 @@ function ExperienceCard({ exp, onClick, popular, isFav, onFav }: any) {
         overflow:"hidden",
         background:"#FFFFFFE6",
         backdropFilter:"blur(8px)",
-        WebkitBackdropFilter:"blur(8px)",
         border:"1px solid rgba(255,255,255,0.4)",
         boxShadow:"0 8px 24px rgba(0,0,0,0.06)",
         cursor:"pointer"
@@ -188,9 +184,30 @@ function ExperienceCard({ exp, onClick, popular, isFav, onFav }: any) {
           </div>
         )}
 
-        <Heart size={22} onClick={(e)=>{e.stopPropagation();onFav()}}
-          style={{ position:"absolute", top:8, right:8, color:isFav?"#E11D48":"#fff", fill:isFav?"#E11D48":"rgba(0,0,0,0.35)" }}
-        />
+        <div
+          onClick={(e)=>{ e.stopPropagation(); onFav() }}
+          style={{
+            position:"absolute",
+            top:10,
+            right:10,
+            width:36,
+            height:36,
+            borderRadius:"50%",
+            background:"rgba(255,255,255,0.9)",
+            display:"flex",
+            alignItems:"center",
+            justifyContent:"center",
+            boxShadow:"0 4px 12px rgba(0,0,0,0.12)",
+            backdropFilter:"blur(6px)"
+          }}
+        >
+          <Heart
+            size={18}
+            strokeWidth={2.4}
+            color={isFav ? "#E11D48" : "#333"}
+            fill={isFav ? "#E11D48" : "transparent"}
+          />
+        </div>
       </div>
 
       <div style={{ padding:"10px 12px 14px" }}>

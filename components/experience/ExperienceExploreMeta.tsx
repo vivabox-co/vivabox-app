@@ -2,6 +2,7 @@
 
 import { Experience } from "@/lib/data/types"
 import { categoryColors } from "@/lib/map/categoryColors"
+import { useUI } from "@/components/ui/UIContext"
 import {
   MapPin,
   Clock,
@@ -22,6 +23,9 @@ type Props = {
 export default function ExperienceExploreMeta({ exp }: Props) {
   if (!exp) return null
 
+  const { isFavorite, toggleFavorite } = useUI()
+  const fav = isFavorite(exp.id)
+
   const color = categoryColors[exp.category] || "#333"
 
   return (
@@ -40,9 +44,19 @@ export default function ExperienceExploreMeta({ exp }: Props) {
         </div>
 
         {/* 🤍 FAVORITE BUTTON */}
-        <button style={favButton}>
-          <Heart size={20} />
-        </button>
+        <button
+  style={favButton}
+  onClick={(e) => {
+    e.stopPropagation()
+    toggleFavorite(exp.id)
+  }}
+>
+  <Heart
+    size={20}
+    color={fav ? "#E11D48" : "#333"}
+    fill={fav ? "#E11D48" : "transparent"}
+  />
+</button>
       </div>
 
       <div style={{ padding: "16px" }}>
@@ -183,12 +197,14 @@ const favButton: React.CSSProperties = {
   width: 42,
   height: 42,
   borderRadius: "50%",
-  background: "white",
-  border: "none",
+  background: "rgba(255,255,255,0.82)",   // 🔥 transparence
+  backdropFilter: "blur(8px)",            // 🔥 glass effect
+  WebkitBackdropFilter: "blur(8px)",
+  border: "1px solid rgba(255,255,255,0.6)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
   cursor: "pointer",
 }
 
