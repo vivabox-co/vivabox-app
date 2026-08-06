@@ -18,9 +18,6 @@
 
     "incremental": true,
 
-    // 🔥 FIX WARNING TS 6+
-    "ignoreDeprecations": "6.0",
-
     // ✅ ALIAS PROPRE
     "baseUrl": ".",
     "paths": {

@@ -1,11 +1,19 @@
 "use client"
 
-import { useEffect } from "react"
+import { Suspense, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useUI } from "@/components/ui/UIContext"
 import { Check, Compass, CalendarDays, ChevronRight } from "lucide-react"
 
 export default function ActivacionCompletaPage() {
+  return (
+    <Suspense fallback={null}>
+      <ActivacionCompletaContent />
+    </Suspense>
+  )
+}
+
+function ActivacionCompletaContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { setHideNav } = useUI()

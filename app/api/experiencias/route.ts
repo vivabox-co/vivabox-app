@@ -13,7 +13,7 @@ export async function GET() {
     }
 
     // Appel vers Apps Script - action dédiée "get_experiencias"
-    const response = await fetch(process.env.APPS_SCRIPT_URL!, {
+    const response = await fetch(process.env.GAS_API_URL!, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
