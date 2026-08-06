@@ -162,6 +162,7 @@ const centerWrap = {
   justifyContent: "center",
   gap: "24px",
   padding: "32px 24px",
+  paddingBottom: "12vh",
 }
 
 const cardWide = {
@@ -202,6 +203,7 @@ const flowRow = {
 
 const stepWrap = {
   flex: 1,
+  minWidth: 0,
   textAlign: "center" as const,
 }
 

@@ -5,10 +5,20 @@ import { useRouter, usePathname } from "next/navigation"
 import BottomNav from "@/components/ui/BottomNav"
 import { useUI } from "@/components/ui/UIContext"
 
+// Pages où la nav doit être cachée dès le premier rendu — dérivé du pathname
+// (disponible synchronement) plutôt que du seul hideNav du contexte, qui n'est
+// mis à jour que par un useEffect de la page cible et arrive donc un cran trop
+// tard (flash de la navbar le temps que l'effet se déclenche).
+const HIDDEN_NAV_PATHS = ["/activar", "/activacion-completa", "/reservar/fechas"]
+
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const { hideNav } = useUI()
+
+  const pathHidesNav = HIDDEN_NAV_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(p + "/")
+  )
 
   useEffect(() => {
     function handleBack() {
@@ -31,7 +41,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <>
       {children}
-      {!hideNav && <BottomNav />}
+      {!hideNav && !pathHidesNav && <BottomNav />}
     </>
   )
 }

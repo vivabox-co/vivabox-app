@@ -15,6 +15,8 @@ import { fetchExperiences } from "@/lib/data/fetchExperiences"
 import { Experience, Format, Category, ActivityKey } from "@/lib/data/types"
 import { createPinIcon } from "@/lib/map/createPinIcon"
 import { categoryColors } from "@/lib/map/categoryColors"
+import { categoryLabel } from "@/lib/map/categoryLabels"
+import { formatLabel } from "@/lib/map/formatLabels"
 import { useUI } from "@/components/ui/UIContext"
 import { Heart, MapPin, Users } from "lucide-react"
 import { filterExperiences } from "@/lib/product/filterExperiences"
@@ -77,24 +79,6 @@ function createClusterIcon(color: string) {
     })
 }
 
-function categoryLabel(category: Category) {
-  return {
-    gastro: "Gastronomía",
-    bienestar: "Bienestar",
-    aventura: "Aventura",
-    cultura: "Cultura",
-    estancias: "Estancias",
-  }[category]
-}
-
-function formatLabel(format: Format) {
-  return {
-    solo: "Para uno",
-    duo: "Para dos",
-    familia: "En familia",
-  }[format]
-}
-
 export default function MapView({
   onSelect,
   activeCategories,
@@ -106,11 +90,14 @@ export default function MapView({
 }: MapViewProps) {
   const [experiences, setExperiences] = useState<Experience[]>([])
   const [mapReady, setMapReady] = useState(false)
+  const [loadingExperiences, setLoadingExperiences] = useState(true)
 
   const { favorites, toggleFavorite } = useUI()
 
   useEffect(() => {
-    fetchExperiences().then(setExperiences)
+    fetchExperiences()
+      .then(setExperiences)
+      .finally(() => setLoadingExperiences(false))
   }, [])
 
   const { filteredExperiences } = useMemo(() => {
@@ -133,7 +120,26 @@ export default function MapView({
   ])
 
   return (
-    <div style={{ width: "100%", height: "100%" }}>
+    <div style={{ width: "100%", height: "100%", position: "relative" }}>
+      {loadingExperiences && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 900,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 12,
+            background: "rgba(255,255,255,0.6)",
+            pointerEvents: "none",
+          }}
+        >
+          <div className="vb-spinner" />
+        </div>
+      )}
+
       <MapContainer
         center={[4.65, -74.08]}
         zoom={13}
@@ -173,13 +179,19 @@ export default function MapView({
                     <Marker
                       key={exp.id}
                       position={[lat, lng]}
+                      alt={exp.title}
                       icon={createPinIcon(
                         color,
                         exp.activity_key || "",
-                        isFav
+                        isFav,
+                        exp.title
                       )}
                     >
-                      <Popup>
+                      {/* Réserve l'espace de la barre du haut (Filtros +
+                          légende catégories, ~150px) pour que l'auto-pan de
+                          Leaflet ne fasse jamais apparaître un popup masqué
+                          derrière cette barre fixe. */}
+                      <Popup autoPanPaddingTopLeft={[20, 150]} autoPanPaddingBottomRight={[20, 20]}>
                         <div style={{ width: 220 }}>
                           <div
                             style={{

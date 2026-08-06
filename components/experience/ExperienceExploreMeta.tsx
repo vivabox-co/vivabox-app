@@ -2,6 +2,7 @@
 
 import { Experience } from "@/lib/data/types"
 import { categoryColors } from "@/lib/map/categoryColors"
+import { categoryLabel } from "@/lib/map/categoryLabels"
 import { useUI } from "@/components/ui/UIContext"
 import {
   MapPin,
@@ -21,9 +22,10 @@ type Props = {
 }
 
 export default function ExperienceExploreMeta({ exp }: Props) {
+  const { isFavorite, toggleFavorite } = useUI()
+
   if (!exp) return null
 
-  const { isFavorite, toggleFavorite } = useUI()
   const fav = isFavorite(exp.id)
 
   const color = categoryColors[exp.category] || "#333"
@@ -40,7 +42,7 @@ export default function ExperienceExploreMeta({ exp }: Props) {
 
         {/* 🏷 CATEGORY BADGE */}
         <div style={{ ...categoryBadge, background: color }}>
-          {exp.category}
+          {categoryLabel(exp.category)}
         </div>
 
         {/* 🤍 FAVORITE BUTTON */}

@@ -101,6 +101,7 @@ const centerWrap: React.CSSProperties = {
   justifyContent: "center",
   gap: "24px",
   padding: "32px 24px",
+  paddingBottom: "12vh",
   boxSizing: "border-box",
 }
 

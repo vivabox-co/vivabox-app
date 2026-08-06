@@ -3,19 +3,12 @@
 import Image from 'next/image'
 import { MapPin, Users } from 'lucide-react'
 import { Experience } from '@/lib/data/types'
+import { categoryColors } from '@/lib/map/categoryColors'
+import { formatLabel } from '@/lib/map/formatLabels'
 
 type Props = {
   items: Experience[]
   onSelect: (exp: Experience) => void
-}
-
-/* ===== CATEGORY COLORS ===== */
-const categoryColors: Record<string, string> = {
-  gastro: '#F59E0B',
-  bienestar: '#3B82F6',
-  aventura: '#EF4444',
-  cultura: '#8B5CF6',
-  estancias: '#10B981',
 }
 
 /* ================= STYLES ================= */
@@ -60,16 +53,22 @@ export default function Top3Screen({ items, onSelect }: Props) {
             const color = categoryColors[exp.category] ?? '#E5E7EB'
 
             return (
-              <div
+              <button
                 key={exp.id}
+                type="button"
                 onClick={() => onSelect(exp)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  width: '100%',
                   height: 92,
                   borderRadius: 18,
                   background: 'rgba(255,255,255,0.92)',
                   boxShadow: '0 8px 22px rgba(0,0,0,0.06)',
+                  border: 'none',
+                  padding: 0,
+                  font: 'inherit',
+                  textAlign: 'left',
                   cursor: 'pointer',
                   overflow: 'hidden',
                 }}
@@ -142,12 +141,12 @@ export default function Top3Screen({ items, onSelect }: Props) {
                     {exp.format && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Users size={14} />
-                        {exp.format}
+                        {formatLabel(exp.format)}
                       </span>
                     )}
                   </div>
                 </div>
-              </div>
+              </button>
             )
           })}
         </div>

@@ -4,7 +4,8 @@ import { getActivityIcon } from "./getActivityIcon"
 export function createPinIcon(
   categoryColor: string,
   activityKey: string,
-  isFavorite: boolean
+  isFavorite: boolean,
+  title?: string
 ) {
   /* 🧠 Empêche exécution côté serveur */
   if (typeof window === "undefined") return undefined as any
@@ -15,7 +16,7 @@ export function createPinIcon(
   return L.divIcon({
     className: "vivabox-pin",
     html: `
-      <div style="
+      <div role="img" aria-label="${(title || "").replace(/"/g, "&quot;")}" style="
         position: relative;
         width: 44px;
         height: 44px;
@@ -29,10 +30,11 @@ export function createPinIcon(
       ">
 
         <!-- pictogramme -->
-        <img 
-          src="${iconSrc}" 
-          width="22" 
+        <img
+          src="${iconSrc}"
+          width="22"
           height="22"
+          alt=""
           style="
             transform: rotate(45deg);
             position:relative;

@@ -78,21 +78,19 @@ const optionCardStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 16,
+  width: '100%',
   padding: '18px',
   borderRadius: 16,
 
   background: '#111',
   color: '#FFF',
   border: 'none',
+  font: 'inherit',
 
   cursor: 'pointer',
   textAlign: 'left',
 
   transition: 'background 0.15s ease, transform 0.1s ease',
-}
-
-const optionCardHover: React.CSSProperties = {
-  background: '#000',
 }
 
 /**
@@ -137,7 +135,8 @@ function OptionCard({
   children: React.ReactNode
 }) {
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       style={optionCardStyle}
       onMouseEnter={e => {
@@ -154,7 +153,7 @@ onMouseLeave={e => {
       }}
     >
       {children}
-    </div>
+    </button>
   )
 }
 

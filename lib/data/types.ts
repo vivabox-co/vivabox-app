@@ -9,7 +9,7 @@ export type Category =
   | "cultura"
   | "estancias"
 
-export type Format = "solo" | "duo" | "familia"
+export type Format = "solo" | "duo"
 
 /**
  * 🔥 activity_key est DATA-DRIVEN

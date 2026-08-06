@@ -14,6 +14,7 @@ import {
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
 import { filterExperiences } from "@/lib/product/filterExperiences"
 import { buildActivityFilters } from "@/lib/product/buildActivityFilters"
+import { buildAmbianceFilters } from "@/lib/product/buildAmbianceFilters"
 
 import BottomSheet from "@/components/ui/BottomSheet"
 import ExperienceExploreMeta from "@/components/experience/ExperienceExploreMeta"
@@ -51,7 +52,6 @@ export default function MapaPage() {
   const [activeFormats, setActiveFormats] = useState<Format[]>([
     "solo",
     "duo",
-    "familia",
   ])
   const [activeCities, setActiveCities] = useState<string[]>([])
   const [activeAmbiances, setActiveAmbiances] = useState<string[]>([])
@@ -81,6 +81,11 @@ export default function MapaPage() {
     [experiences]
   )
 
+  const ambianceOptions = useMemo(
+    () => buildAmbianceFilters(experiences),
+    [experiences]
+  )
+
   const filterResult = useMemo(() => {
     return filterExperiences(experiences, {
       categories: activeCategories,
@@ -105,7 +110,7 @@ export default function MapaPage() {
   const resetFilters = () => {
     setActiveActivities([])
     setActiveCategories(ALL_CATEGORIES)
-    setActiveFormats(["solo", "duo", "familia"])
+    setActiveFormats(["solo", "duo"])
     setActiveCities([])
     setActiveAmbiances([])
     setIndoorState("any")
@@ -115,49 +120,21 @@ export default function MapaPage() {
     <>
       <div className={drawerOpen ? "mapa-content blurred" : "mapa-content"}>
 
-        {/* Top blur (zone UI) */}
-<div
-  style={{
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 68,
-    zIndex: 1100,
-    pointerEvents: "none",
-    backdropFilter: "blur(12px)",
-    WebkitBackdropFilter: "blur(12px)",
-    background: "rgba(255,255,255,0.85)",
-  }}
-/>
-{/* Fade vers la map */}
-<div
-  style={{
-    position: "absolute",
-    top: 68,
-    left: 0,
-    right: 0,
-    height: 43,
-    zIndex: 1100,
-    pointerEvents: "none",
-    background:
-      "linear-gradient(to bottom, rgba(255,255,255,0.85), rgba(255,255,255,0))",
-  }}
-/>
-
-
         {/* ================= TOP BAR CONTENT ================= */}
         <div
           style={{
             position: "absolute",
-            top: 14,
-            left: 14,
-            right: 14,
+            top: 10,
+            left: 10,
+            right: 10,
             zIndex: 1200,
             display: "flex",
-            alignItems: "flex-start",
+            alignItems: "center",
             gap: 12,
-            pointerEvents: "auto",
+            padding: "10px 12px",
+            background: "#fff",
+            borderRadius: 20,
+            boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
           }}
         >
           {/* Filtros */}
@@ -211,26 +188,28 @@ export default function MapaPage() {
   <Image
     src="/logo/LogoVivaboxSVG.svg"
     alt="Vivabox"
-    width={42}
-    height={42}
+    width={50}
+    height={50}
   />
 </button>
         </div>
 
         {/* ================= MAP ================= */}
-        <MapView
-          activeCategories={activeCategories}
-          activeFormats={activeFormats}
-          activeCities={activeCities}
-          activeAmbiances={activeAmbiances}
-          indoorState={indoorState}
-          activeActivities={activeActivities}
-          onSelect={(exp: Experience) => {
-            if (!exp?.id) return
-            setSelectedExperience(exp)
-            setDrawerOpen(true)
-          }}
-        />
+        <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+          <MapView
+            activeCategories={activeCategories}
+            activeFormats={activeFormats}
+            activeCities={activeCities}
+            activeAmbiances={activeAmbiances}
+            indoorState={indoorState}
+            activeActivities={activeActivities}
+            onSelect={(exp: Experience) => {
+              if (!exp?.id) return
+              setSelectedExperience(exp)
+              setDrawerOpen(true)
+            }}
+          />
+        </div>
       </div>
 
       {/* ================= BOTTOM SHEET ================= */}
@@ -272,7 +251,6 @@ export default function MapaPage() {
         onReset={resetFilters}
         activityFilters={activityFilters}
         activeActivities={activeActivities}
-        setActiveActivities={setActiveActivities}
         toggleActivity={(id: ActivityKey) =>
           setActiveActivities(prev =>
             prev.includes(id)
@@ -297,6 +275,7 @@ export default function MapaPage() {
               : [...prev, f]
           )
         }
+        ambianceOptions={ambianceOptions}
         activeAmbiances={activeAmbiances}
         toggleAmbiance={(a: string) =>
           setActiveAmbiances(prev =>

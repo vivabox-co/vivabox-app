@@ -153,10 +153,22 @@ export default function RecoOverlay({ open, onClose }: Props) {
               padding: 24,
               display: 'flex',
               flex: 1,
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: 20,
+              textAlign: 'center',
             }}
           >
+            <div>
+              <h2 style={{ fontSize: 21, fontWeight: 600, margin: '0 0 10px', lineHeight: 1.3 }}>
+                Encontremos tu experiencia ideal
+              </h2>
+              <p style={{ fontSize: 15, opacity: 0.7, margin: 0, lineHeight: 1.5 }}>
+                Tres preguntas simples para sugerirte lo que mejor se ajusta a lo que buscas hoy.
+              </p>
+            </div>
+
             <button
               onClick={() => {
                 sessionStorage.setItem(SESSION_KEY, 'true')

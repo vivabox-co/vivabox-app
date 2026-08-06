@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useUI } from '@/components/ui/UIContext'
 import { categoryColors } from '@/lib/map/categoryColors'
+import { categoryLabel } from '@/lib/map/categoryLabels'
+import { formatLabel } from '@/lib/map/formatLabels'
 import {
   ArrowLeft,
   MapPin,
@@ -19,7 +21,7 @@ type Props = {
 
 export default function DetailScreen({ experience, onBack }: Props) {
   const router = useRouter()
-  const { isFavorite, toggleFavorite } = useUI()
+  const { isFavorite, toggleFavorite, setSelectedExperience } = useUI()
 
   if (!experience) return null
 
@@ -72,7 +74,7 @@ export default function DetailScreen({ experience, onBack }: Props) {
             background: categoryColor,
           }}
         >
-          {experience.category}
+          {categoryLabel(experience.category)}
         </div>
 
         {/* FAVORITE */}
@@ -99,7 +101,7 @@ export default function DetailScreen({ experience, onBack }: Props) {
         <div style={{ marginTop: 12 }}>
           <MetaRow icon={MapPin} text={experience.zone} />
           <MetaRow icon={Clock} text={experience.duration} />
-          <MetaRow icon={Users} text={experience.format} />
+          <MetaRow icon={Users} text={formatLabel(experience.format)} />
         </div>
 
         <Section title="Qué vas a vivir" text={experience.vivanote} />
@@ -114,7 +116,10 @@ export default function DetailScreen({ experience, onBack }: Props) {
 
         {/* CTA */}
         <button
-          onClick={() => router.push(`/fechas/${experience.id}`)}
+          onClick={() => {
+            setSelectedExperience(experience)
+            router.push('/reservar/fechas')
+          }}
           style={cta}
         >
           Elegir esta experiencia

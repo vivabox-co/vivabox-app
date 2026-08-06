@@ -124,12 +124,44 @@ async function fetchLegacyCSV(): Promise<Experience[]> {
 }
 
 /* ================= NOUVELLE FONCTION PRINCIPALE ================= */
+
+// Le catalogue change rarement mais /api/experiencias est lent (~1.5-2s,
+// backend Google Apps Script/Sheets), et plusieurs composants indépendants
+// (page + MapView sur /mapa, etc.) appellent fetchExperiences() en même
+// temps — sans ça chacun repaierait le coût complet. `cachedList` évite de
+// re-fetch pendant CACHE_TTL_MS ; `inFlightRequest` fait que des appels
+// concurrents pendant un chargement partagent la même requête au lieu d'en
+// déclencher une par appelant.
+const CACHE_TTL_MS = 2 * 60 * 1000
+let cachedList: Experience[] | null = null
+let cachedAt = 0
+let inFlightRequest: Promise<Experience[]> | null = null
+
 /**
  * Récupère la liste des expériences depuis l'API interne.
  * Si l'API échoue (non disponible ou erreur), utilise le fallback CSV
  * pour ne pas casser l'application pendant la migration.
  */
 export async function fetchExperiences(): Promise<Experience[]> {
+  if (cachedList && Date.now() - cachedAt < CACHE_TTL_MS) {
+    return cachedList
+  }
+
+  if (inFlightRequest) {
+    return inFlightRequest
+  }
+
+  inFlightRequest = fetchExperiencesUncached().finally(() => {
+    inFlightRequest = null
+  })
+
+  const data = await inFlightRequest
+  cachedList = data
+  cachedAt = Date.now()
+  return data
+}
+
+async function fetchExperiencesUncached(): Promise<Experience[]> {
   try {
     const apiRes = await fetch("/api/experiencias", {
       cache: "no-store",

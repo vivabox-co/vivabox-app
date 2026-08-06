@@ -13,25 +13,59 @@ const SHEET_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4Jf6eOcGsbnRYIPVP60JVWDp1KkqZMGdcj3t8ABR9hdaFY9t3bLcvqgVjTVWVtz9GFUDtWADB_iLx/pub?output=csv'
 
 /**
- * Minimal CSV parser
- * - first row = headers
- * - no embedded commas
- * - values controlled in Google Sheet
+ * CSV parser tenant compte des champs entre guillemets (ex: titres/descriptions
+ * contenant une virgule, comme `"Escuela de buceo en Bogota, Colombia"`).
+ * Un simple split(',') décale toutes les colonnes suivantes dès qu'un champ
+ * cité contient une virgule — c'est ce qui causait des activity_key mal
+ * alignés (donc introuvables) pour certaines lignes du Sheet.
  */
+function splitCsvLine(line: string): string[] {
+  const values: string[] = []
+  let current = ''
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+
+    if (inQuotes) {
+      if (char === '"' && line[i + 1] === '"') {
+        current += '"'
+        i++
+      } else if (char === '"') {
+        inQuotes = false
+      } else {
+        current += char
+      }
+    } else if (char === '"') {
+      inQuotes = true
+    } else if (char === ',') {
+      values.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+
+  values.push(current.trim())
+  return values
+}
+
 function parseCSV(csv: string): Record<string, string>[] {
   const [headerLine, ...lines] = csv.trim().split('\n')
-  const headers = headerLine.split(',').map(h => h.trim())
+  const headers = splitCsvLine(headerLine)
 
-  return lines.map(line => {
-    const values = line.split(',').map(v => v.trim())
-    const row: Record<string, string> = {}
+  return lines
+    .filter(line => line.trim())
+    .map(line => {
+      const values = splitCsvLine(line)
+      const row: Record<string, string> = {}
 
-    headers.forEach((h, i) => {
-      row[h] = values[i] ?? ''
+      headers.forEach((h, i) => {
+        row[h] = values[i] ?? ''
+      })
+
+      return row
     })
-
-    return row
-  })
 }
 
 export async function loadExperiences(): Promise<RecoExperience[]> {

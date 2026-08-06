@@ -48,12 +48,15 @@ export default function ListaPage() {
 
   const [recoOpen, setRecoOpen] = useState(false)
   const [experiences, setExperiences] = useState<Experience[]>([])
+  const [loadingExperiences, setLoadingExperiences] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [activeActivities, setActiveActivities] = useState<ActivityKey[]>([])
 
   useEffect(() => {
-    fetchExperiences().then(setExperiences)
+    fetchExperiences()
+      .then(setExperiences)
+      .finally(() => setLoadingExperiences(false))
   }, [])
 
   const activityFilters = useMemo(
@@ -63,7 +66,7 @@ export default function ListaPage() {
 
   const { filteredExperiences } = filterExperiences(experiences, {
     categories: ["gastro", "bienestar", "aventura", "cultura", "estancias"],
-    formats: ["solo", "duo", "familia"],
+    formats: ["solo", "duo"],
     cities: [],
     ambiances: [],
     indoorState: "any",
@@ -181,6 +184,22 @@ export default function ListaPage() {
 
         {/* ================= SECTIONS ================= */}
         <div style={{ paddingBottom: 90 }}>
+          {loadingExperiences && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 12,
+                padding: "80px 20px",
+                color: "#999",
+              }}
+            >
+              <div className="vb-spinner" />
+              <span style={{ fontSize: 14 }}>Cargando experiencias...</span>
+            </div>
+          )}
+
           {categoryOrder.map(category => {
             const items = grouped[category]
             if (!items.length) return null
@@ -281,7 +300,6 @@ export default function ListaPage() {
         onReset={() => {}}
         activityFilters={activityFilters}
         activeActivities={activeActivities}
-        setActiveActivities={setActiveActivities}
         toggleActivity={id =>
           setActiveActivities(p =>
             p.includes(id) ? p.filter(a => a !== id) : [...p, id]

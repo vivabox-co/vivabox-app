@@ -21,7 +21,7 @@ export default function CategoryPage() {
   const [experiences, setExperiences] = useState<Experience[]>([])
 
   /* ---------- FILTER STATE ---------- */
-  const [formatFilter, setFormatFilter] = useState<"all" | "solo" | "duo" | "familia">("all")
+  const [formatFilter, setFormatFilter] = useState<"all" | "solo" | "duo">("all")
   const [durationFilter, setDurationFilter] = useState<"all" | "corta" | "larga">("all")
   const [indoorFilter, setIndoorFilter] = useState<"all" | "indoor" | "outdoor">("all")
   const [sortBy, setSortBy] = useState<"popular" | "shortest">("popular")

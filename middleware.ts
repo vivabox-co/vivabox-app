@@ -4,13 +4,17 @@ import type { NextRequest } from 'next/server';
 // Routes publiques (pas besoin de session) : /activar et sous-routes (le
 // formulaire lui-même, l'écran post-activation), plus les endpoints qui
 // créent ou vérifient une session — on ne peut pas exiger une session pour
-// accéder à la route qui en délivre une.
+// accéder à la route qui en délivre une. /api/experiencias aussi : c'est le
+// catalogue (rien de sensible par utilisateur), et les pages qui l'appellent
+// sont déjà protégées côté page — le revalider ici coûterait ~700-800ms
+// (aller-retour Supabase) pour rien à chaque chargement de carte/liste.
 const publicRoutes = [
   '/activar',
   '/activacion-completa',
   '/api/codigo/context',
   '/api/activate_code',
   '/api/verify_access',
+  '/api/experiencias',
 ];
 
 export async function middleware(request: NextRequest) {

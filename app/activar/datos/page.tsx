@@ -130,7 +130,7 @@ console.log("activateData.error:", activateData?.error)
               <input
                 value={codigo}
                 onChange={(e) => setCodigo(formatCode(e.target.value))}
-                placeholder="VBX-XXXX-XXXX"
+                placeholder="VIVA-XXXX-XXXX"
                 style={inputCode}
               />
 
@@ -180,17 +180,20 @@ console.log("activateData.error:", activateData?.error)
 /* HELPERS */
 /* ============================= */
 
+// Format réel généré au checkout (site vitrine, generateActivationCode.ts) :
+// "VIVA" + 8 caractères — affiché ici en "VIVA-XXXX-XXXX" (juste pour la
+// lisibilité ; normalizeCode() enlève les tirets avant la comparaison).
 function formatCode(value: string) {
   let cleaned = value.toUpperCase().replace(/[^A-Z0-9]/g, "")
 
-  if (!cleaned.startsWith("VBX")) {
-    cleaned = "VBX" + cleaned.replace(/^VBX/, "")
+  if (!cleaned.startsWith("VIVA")) {
+    cleaned = "VIVA" + cleaned.replace(/^VIVA/, "")
   }
 
-  const rest = cleaned.slice(3)
+  const rest = cleaned.slice(4, 12)
   const parts = rest.match(/.{1,4}/g) || []
 
-  return "VBX-" + parts.join("-").slice(0, 9)
+  return parts.length ? "VIVA-" + parts.join("-") : "VIVA"
 }
 
 function mapError(code: string) {
@@ -262,6 +265,7 @@ const centerWrap: React.CSSProperties = {
   justifyContent: "center",
   gap: "24px",
   padding: "32px 24px",
+  paddingBottom: "12vh",
   boxSizing: "border-box",
 }
 
