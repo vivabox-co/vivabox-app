@@ -1,16 +1,27 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Routes publiques (pas besoin de session)
-const publicRoutes = ['/activar', '/api/codigo/context'];
-// Routes protégées mais sans redirection spéciale (vérification simple)
-const protectedRoutes = ['/mapa', '/lista', '/reservar'];
+// Routes publiques (pas besoin de session) : /activar et sous-routes (le
+// formulaire lui-même, l'écran post-activation), plus les endpoints qui
+// créent ou vérifient une session — on ne peut pas exiger une session pour
+// accéder à la route qui en délivre une.
+const publicRoutes = [
+  '/activar',
+  '/activacion-completa',
+  '/api/codigo/context',
+  '/api/activate_code',
+  '/api/verify_access',
+];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Ignorer les fichiers statiques et API internes (sauf celles qu'on veut protéger)
-  if (pathname.startsWith('/_next') || pathname.startsWith('/favicon.ico')) {
+  // 1. Ignorer les fichiers statiques (public/) et internes Next (sauf routes qu'on veut protéger)
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon.ico') ||
+    /\.[a-zA-Z0-9]+$/.test(pathname)
+  ) {
     return NextResponse.next();
   }
 
@@ -34,7 +45,7 @@ export async function middleware(request: NextRequest) {
     const contextResponse = await fetch(`${request.nextUrl.origin}/api/codigo/context`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ codigo: getCodigoFromToken(sessionToken) }) // à implémenter
+      body: JSON.stringify({ token: sessionToken })
     });
     const context = await contextResponse.json();
 
@@ -72,17 +83,11 @@ export async function middleware(request: NextRequest) {
 
   } catch (error) {
     // En cas d'erreur technique, on redirige vers activar
+    console.error('Middleware session check failed:', error);
     const response = NextResponse.redirect(new URL('/activar', request.url));
     response.cookies.delete('vb_session');
     return response;
   }
-}
-
-// Helper factice : en réalité il faudrait stocker le code associé au token
-function getCodigoFromToken(token: string): string {
-  // Idéalement, extraire depuis un cookie ou un en-tête
-  // Pour simplifier, on pourrait ajouter le code dans un second cookie
-  return ''; // à implémenter
 }
 
 export const config = {

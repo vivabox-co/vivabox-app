@@ -9,7 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.2",
     "@tabler/icons-react": "^3.36.1",
+    "@tailwindcss/postcss": "^4.3.3",
+    "autoprefixer": "^10.5.4",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^0.563.0",

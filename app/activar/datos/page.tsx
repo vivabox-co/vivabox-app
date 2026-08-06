@@ -57,6 +57,7 @@ console.log("activateData.error:", activateData?.error)
       // Cas 1 : première activation réussie avec token
       if (activateData?.success && activateData?.data?.token) {
         sessionStorage.setItem("vb_session", activateData.data.token)
+        sessionStorage.setItem("vb_codigo", activateData.data.codigo ?? codigo)
         router.push("/activacion-completa")
         return
       }
@@ -79,6 +80,7 @@ console.log("activateData.error:", activateData?.error)
         }
         if (verifyData?.success && verifyData?.data?.token) {
           sessionStorage.setItem("vb_session", verifyData.data.token)
+          sessionStorage.setItem("vb_codigo", verifyData.data.codigo ?? codigo)
           router.push("/activacion-completa")
           return
         } else {
