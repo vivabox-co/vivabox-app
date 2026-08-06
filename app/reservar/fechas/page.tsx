@@ -19,6 +19,7 @@ export default function FechasPage() {
   const [strictTime, setStrictTime] = useState<string[] | null>(null)
   const [people, setPeople] = useState(2)
   const [openTimePicker, setOpenTimePicker] = useState(false)
+  const [loading, setLoading] = useState(false) // 👈 pour l'appel API
 
   useEffect(() => {
     setHideNav(true)
@@ -28,35 +29,63 @@ export default function FechasPage() {
   if (!selectedExperience) return null
   const exp = selectedExperience
 
-  function handleSubmit() {
+  async function handleSubmit() {
+    // Validation
     if (!momentBlock && !strictTime) return
+    if (selectedDates.length === 0) return
+
     const finalTime: string[] = strictTime ? strictTime : [momentBlock!]
     setSelectedTime(finalTime)
 
-    function handleSubmit() {
-  if (!momentBlock && !strictTime) return
+    // Récupérer le token de session et le code (stocké lors de l'activation)
+    const token = sessionStorage.getItem("vb_session")
+    if (!token) {
+      router.replace("/activar")
+      return
+    }
 
-  const finalTime: string[] = strictTime ? strictTime : [momentBlock!]
-  setSelectedTime(finalTime)
+    // Récupérer le code : on suppose qu'il a été stocké dans sessionStorage
+    // lors de l'activation (à implémenter dans la page d'activation)
+    const codigo = sessionStorage.getItem("vb_codigo")
+    if (!codigo) {
+      console.error("Code non trouvé en session")
+      router.replace("/activar")
+      return
+    }
 
-  const bookingData = {
-    experienceId: exp.id, // 🔑 ESSENTIEL
-    experienceSnapshot: {
-      title: exp.title,
-      image: exp.image,
-      zone: exp.zone,
-      category: exp.category,
-    },
-    date: selectedDates[0] || null,
-    time: finalTime[0] || null,
-    people,
-    status: "requested", // premier état timeline
-  }
+    setLoading(true)
 
-  router.push("/reservar/fechas/confirmacion")
-}
+    try {
+      const response = await fetch("/api/booking", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          codigo,
+          experienciaId: exp.id,
+          fechaDeseada: selectedDates[0], // première date sélectionnée
+          cantidadPersonas: people,
+          mensaje: `Horario: ${finalTime[0]}`
+        })
+      })
 
-    router.push("/reservar/fechas/confirmacion")
+      const data = await response.json()
+
+      if (data.success && data.bookingId) {
+        // Rediriger vers la page de suivi
+        router.push(`/reservar/seguimiento/${data.bookingId}`)
+      } else {
+        console.error("Erreur création booking:", data.error)
+        alert("No se pudo crear la reserva. Por favor, intenta de nuevo.")
+        setLoading(false)
+      }
+    } catch (error) {
+      console.error("Network error:", error)
+      alert("Error de conexión. Intenta de nuevo.")
+      setLoading(false)
+    }
   }
 
   return (
@@ -104,8 +133,12 @@ export default function FechasPage() {
           <Chips options={[1, 2, 3, 4, 5]} selected={people} onSelect={setPeople} />
         </Card>
 
-        <button onClick={handleSubmit} style={cta}>
-          Continuar
+        <button onClick={handleSubmit} disabled={loading} style={{
+          ...cta,
+          opacity: loading ? 0.6 : 1,
+          cursor: loading ? "not-allowed" : "pointer"
+        }}>
+          {loading ? "Creando reserva..." : "Continuar"}
         </button>
       </div>
 
@@ -173,7 +206,7 @@ const heroWrapper: React.CSSProperties = {
   position: "relative",
   width: "100%",
   height: "40vh",
-  overflow: "hidden", // no radius = immersion
+  overflow: "hidden",
 }
 
 const heroImage: React.CSSProperties = {

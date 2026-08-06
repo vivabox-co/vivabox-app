@@ -10,12 +10,13 @@ import {
 import MarkerClusterGroup from "react-leaflet-cluster"
 import L from "leaflet"
 import { useEffect, useMemo, useState } from "react"
+
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
 import { Experience, Format, Category, ActivityKey } from "@/lib/data/types"
 import { createPinIcon } from "@/lib/map/createPinIcon"
 import { categoryColors } from "@/lib/map/categoryColors"
 import { useUI } from "@/components/ui/UIContext"
-import { Heart, MapPin, Clock, Users } from "lucide-react"
+import { Heart, MapPin, Users } from "lucide-react"
 import { filterExperiences } from "@/lib/product/filterExperiences"
 
 import "leaflet/dist/leaflet.css"
@@ -32,19 +33,28 @@ type MapViewProps = {
   activeActivities?: ActivityKey[]
 }
 
-/* 🔁 Fix resize map */
+/* 🔁 SAFE resize fix */
 function ResizeFix() {
   const map = useMap()
+
   useEffect(() => {
-    const resize = () => map.invalidateSize()
-    resize()
-    window.addEventListener("resize", resize)
-    return () => window.removeEventListener("resize", resize)
+    const id = setTimeout(() => {
+      map.invalidateSize()
+    }, 0)
+
+    const onResize = () => map.invalidateSize()
+    window.addEventListener("resize", onResize)
+
+    return () => {
+      clearTimeout(id)
+      window.removeEventListener("resize", onResize)
+    }
   }, [map])
+
   return null
 }
 
-/* 🎨 Cluster style */
+/* 🎨 Cluster icon */
 function createClusterIcon(color: string) {
   return (cluster: any) =>
     L.divIcon({
@@ -95,13 +105,14 @@ export default function MapView({
   activeActivities = [],
 }: MapViewProps) {
   const [experiences, setExperiences] = useState<Experience[]>([])
+  const [mapReady, setMapReady] = useState(false)
+
   const { favorites, toggleFavorite } = useUI()
 
   useEffect(() => {
     fetchExperiences().then(setExperiences)
   }, [])
 
-  /* 🧠 CENTRAL PRODUCT FILTER */
   const { filteredExperiences } = useMemo(() => {
     return filterExperiences(experiences, {
       categories: activeCategories,
@@ -128,121 +139,150 @@ export default function MapView({
         zoom={13}
         zoomControl={false}
         style={{ width: "100%", height: "100%" }}
+        whenReady={() => setMapReady(true)}
       >
-        <ResizeFix />
-        <TileLayer url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png" />
+        {mapReady && <ResizeFix />}
 
-        {Object.entries(categoryColors).map(([rawCategory, color]) => {
-          const category = rawCategory as Category
-          const exps = filteredExperiences.filter((e) => e.category === category)
-          if (!exps.length) return null
+        {mapReady && (
+          <TileLayer url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png" />
+        )}
 
-          return (
-            <MarkerClusterGroup
-              key={category}
-              chunkedLoading
-              showCoverageOnHover={false}
-              maxClusterRadius={60}
-              iconCreateFunction={createClusterIcon(color)}
-            >
-              {exps.map((exp) => {
-                const isFav = favorites.includes(exp.id)
+        {mapReady &&
+          Object.entries(categoryColors).map(([rawCategory, color]) => {
+            const category = rawCategory as Category
+            const exps = filteredExperiences.filter(
+              (e) => e.category === category
+            )
+            if (!exps.length) return null
 
-                const lat = Number(exp.lat)
-                const lng = Number(exp.lng)
+            return (
+              <MarkerClusterGroup
+                key={category}
+                chunkedLoading
+                showCoverageOnHover={false}
+                maxClusterRadius={60}
+                iconCreateFunction={createClusterIcon(color)}
+              >
+                {exps.map((exp) => {
+                  const isFav = favorites.includes(exp.id)
+                  const lat = Number(exp.lat)
+                  const lng = Number(exp.lng)
+                  if (isNaN(lat) || isNaN(lng)) return null
 
-                if (isNaN(lat) || isNaN(lng)) return null
+                  return (
+                    <Marker
+                      key={exp.id}
+                      position={[lat, lng]}
+                      icon={createPinIcon(
+                        color,
+                        exp.activity_key || "",
+                        isFav
+                      )}
+                    >
+                      <Popup>
+                        <div style={{ width: 220 }}>
+                          <div
+                            style={{
+                              position: "relative",
+                              height: 120,
+                              borderRadius: 10,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <img
+                              src={exp.image || "/placeholder.jpg"}
+                              alt={exp.title}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                            />
 
-                return (
-                  <Marker
-                    key={exp.id}
-                    position={[lat, lng]}
-                    icon={createPinIcon(color, exp.activity_key || "", isFav)}
-                  >
-                    <Popup>
-                      <div style={{ width: 220 }}>
-                        <div style={{ position: "relative", height: 120, borderRadius: 10, overflow: "hidden" }}>
-                          <img
-                            src={exp.image || "/placeholder.jpg"}
-                            alt={exp.title}
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                          />
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 8,
+                                left: 8,
+                                padding: "4px 8px",
+                                fontSize: 10,
+                                fontWeight: 600,
+                                color: "white",
+                                background: color,
+                                borderRadius: 8,
+                              }}
+                            >
+                              {categoryLabel(exp.category)}
+                            </div>
 
-                          <div style={{
-                            position: "absolute",
-                            top: 8,
-                            left: 8,
-                            padding: "4px 8px",
-                            fontSize: 10,
-                            fontWeight: 600,
-                            color: "white",
-                            background: color,
-                            borderRadius: 8,
-                          }}>
-                            {categoryLabel(exp.category)}
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                toggleFavorite(exp.id)
+                              }}
+                              style={{
+                                position: "absolute",
+                                top: 8,
+                                right: 8,
+                                background: "rgba(255,255,255,0.95)",
+                                borderRadius: "50%",
+                                border: "none",
+                                width: 34,
+                                height: 34,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: "pointer",
+                              }}
+                            >
+                              <Heart
+                                size={16}
+                                fill={isFav ? "#ff4d6d" : "none"}
+                                color={isFav ? "#ff4d6d" : "#777"}
+                              />
+                            </button>
                           </div>
 
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              toggleFavorite(exp.id)
-                            }}
-                            style={{
-                              position: "absolute",
-                              top: 8,
-                              right: 8,
-                              background: "rgba(255,255,255,0.95)",
-                              borderRadius: "50%",
-                              border: "none",
-                              width: 34,
-                              height: 34,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <Heart
-                              size={16}
-                              fill={isFav ? "#ff4d6d" : "none"}
-                              color={isFav ? "#ff4d6d" : "#777"}
+                          <div style={{ marginTop: 10 }}>
+                            <div
+                              style={{ fontSize: 14, fontWeight: 600 }}
+                            >
+                              {exp.title}
+                            </div>
+
+                            <MetaRow icon={MapPin} text={exp.city || exp.zone} />
+                            <MetaRow
+                              icon={Users}
+                              text={formatLabel(exp.format)}
                             />
-                          </button>
+
+                            <button
+                              style={{
+                                marginTop: 10,
+                                width: "100%",
+                                padding: "9px 10px",
+                                fontSize: 14,
+                                borderRadius: 10,
+                                border: "none",
+                                background: "#111",
+                                color: "white",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                              onClick={() => onSelect(exp)}
+                            >
+                              Ver experiencia
+                            </button>
+                          </div>
                         </div>
-
-                        <div style={{ marginTop: 10 }}>
-                          <div style={{ fontSize: 14, fontWeight: 600 }}>{exp.title}</div>
-
-                          <MetaRow icon={MapPin} text={exp.city || exp.zone} />
-                          <MetaRow icon={Users} text={formatLabel(exp.format)} />
-
-                          <button
-                            style={{
-                              marginTop: 10,
-                              width: "100%",
-                              padding: "9px 10px",
-                              fontSize: 14,
-                              borderRadius: 10,
-                              border: "none",
-                              background: "#111",
-                              color: "white",
-                              fontWeight: 600,
-                              cursor: "pointer",
-                            }}
-                            onClick={() => onSelect(exp)}
-                          >
-                            Ver experiencia
-                          </button>
-                        </div>
-                      </div>
-                    </Popup>
-                  </Marker>
-                )
-              })}
-            </MarkerClusterGroup>
-          )
-        })}
+                      </Popup>
+                    </Marker>
+                  )
+                })}
+              </MarkerClusterGroup>
+            )
+          })}
       </MapContainer>
     </div>
   )
@@ -250,7 +290,15 @@ export default function MapView({
 
 function MetaRow({ icon: Icon, text }: { icon: any; text: string }) {
   return (
-    <div style={{ display: "flex", gap: 6, fontSize: 12, color: "#666", marginTop: 4 }}>
+    <div
+      style={{
+        display: "flex",
+        gap: 6,
+        fontSize: 12,
+        color: "#666",
+        marginTop: 4,
+      }}
+    >
       <Icon size={14} />
       <span>{text}</span>
     </div>

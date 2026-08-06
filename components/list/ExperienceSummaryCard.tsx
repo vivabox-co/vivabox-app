@@ -99,21 +99,25 @@ export default function ExperienceSummaryCard({
         </div>
 
         {badge && (
-          <div
-            style={{
-              marginTop: 14,
-              display: "inline-block",
-              background: "#F1EFEA",
-              padding: "6px 12px",
-              borderRadius: 999,
-              fontSize: 12,
-              fontWeight: 500,
-              color: "#444",
-            }}
-          >
-            {badge}
-          </div>
-        )}
+  <div
+    style={{
+      marginTop: 16,
+      display: "inline-block",
+      padding: "6px 12px",
+      borderRadius: 999,
+      fontSize: 12,
+      fontWeight: 600,
+      whiteSpace: "nowrap",
+      background: badge === "Reservado" ? "#E6F6EC" : "#F1EFEA",
+      color: badge === "Reservado" ? "#1F7A4D" : "#444",
+      border: badge === "Reservado" ? "1px solid #B7E4C7" : "none",
+      boxShadow: badge === "Reservado" ? "0 0 0 1px rgba(31,122,77,0.04)" : "none",
+      transition: "all 0.25s ease",
+    }}
+  >
+    {badge}
+  </div>
+)}
 
         {hasDate && (
           <div

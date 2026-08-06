@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import BookingTimeline, { BookingStatus } from "@/components/ui/BookingTimeline"
 import DynamicStatusBlock from "@/components/ui/DynamicStatusBlock"
 import ExperienceSummaryCard from "@/components/list/ExperienceSummaryCard"
@@ -11,80 +11,85 @@ import { Booking } from "@/lib/data/types/booking"
 import { Experience } from "@/lib/data/types"
 
 export default function SeguimientoPage() {
+  const { bookingId } = useParams() as { bookingId: string }
   const [booking, setBooking] = useState<Booking | null>(null)
   const [realExperience, setRealExperience] = useState<Experience | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const { setActiveExperience, setHideNav } = useUI()
   const router = useRouter()
 
-  /* NAV */
+  // Masquer/monther la navigation (inchangé)
   useEffect(() => {
     setHideNav(false)
+    return () => setHideNav(false)
   }, [setHideNav])
 
-  /* LOAD BOOKING */
+  // Charger la réservation depuis l'API
   useEffect(() => {
-    const stored = localStorage.getItem("currentBooking")
-    if (stored) setBooking(JSON.parse(stored))
-  }, [])
+    const sessionToken = sessionStorage.getItem("vb_session")
+    if (!sessionToken) {
+      router.replace("/activar")
+      return
+    }
 
-  /* LOAD REAL EXPERIENCE */
+    fetch(`/api/booking/${bookingId}`, {
+      headers: {
+        Authorization: `Bearer ${sessionToken}`
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setBooking(data.data)
+        } else {
+          setError(data.error || "BOOKING_NOT_FOUND")
+        }
+      })
+      .catch(err => {
+        console.error("Error fetching booking:", err)
+        setError("NETWORK_ERROR")
+      })
+      .finally(() => setLoading(false))
+  }, [bookingId, router])
+
+  // Charger l'expérience complète à partir du snapshot ou de l'experienceId
   useEffect(() => {
     if (!booking?.experienceId) return
-    fetchExperiences().then((list) => {
-      const found = list.find((e) => e.id === booking.experienceId)
+    fetchExperiences().then(list => {
+      const found = list.find(e => e.id === booking.experienceId)
       if (found) setRealExperience(found)
     })
   }, [booking])
 
-  /* AUTO ADVANCE: requested → waiting_provider */
-  useEffect(() => {
-    if (!booking) return
-    if (booking.status === "requested") {
-      const t1 = setTimeout(() => {
-        updateStatus("waiting_provider")
-      }, 6000)
-      return () => clearTimeout(t1)
-    }
-  }, [booking])
-
-  /* ===== DEV TIMELINE CONTROLS ===== */
-
-  const statusOrder: BookingStatus[] = [
-    "requested",
-    "waiting_provider",
-    "confirmed",
-    "done",
-  ]
-
-  function updateStatus(newStatus: BookingStatus) {
-    if (!booking) return
-    const updated = { ...booking, status: newStatus }
-    setBooking(updated)
-    localStorage.setItem("currentBooking", JSON.stringify(updated))
-  }
-
-  function goNextStatus() {
-    if (!booking) return
-    const index = statusOrder.indexOf(booking.status)
-    if (index < statusOrder.length - 1) {
-      updateStatus(statusOrder[index + 1])
-    }
-  }
-
-  function goPrevStatus() {
-    if (!booking) return
-    const index = statusOrder.indexOf(booking.status)
-    if (index > 0) {
-      updateStatus(statusOrder[index - 1])
-    }
-  }
-
-  /* LOADING */
-  if (!booking) {
+  // États de chargement et d'erreur
+  if (loading) {
     return (
       <div style={{ padding: 24, minHeight: "100vh", background: "#FAF8F5" }}>
         Cargando...
+      </div>
+    )
+  }
+
+  if (error || !booking) {
+    return (
+      <div style={{ padding: 24, minHeight: "100vh", background: "#FAF8F5" }}>
+        <h2>No se pudo cargar la reserva</h2>
+        <p>Por favor, intenta de nuevo más tarde o contacta con soporte.</p>
+        <button
+          onClick={() => router.push("/mapa")}
+          style={{
+            marginTop: 16,
+            padding: "10px 20px",
+            background: "#111",
+            color: "#fff",
+            border: "none",
+            borderRadius: 12,
+          }}
+        >
+          Volver al mapa
+        </button>
       </div>
     )
   }
@@ -101,7 +106,6 @@ export default function SeguimientoPage() {
 
   return (
     <div style={{ padding: "16px 16px 120px", background: "#FAF8F5", minHeight: "100vh" }}>
-
       <h1 style={{ marginTop: 6, marginBottom: 4, fontSize: 24, fontWeight: 600 }}>
         Todo se está organizando para ti
       </h1>
@@ -131,8 +135,9 @@ export default function SeguimientoPage() {
       <BookingTimeline
         status={status}
         category={exp.category}
-        onNext={process.env.NODE_ENV === "development" ? goNextStatus : undefined}
-        onPrev={process.env.NODE_ENV === "development" ? goPrevStatus : undefined}
+        // Les contrôles de dev ne sont plus nécessaires car les statuts viennent du backend
+        onNext={undefined}
+        onPrev={undefined}
       />
 
       <div style={{ marginTop: 28 }}>
@@ -159,7 +164,6 @@ export default function SeguimientoPage() {
           ¿Tienes una duda? Estamos aquí.
         </span>
       </div>
-
     </div>
   )
 }

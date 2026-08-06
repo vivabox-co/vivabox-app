@@ -26,19 +26,18 @@ Ce document décrit **comment le système fonctionne**, pas pourquoi.
 
 ## 2. STRUCTURE APP ROUTER
 
-/app
-/welcome
-/activar
-/activado
-/mapa
-/lista
-/lista/categoria/[category]
-/reservar/fechas
-/reservar/confirmacion
-/reservar/seguimiento/[id]
-/experiencia
-/ayuda
-
+/app  
+/welcome  
+/activar  
+/activado  
+/mapa  
+/lista  
+/lista/categoria/[category]  
+/reservar/fechas  
+/reservar/confirmacion  
+/reservar/seguimiento/[id]  
+/experiencia  
+/ayuda  
 
 Toutes les routes sont **client-driven**.
 
@@ -48,12 +47,11 @@ Toutes les routes sont **client-driven**.
 
 ### Structure principale
 
-AppShell
-├─ Map / Page content
-├─ BottomSheet (expériences)
-├─ FiltersDrawer
-└─ BottomNav
-
+AppShell  
+├─ Map / Page content  
+├─ BottomSheet (expériences)  
+├─ FiltersDrawer  
+└─ BottomNav  
 
 Le BottomSheet est un composant système central.
 
@@ -63,6 +61,9 @@ Le BottomSheet est un composant système central.
 
 ### UIContext
 
+Fichier :  
+components/ui/UIContext.tsx
+
 Variables globales principales :
 
 | State | Rôle |
@@ -70,6 +71,10 @@ Variables globales principales :
 | `selectedExperience` | Expérience active pour le sheet |
 | `drawerOpen` | Ouverture du BottomSheet |
 | `hideNav` | Masquer ou afficher la bottom nav |
+| `favorites` | Favoris utilisateur (localStorage) |
+| `activeExperience` | Expérience survolée / focus UI |
+| `selectedDate` | Date sélectionnée (booking) |
+| `selectedTime` | Créneau horaire sélectionné |
 
 ---
 
@@ -83,65 +88,143 @@ Géré dans pages :
 - Favoris (UI seulement)
 - Date proposée
 - Booking simulé
+- États overlays (Reco, Filters)
 
 ---
 
 ## 5. DONNÉES
 
-### Source
+### Source principale
 
 /lib/data/fetchExperiences.ts
 
-
-Retourne liste mock.
+- Chargement CSV Google Sheet
+- Normalisation data (category, activity_key, format)
+- Validation coordonnées map
+- Fallbacks sécurité
 
 ### Structure Experience
 
+/lib/data/types.ts
+
 - id
 - title
+- providerName
 - image
 - category
+- activity_key
 - zone
+- city
+- lat / lng
 - duration
+- durationType
 - format
-- includes[]
 - vivanote
-- importantToKnow[]
+- includes[]
+- requirements[]
 - idealFor[]
+- effortLevel
+- ambiance[]
+- environment
+- needsPhone
+- needsPeopleCount
+- extraPeopleOption
 
 ---
 
 ## 6. SYSTÈME CARTE
 
-Composant : `MapView`
+### MapView
 
-- Pins dynamiques par catégorie
+components/map/MapView.tsx
+
+- Leaflet client-only
+- Pins par catégorie
 - Couleurs via `categoryColors`
-- Filtrage côté client
-- Sélection pin → ouvre BottomSheet
+- Regroupement par activité
+- Sélection pin → `setSelectedExperience` → BottomSheet
+
+### Helpers Map
+
+/lib/map/categoryColors.ts  
+/lib/map/categoryLabels.ts  
+/lib/map/formatLabels.ts  
 
 ---
 
-## 7. BOTTOM SHEET SYSTEM
+## 7. SYSTÈME DE FILTRAGE
+
+### Logique filtre
+
+/lib/product/filterExperiences.ts
+
+Filtres combinables :
+- category
+- format
+- city
+- ambiance
+- indoor/outdoor
+- activity_key
+- texte libre (lista)
+
+### Génération dynamique filtres
+
+/lib/product/buildActivityFilters.ts
+
+- Construit les filtres activités à partir des données chargées
+- Évite toute hardcode UI
+
+---
+
+## 8. BOTTOM SHEET SYSTEM
 
 Composant clé :
 
 components/ui/BottomSheet.tsx
 
-
 Fonctions :
 
-- Hauteur dynamique 50% → 80%
+- Hauteur dynamique (50% → 80%)
 - Drag tactile
 - Scroll interne indépendant
 - Footer CTA fixe
-- Ne bloque pas bottom nav
+- Superposition au-dessus de BottomNav
+- Bloque interaction arrière-plan
 
 ---
 
-## 8. NAVIGATION
+## 9. OVERLAY DE RECOMMANDATION (RECO)
+
+### Dossier
+
+components/reco/
+
+### Fichiers
+
+- RecoOverlay.tsx → orchestrateur
+- QuestionScreen.tsx → Q1 / Q2 / Q3
+- Top3Screen.tsx → résultats
+- DetailScreen.tsx → immersion expérience
+- RecoStateMachine.ts → états de navigation
+- recoEngine.ts → scoring
+- recoDataset.ts → métadonnées Google Sheet
+- recoTypes.ts → types métier
+
+### Logique
+
+- Toujours 3 questions
+- Arborescence conditionnelle
+- Sortie = Top 3 expériences maximum
+- Aucune notion de prix visible
+- UX guidée, jamais analytique
+
+---
+
+## 10. NAVIGATION
 
 ### BottomNav
+
+components/ui/BottomNav.tsx
 
 Deux modes :
 
@@ -150,54 +233,79 @@ Deux modes :
 | Exploration | Mapa, Lista, Favoritos |
 | Post-réservation | Seguimiento, Tu experiencia, Ayuda |
 
+Affichage conditionné par `hideNav`.
+
 ---
 
-## 9. LOGIQUE RÉSERVATION (ALPHA)
+## 11. LOGO FLOTTANT GLOBAL
+
+Présent sur :
+- /mapa
+- /lista
+
+Caractéristiques :
+- Position fixed top-right
+- Cercle blanc semi-transparent
+- Déclenche RecoOverlay
+- Espace réservé via padding dynamique dans headers
+
+⚠️ Toute barre sticky doit réserver l’espace du logo.
+
+---
+
+## 12. LOGIQUE RÉSERVATION (ALPHA)
 
 Simulée uniquement :
 
 - localStorage `currentBooking`
+- Pages :
+  - /reservar/fechas
+  - /reservar/confirmacion
+  - /reservar/seguimiento/[id]
 - Status simulé via timers
-- Aucune API réelle
+- Aucun backend réel
 
 ---
 
-## 10. DÉCISIONS TECHNIQUES IMPORTANTES
+## 13. DÉCISIONS TECHNIQUES IMPORTANTES
 
 | Décision | Raison |
 |----------|--------|
 | Inline styles | Rapidité itération |
-| Client only map | Leaflet SSR impossible |
+| Client-only map | Leaflet incompatible SSR |
 | Pas de backend | Focus UX Alpha |
 | BottomSheet custom | Contrôle UX mobile |
-| Données mock | Pas dépendance externe |
+| Données Google Sheet | Itération rapide contenu |
+| Reco locale | Pas de dépendance IA externe |
 
 ---
 
-## 11. CONTRAINTES
+## 14. CONTRAINTES
 
-- Mobile-first
+- Mobile-first strict
 - Aucun chargement lourd
 - Aucune dépendance serveur
 - Navigation instantanée
 - États non persistés hors booking simulé
+- Accessibilité basique (ARIA minimal)
 
 ---
 
-## 12. POINTS SENSIBLES
+## 15. POINTS SENSIBLES
 
 | Zone | Risque |
 |------|-------|
-| BottomSheet | Hooks / scroll / drag |
-| MapView | Performance |
-| Routing dynamique | id booking |
-| Données mock | Incohérences possibles |
+| BottomSheet | Scroll / drag / overlay |
+| MapView | Performance Leaflet |
+| RecoOverlay | Cohérence émotionnelle |
+| Types reco | Désynchronisation Sheet |
+| Inline styles | Duplication possible |
 
 ---
 
-## 13. ÉTAT DU PROJET
+## 16. ÉTAT DU PROJET
 
-Alpha UX prototypé  
+Alpha UX avancé  
 Architecture prête pour :
 
 - Backend futur
@@ -205,3 +313,4 @@ Architecture prête pour :
 - Système prestataire
 - Calendrier réel
 - Paiements différés
+- IA de recommandation serveur

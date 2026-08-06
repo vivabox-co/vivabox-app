@@ -1,0 +1,221 @@
+VIVABOX — QUESTIONNAIRE Q1 / Q2 / Q3
+AI IMPLEMENTATION SPEC (STRICT ALIGNMENT)
+
+==================================================
+1. OBJECTIF DU SYSTEME
+==================================================
+
+Objectif :
+Produire un Top 3 d’expériences Vivabox cohérent, pertinent et rassurant
+à partir d’un questionnaire à 3 questions maximum.
+
+Contraintes absolues :
+- Le système n’explique jamais ses décisions
+- Le système ne filtre pas, il hiérarchise
+- Aucune question supplémentaire
+- Aucun texte généré visible
+- Aucun apprentissage en production
+
+==================================================
+2. STRUCTURE GENERALE
+==================================================
+
+- Toujours 3 questions
+- Q1 est fixe et fondatrice
+- Q2 dépend uniquement de la réponse à Q1
+- Q3 dépend de la combinaison Q1 + Q2
+- Q2 a toujours 3 options
+- Q3 est toujours binaire (2 options)
+
+Output :
+- Classement ordonné des expériences
+- Extraction d’un Top 3 avec garde-fous
+
+==================================================
+3. MODELE DE DONNEES EXPERIENCE (INTERNE)
+==================================================
+
+Chaque expérience DOIT être enrichie manuellement
+avec les métadonnées EXACTES suivantes.
+
+Type ExperienceMeta :
+
+{
+  id: string
+  activity_key: string
+
+  engagement: 
+    'relajado' | 'activo' | 'sacudido'
+
+  calma_tipo?: 
+    'corporal' | 'ambiental' | 'interior'
+
+  participacion_tipo?: 
+    'mental' | 'manual' | 'tecnico'
+
+  sacudida_tipo?: 
+    'mental' | 'sensorial' | 'emocional'
+
+  resolucion?: 
+    'cuerpo' | 'entorno' |
+    'crear' | 'comprender' |
+    'inmediato' | 'duradero'
+}
+
+==================================================
+4. Q1 — QUESTION FONDATRICE (FIXE)
+==================================================
+
+Q1.text :
+"¿Cómo te gusta que un momento te haga sentir?"
+
+Q1.options :
+1. Relajado, sin esfuerzo   → engagement = 'relajado'
+2. Activo, participando    → engagement = 'activo'
+3. Sacudido, fuera de lo habitual → engagement = 'sacudido'
+
+Poids scoring :
+- Q1 = 50 %
+
+==================================================
+5. Q2 — QUESTION ADAPTATIVE (SELON Q1)
+==================================================
+
+--------------------------------------
+5A. Q1 = RELAJADO, SIN ESFUERZO
+--------------------------------------
+
+Q2-A.text :
+"¿Qué tipo de calma buscas?"
+
+Q2-A.options :
+1. Corporal, relajante   → calma_tipo = 'corporal'
+2. Ambiental, acogedora → calma_tipo = 'ambiental'
+3. Interior, silenciosa → calma_tipo = 'interior'
+
+Poids scoring :
+- Q2 = 30 %
+
+--------------------------------------
+5B. Q1 = ACTIVO, PARTICIPANDO
+--------------------------------------
+
+Q2-B.text :
+"Cuando participas, prefieres algo…"
+
+Q2-B.options :
+1. Mental, aprendiendo   → participacion_tipo = 'mental'
+2. Manual, haciendo     → participacion_tipo = 'manual'
+3. Técnico, concentrado → participacion_tipo = 'tecnico'
+
+--------------------------------------
+5C. Q1 = SACUDIDO, FUERA DE LO HABITUAL
+--------------------------------------
+
+Q2-C.text :
+"Lo fuera de lo habitual te atrae si es…"
+
+Q2-C.options :
+1. Mental, desafiante      → sacudida_tipo = 'mental'
+2. Sensorial, sorprendente → sacudida_tipo = 'sensorial'
+3. Emocional, intenso     → sacudida_tipo = 'emocional'
+
+==================================================
+6. Q3 — LEVEE D’AMBIGUITE (BINAIRE)
+==================================================
+
+--------------------------------------
+6A. Q1 = RELAJADO
+--------------------------------------
+
+Q3-A.text :
+"Esa calma la prefieres…"
+
+Q3-A.options :
+1. En el cuerpo, soltando  → resolucion = 'cuerpo'
+2. En el entorno, estando → resolucion = 'entorno'
+
+Poids scoring :
+- Q3 = 20 %
+
+--------------------------------------
+6B. Q1 = ACTIVO
+--------------------------------------
+
+Q3-B.text :
+"En ese tipo de experiencia, disfrutas más…"
+
+Q3-B.options :
+1. Creando, haciendo      → resolucion = 'crear'
+2. Comprendiendo, observando → resolucion = 'comprender'
+
+--------------------------------------
+6C. Q1 = SACUDIDO
+--------------------------------------
+
+Q3-C.text :
+"Ese impacto lo prefieres…"
+
+Q3-C.options :
+1. Inmediato, en el momento → resolucion = 'inmediato'
+2. Duradero, que deja huella → resolucion = 'duradero'
+
+==================================================
+7. SCORING ENGINE
+==================================================
+
+Pour chaque expérience :
+
+score = 0
+
+if experience.engagement == Q1.engagement:
+  score += 50
+
+if experience matches Q2 dimension:
+  score += 30
+
+if experience.resolucion == Q3.resolucion:
+  score += 20
+
+Aucun score n’est jamais affiché.
+
+==================================================
+8. GARDE-FOUS OBLIGATOIRES AVANT TOP 3
+==================================================
+
+1. Diversité de format
+- Interdire 3 expériences avec le même activity_key
+
+2. Diversité interne
+- Forcer :
+  - 1 match évident
+  - 1 variation proche
+  - 1 ouverture compatible
+
+3. Seuil minimum
+- Si score < seuil (ex : <50)
+  → préférer une expérience neutre mais cohérente
+
+==================================================
+9. OUTPUT FINAL
+==================================================
+
+- Top 3 = 3 premières expériences après garde-fous
+- Ordre conservé
+- Aucun texte explicatif
+- Aucun label généré
+- Aucune justification visible
+
+==================================================
+10. REGLES ABSOLUES
+==================================================
+
+- Pas de Q4
+- Pas de modification des libellés
+- Pas de reformulation IA
+- Pas de stockage persistant du profil
+- Pas de ML décisionnel en production
+
+==================================================
+FIN DU DOCUMENT
+==================================================

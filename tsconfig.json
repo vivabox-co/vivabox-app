@@ -18,6 +18,10 @@
 
     "incremental": true,
 
+    // 🔥 FIX WARNING TS 6+
+    "ignoreDeprecations": "6.0",
+
+    // ✅ ALIAS PROPRE
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
@@ -32,6 +36,7 @@
 
   "include": [
     "next-env.d.ts",
+    "global.d.ts",        // 🔥 IMPORTANT pour CSS
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",

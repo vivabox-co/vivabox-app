@@ -18,8 +18,9 @@ type UIContextType = {
   selectedDate: string | null
   setSelectedDate: (d: string | null) => void
 
+  // ✅ CORRECTION : le setter accepte désormais null (cohérent avec l'état)
   selectedTime: string[] | null
-  setSelectedTime: (time: string[]) => void
+  setSelectedTime: (time: string[] | null) => void
 
   hideNav: boolean
   setHideNav: (v: boolean) => void
