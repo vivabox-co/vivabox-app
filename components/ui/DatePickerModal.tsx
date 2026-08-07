@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
+import { formatLocalDate } from "@/lib/utils/formatLocalDate"
 
 type Props = {
   onClose: () => void
@@ -121,7 +122,7 @@ export default function DatePickerModal({
             <div style={chipsRow}>
               {selectedDates.map(d => (
                 <div key={d} style={chipItem}>
-                  {new Date(d).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
+                  {formatLocalDate(d, { day: "numeric", month: "short" })}
                 </div>
               ))}
             </div>

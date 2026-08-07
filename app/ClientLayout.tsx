@@ -30,7 +30,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         pathname.startsWith("/ayuda")
 
       if (hasBooking && inBookingFlow) {
-        router.replace("/reservar/seguimiento")
+        const booking = JSON.parse(localStorage.getItem("currentBooking")!)
+        router.replace(`/reservar/seguimiento/${booking.id}`)
       }
     }
 

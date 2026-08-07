@@ -1,13 +1,27 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useUI } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
-import { Calendar, Clock, Users, Sunrise, Sun, Sunset } from "lucide-react"
+import { Calendar, Clock, Users, Sunrise, Sun, Sunset, Check, Plus } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
-import TimePickerModal from "@/components/ui/TimePickerModal"
+import { formatLocalDate } from "@/lib/utils/formatLocalDate"
 
 type Moment = "morning" | "afternoon" | "night" | null
+
+const MAX_DATES = 3
+
+const MOMENT_LABEL: Record<"morning" | "afternoon" | "night", string> = {
+  morning: "Mañana",
+  afternoon: "Tarde",
+  night: "Noche",
+}
+
+const HOUR_RANGES: Record<"morning" | "afternoon" | "night", string[]> = {
+  morning: ["08:00", "09:00", "10:00", "11:00"],
+  afternoon: ["12:00", "13:00", "14:00", "15:00", "16:00"],
+  night: ["17:00", "18:00", "19:00", "20:00"],
+}
 
 export default function FechasPage() {
   const { selectedExperience, setSelectedTime, setHideNav } = useUI()
@@ -16,25 +30,94 @@ export default function FechasPage() {
   const [selectedDates, setSelectedDates] = useState<string[]>([])
   const [openCalendar, setOpenCalendar] = useState(false)
   const [momentBlock, setMomentBlock] = useState<Moment>(null)
-  const [strictTime, setStrictTime] = useState<string[] | null>(null)
-  const [people, setPeople] = useState(2)
-  const [openTimePicker, setOpenTimePicker] = useState(false)
+  const [preferredHour, setPreferredHour] = useState<string | null>(null)
+  const [extraPeople, setExtraPeople] = useState(0)
   const [loading, setLoading] = useState(false) // 👈 pour l'appel API
+  const [activePhoto, setActivePhoto] = useState(0)
+
+  // Le scroll-snap horizontal marche nativement au doigt/trackpad, mais pas
+  // au clic-glissé souris — on ajoute donc un drag-to-scroll pour desktop.
+  const heroTrackRef = useRef<HTMLDivElement>(null)
+  const isDraggingRef = useRef(false)
+  const dragStartXRef = useRef(0)
+  const dragStartScrollRef = useRef(0)
+
+  function handleHeroMouseDown(e: React.MouseEvent) {
+    if (e.button !== 0 || !heroTrackRef.current) return
+    isDraggingRef.current = true
+    dragStartXRef.current = e.clientX
+    dragStartScrollRef.current = heroTrackRef.current.scrollLeft
+    window.addEventListener("mousemove", handleHeroMouseMove)
+    window.addEventListener("mouseup", handleHeroMouseUp)
+  }
+
+  function handleHeroMouseMove(e: MouseEvent) {
+    if (!isDraggingRef.current || !heroTrackRef.current) return
+    heroTrackRef.current.scrollLeft = dragStartScrollRef.current - (e.clientX - dragStartXRef.current)
+  }
+
+  function handleHeroMouseUp() {
+    isDraggingRef.current = false
+    window.removeEventListener("mousemove", handleHeroMouseMove)
+    window.removeEventListener("mouseup", handleHeroMouseUp)
+  }
 
   useEffect(() => {
     setHideNav(true)
     return () => setHideNav(false)
   }, [])
 
-  if (!selectedExperience) return null
+  // selectedExperience ne vit qu'en mémoire (jamais persisté) : un refresh, un
+  // lien partagé ou un retour navigateur sur cette route l'efface. Avant, ça
+  // laissait un écran blanc sans nav et sans issue (return null).
+  useEffect(() => {
+    if (!selectedExperience) {
+      router.replace("/mapa")
+    }
+  }, [selectedExperience, router])
+
+  if (!selectedExperience) {
+    return (
+      <div style={emptyStateWrap}>
+        <p style={emptyStateText}>No hay ninguna experiencia seleccionada.</p>
+        <button onClick={() => router.replace("/mapa")} style={emptyStateBtn}>
+          Volver al mapa
+        </button>
+      </div>
+    )
+  }
   const exp = selectedExperience
+
+  // La cantidad de base viene del producto (format), pas d'un choix libre —
+  // seul le nombre de personnes EN PLUS (si l'expérience le permet) est
+  // ajustable, sans plafond : chaque personne extra passe par validation du
+  // prestador et implique un coût additionnel (géré hors app).
+  const baseCapacity = exp.format === "duo" ? 2 : 1
+  const extraAllowed = !!exp.extraPeopleOption?.allowed
+  const totalPeople = baseCapacity + extraPeople
+
+  // TEMP: exp.gallery n'est pas encore rempli côté données (comme dans
+  // DetailScreen.tsx), donc on complète avec 2 visuels de démo pour ne pas
+  // avoir une galerie à une seule photo. À retirer une fois le catalogue
+  // rempli avec de vraies photos additionnelles.
+  const photos = [
+    exp.image,
+    ...(exp.gallery || []),
+    "/image/image_activado1.jpg",
+    "/image/image_welcome.jpg",
+  ].filter((src, i, arr) => !!src && arr.indexOf(src) === i)
+
+  function selectMoment(value: Moment) {
+    setMomentBlock(value)
+    setPreferredHour(null)
+  }
 
   async function handleSubmit() {
     // Validation
-    if (!momentBlock && !strictTime) return
+    if (!momentBlock) return
     if (selectedDates.length === 0) return
 
-    const finalTime: string[] = strictTime ? strictTime : [momentBlock!]
+    const finalTime: string[] = [momentBlock]
     setSelectedTime(finalTime)
 
     // Récupérer le token de session et le code (stocké lors de l'activation)
@@ -66,16 +149,17 @@ export default function FechasPage() {
           codigo,
           experienciaId: exp.id,
           fechaDeseada: selectedDates[0], // première date sélectionnée
-          cantidadPersonas: people,
-          mensaje: `Horario: ${finalTime[0]}`
+          cantidadPersonas: totalPeople,
+          mensaje: preferredHour
+            ? `Horario: ${MOMENT_LABEL[momentBlock]} (~${preferredHour})`
+            : `Horario: ${MOMENT_LABEL[momentBlock]}`
         })
       })
 
       const data = await response.json()
 
       if (data.success && data.bookingId) {
-        // Rediriger vers la page de suivi
-        router.push(`/reservar/seguimiento/${data.bookingId}`)
+        router.push(`/reservar/fechas/confirmacion?bookingId=${data.bookingId}`)
       } else {
         console.error("Erreur création booking:", data.error)
         alert("No se pudo crear la reserva. Por favor, intenta de nuevo.")
@@ -92,45 +176,132 @@ export default function FechasPage() {
     <>
       <div style={pageWrap}>
 
-        {/* 🔥 HERO IMMERSION */}
+        {/* 🔥 HERO IMMERSION — galería scrollable, comme dans DetailScreen */}
         <div style={heroWrapper}>
-          <img src={exp.image || "/images/placeholder.jpg"} style={heroImage} />
+          <div
+            ref={heroTrackRef}
+            style={heroTrack}
+            onMouseDown={handleHeroMouseDown}
+            onScroll={e => {
+              const el = e.currentTarget
+              const idx = Math.round(el.scrollLeft / el.clientWidth)
+              setActivePhoto(idx)
+            }}
+          >
+            {(photos.length > 0 ? photos : ["/images/placeholder.jpg"]).map((src, i) => (
+              <img key={i} src={src} alt={`${exp.title} ${i + 1}`} style={heroImage} draggable={false} />
+            ))}
+          </div>
           <div style={heroGradient} />
           <div style={heroTitle}>{exp.title}</div>
+
+          {photos.length > 1 && (
+            <div style={heroDots}>
+              {photos.map((_, i) => (
+                <div key={i} style={{ ...heroDot, background: i === activePhoto ? "#fff" : "rgba(255,255,255,0.5)" }} />
+              ))}
+            </div>
+          )}
         </div>
 
         <p style={subtitle}>
           Elige fechas. <strong>Nosotros coordinamos.</strong>
         </p>
 
-        <Card icon={<Calendar size={20} />} title="Días">
-          <DateField
-            value={
-              selectedDates.length > 0
-                ? selectedDates.map(d => new Date(d).toLocaleDateString("es-CO")).join(" • ")
-                : "Elegir días"
-            }
-            onClick={() => setOpenCalendar(true)}
-          />
+        <Card
+          icon={<Calendar size={20} />}
+          title="Fechas posibles"
+          right={selectedDates.length > 0 ? `${selectedDates.length}/${MAX_DATES}` : undefined}
+        >
+          <p style={cardHint}>
+            Elige hasta {MAX_DATES} días. Mientras más opciones nos des, más rápido confirmamos con el lugar.
+          </p>
+          <div style={dateSlotsCol}>
+            {Array.from({ length: MAX_DATES }, (_, i) => i).map(i => {
+              const d = selectedDates[i]
+              if (d) {
+                return (
+                  <button key={i} onClick={() => setOpenCalendar(true)} style={dateSlotFilled}>
+                    <span style={dateSlotLabel}>Opción {i + 1}</span>
+                    <span style={dateSlotValue}>
+                      {formatLocalDate(d, { day: "numeric", month: "short" })}
+                    </span>
+                  </button>
+                )
+              }
+              if (i === selectedDates.length) {
+                return (
+                  <button key={i} onClick={() => setOpenCalendar(true)} style={dateSlotEmpty}>
+                    <Plus size={14} />
+                    {i === 0 ? "Elegir días" : `Opción ${i + 1} (opcional)`}
+                  </button>
+                )
+              }
+              return null
+            })}
+          </div>
         </Card>
 
         <Card icon={<Clock size={20} />} title="Horario">
+          <p style={cardHint}>Elige un momento del día. El lugar te confirma la hora exacta.</p>
           <div style={chipsRow}>
-            <MomentChip icon={<Sunrise size={16} />} label="Mañana" value="morning" {...{ momentBlock, setMomentBlock, setStrictTime }} />
-            <MomentChip icon={<Sun size={16} />} label="Tarde" value="afternoon" {...{ momentBlock, setMomentBlock, setStrictTime }} />
-            <MomentChip icon={<Sunset size={16} />} label="Noche" value="night" {...{ momentBlock, setMomentBlock, setStrictTime }} />
+            <MomentChip icon={<Sunrise size={16} />} label="Mañana" value="morning" momentBlock={momentBlock} setMomentBlock={selectMoment} />
+            <MomentChip icon={<Sun size={16} />} label="Tarde" value="afternoon" momentBlock={momentBlock} setMomentBlock={selectMoment} />
+            <MomentChip icon={<Sunset size={16} />} label="Noche" value="night" momentBlock={momentBlock} setMomentBlock={selectMoment} />
           </div>
 
-          <div style={timeRow}>
-            <span style={orLabel}>o</span>
-            <button onClick={() => setOpenTimePicker(true)} style={strictTime ? timeFilledBtn : timeOutlineBtn}>
-              Indicar hora
-            </button>
-          </div>
+          {momentBlock && (
+            <div style={hourSection}>
+              <span style={cardHint}>¿Hora exacta? (opcional)</span>
+              <div style={chipsRow}>
+                {HOUR_RANGES[momentBlock].map(h => (
+                  <button
+                    key={h}
+                    onClick={() => setPreferredHour(p => (p === h ? null : h))}
+                    style={hourChipStyle(preferredHour === h)}
+                  >
+                    {h}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
 
         <Card icon={<Users size={20} />} title="Personas">
-          <Chips options={[1, 2, 3, 4, 5]} selected={people} onSelect={setPeople} />
+          <div style={personasRow}>
+            <div>
+              <div style={personasMain}>
+                Para {totalPeople} {totalPeople === 1 ? "persona" : "personas"}
+              </div>
+              <div style={personasSub}>Incluido en tu regalo</div>
+            </div>
+            <Check size={18} color="#1E7A3B" />
+          </div>
+
+          {extraAllowed && (
+            <>
+              <div style={extraRow}>
+                <button
+                  onClick={() => setExtraPeople(p => Math.max(0, p - 1))}
+                  disabled={extraPeople === 0}
+                  style={{ ...extraBtn, opacity: extraPeople === 0 ? 0.3 : 1 }}
+                >
+                  −
+                </button>
+                <span style={extraCount}>
+                  {extraPeople === 0 ? "Sin personas extra" : `${extraPeople} persona${extraPeople > 1 ? "s" : ""} extra`}
+                </span>
+                <button onClick={() => setExtraPeople(p => p + 1)} style={extraBtn}>
+                  +
+                </button>
+              </div>
+              <div style={personasNote}>
+                Sujeto a validación del lugar y a un costo adicional por persona.
+                {exp.extraPeopleOption?.note ? ` ${exp.extraPeopleOption.note}` : ""}
+              </div>
+            </>
+          )}
         </Card>
 
         <button onClick={handleSubmit} disabled={loading} style={{
@@ -152,47 +323,28 @@ export default function FechasPage() {
           }}
         />
       )}
-
-      {openTimePicker && (
-        <TimePickerModal
-          onClose={() => setOpenTimePicker(false)}
-          onConfirm={(times: string[]) => {
-            setStrictTime(times)
-            setMomentBlock(null)
-            setOpenTimePicker(false)
-          }}
-        />
-      )}
     </>
   )
 }
 
 /* ---------- UI ---------- */
 
-function Card({ icon, title, children }: any) {
-  return <div style={card}><div style={cardHeader}>{icon}<span>{title}</span></div>{children}</div>
-}
-
-function DateField({ value, onClick }: any) {
-  return <div onClick={onClick} style={dateField}>{value}</div>
-}
-
-function Chips({ options, selected, onSelect }: any) {
+function Card({ icon, title, right, children }: any) {
   return (
-    <div style={chipsRow}>
-      {options.map((opt: number) => (
-        <button key={opt} onClick={() => onSelect(opt)} style={chipStyle(selected === opt)}>
-          {opt}
-        </button>
-      ))}
+    <div style={card}>
+      <div style={cardHeader}>
+        <div style={cardHeaderLeft}>{icon}<span>{title}</span></div>
+        {right && <span style={cardHeaderRight}>{right}</span>}
+      </div>
+      {children}
     </div>
   )
 }
 
-function MomentChip({ icon, label, value, momentBlock, setMomentBlock, setStrictTime }: any) {
+function MomentChip({ icon, label, value, momentBlock, setMomentBlock }: any) {
   const active = momentBlock === value
   return (
-    <button onClick={() => { setMomentBlock(value); setStrictTime(null) }} style={{ ...chipStyle(active), display: "flex", gap: 6, alignItems: "center" }}>
+    <button onClick={() => setMomentBlock(value)} style={{ ...chipStyle(active), display: "flex", gap: 6, alignItems: "center" }}>
       {icon}{label}
     </button>
   )
@@ -202,6 +354,30 @@ function MomentChip({ icon, label, value, momentBlock, setMomentBlock, setStrict
 
 const pageWrap: React.CSSProperties = { paddingBottom: 120 }
 
+const emptyStateWrap: React.CSSProperties = {
+  minHeight: "100dvh",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 18,
+  padding: 24,
+  textAlign: "center",
+}
+
+const emptyStateText: React.CSSProperties = { color: "#666", fontSize: 15 }
+
+const emptyStateBtn: React.CSSProperties = {
+  padding: "14px 24px",
+  borderRadius: 14,
+  background: "#111",
+  color: "#fff",
+  fontSize: 15,
+  fontWeight: 600,
+  border: "none",
+  cursor: "pointer",
+}
+
 const heroWrapper: React.CSSProperties = {
   position: "relative",
   width: "100%",
@@ -209,10 +385,40 @@ const heroWrapper: React.CSSProperties = {
   overflow: "hidden",
 }
 
+const heroTrack: React.CSSProperties = {
+  display: "flex",
+  width: "100%",
+  height: "100%",
+  overflowX: "auto",
+  scrollSnapType: "x mandatory",
+  WebkitOverflowScrolling: "touch",
+  cursor: "grab",
+  userSelect: "none",
+}
+
 const heroImage: React.CSSProperties = {
+  flex: "0 0 100%",
   width: "100%",
   height: "100%",
   objectFit: "cover",
+  scrollSnapAlign: "center",
+}
+
+const heroDots: React.CSSProperties = {
+  position: "absolute",
+  bottom: 66,
+  left: 0,
+  right: 0,
+  display: "flex",
+  justifyContent: "center",
+  gap: 6,
+}
+
+const heroDot: React.CSSProperties = {
+  width: 6,
+  height: 6,
+  borderRadius: "50%",
+  transition: "background 0.15s ease",
 }
 
 const heroGradient: React.CSSProperties = {
@@ -244,25 +450,86 @@ const card: React.CSSProperties = {
   background: "#F7F5F2",
 }
 
-const cardHeader: React.CSSProperties = { display: "flex", gap: 8, alignItems: "center", fontWeight: 600, marginBottom: 12 }
+const cardHeader: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }
+const cardHeaderLeft: React.CSSProperties = { display: "flex", gap: 8, alignItems: "center", fontWeight: 600 }
+const cardHeaderRight: React.CSSProperties = { fontSize: 12, color: "#888" }
+
+const cardHint: React.CSSProperties = { fontSize: 12, color: "#888", marginBottom: 12, lineHeight: 1.4 }
 
 const chipsRow: React.CSSProperties = { display: "flex", gap: 8, flexWrap: "wrap" }
 
-const dateField: React.CSSProperties = {
-  padding: 16,
-  borderRadius: 16,
+const hourSection: React.CSSProperties = { marginTop: 14 }
+
+const hourChipStyle = (active: boolean): React.CSSProperties => ({
+  padding: "8px 12px",
+  borderRadius: 999,
+  border: active ? "2px solid #111" : "1px solid #ddd",
+  background: active ? "#111" : "#fff",
+  color: active ? "#fff" : "#333",
+  fontSize: 13,
+})
+
+const dateSlotsCol: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 8 }
+
+const dateSlotFilled: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "12px 16px",
+  borderRadius: 14,
+  background: "#111",
+  color: "#fff",
+  border: "none",
+  cursor: "pointer",
+  width: "100%",
+}
+
+const dateSlotLabel: React.CSSProperties = { fontSize: 11, opacity: 0.6 }
+const dateSlotValue: React.CSSProperties = { fontSize: 14, fontWeight: 600 }
+
+const dateSlotEmpty: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  padding: "12px 16px",
+  borderRadius: 14,
   background: "#fff",
+  border: "1px dashed #bbb",
+  color: "#666",
+  fontSize: 13,
+  cursor: "pointer",
+  width: "100%",
+}
+
+const personasRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  background: "#fff",
+  borderRadius: 14,
+  padding: "12px 14px",
+}
+
+const personasMain: React.CSSProperties = { fontSize: 15, fontWeight: 600 }
+const personasSub: React.CSSProperties = { fontSize: 12, color: "#888", marginTop: 2 }
+
+const extraRow: React.CSSProperties = { marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }
+
+const extraBtn: React.CSSProperties = {
+  width: 36,
+  height: 36,
+  borderRadius: "50%",
   border: "1px solid #ddd",
-  textAlign: "center",
+  background: "#fff",
+  fontSize: 18,
   fontWeight: 600,
   cursor: "pointer",
 }
 
-const timeRow: React.CSSProperties = { marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }
-const orLabel: React.CSSProperties = { fontSize: 16, opacity: 0.5 }
+const extraCount: React.CSSProperties = { fontSize: 13, fontWeight: 500, minWidth: 130, textAlign: "center" }
 
-const timeOutlineBtn: React.CSSProperties = { padding: "10px 16px", borderRadius: 999, border: "2px solid #111", background: "#fff", color: "#111" }
-const timeFilledBtn: React.CSSProperties = { ...timeOutlineBtn, background: "#111", color: "#fff" }
+const personasNote: React.CSSProperties = { marginTop: 10, fontSize: 11, color: "#999", textAlign: "center", minHeight: 14 }
 
 const chipStyle = (active: boolean): React.CSSProperties => ({
   padding: "10px 14px",

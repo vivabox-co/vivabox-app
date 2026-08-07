@@ -1,58 +1,57 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Check } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useUI } from "@/components/ui/UIContext"
-import { Experience } from "@/lib/data/types"
-import { generateId } from "@/lib/utils/generateId"
-import { BookingStatus } from "@/components/ui/BookingTimeline"
 
-export default function ConfirmacionPage() {
+function ConfirmacionContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { setHideNav, selectedExperience } = useUI()
-  const [experience, setExperience] = useState<Experience | null>(null)
+  const bookingId = searchParams.get("bookingId")
+  const [bookedImage, setBookedImage] = useState<string | null>(null)
 
   useEffect(() => {
     setHideNav(true)
-
-    if (selectedExperience) {
-      setExperience(selectedExperience)
-
-      const dateStored = localStorage.getItem("selectedDates")
-      const timeStored = localStorage.getItem("selectedTime")
-
-      const booking = {
-        id: generateId(), // ✅ ID propre
-        experienceId: selectedExperience.id,
-        date: dateStored ? JSON.parse(dateStored)[0] : null,
-        time: timeStored ? JSON.parse(timeStored)[0] : null,
-        status: "requested" as BookingStatus,
-
-        experienceSnapshot: {
-          id: selectedExperience.id,
-          title: selectedExperience.title,
-          image: selectedExperience.image,
-          zone: selectedExperience.zone,
-          category: selectedExperience.category,
-          providerName: selectedExperience.providerName,
-        },
-      }
-
-      localStorage.setItem("currentBooking", JSON.stringify(booking))
-    }
-
     return () => setHideNav(false)
-  }, [selectedExperience, setHideNav])
+  }, [setHideNav])
+
+  useEffect(() => {
+    if (!bookingId) {
+      router.replace("/mapa")
+      return
+    }
+    localStorage.setItem("currentBooking", JSON.stringify({ id: bookingId }))
+
+    // La photo de l'expérience vient de selectedExperience (état mémoire, pas
+    // fiable après un refresh), donc on la reconfirme via le snapshot renvoyé
+    // par la réservation elle-même — la vraie source de vérité.
+    const token = sessionStorage.getItem("vb_session")
+    if (!token) return
+    fetch(`/api/booking/${bookingId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data?.experienceSnapshot?.image) {
+          setBookedImage(data.data.experienceSnapshot.image)
+        }
+      })
+      .catch(() => {})
+  }, [bookingId, router])
+
+  if (!bookingId) return null
+
+  const heroImage = bookedImage || selectedExperience?.image || "/images/placeholder.jpg"
 
   return (
     <div style={wrapperStyle}>
       <div
         style={{
-          ...backgroundStyle,
-          backgroundImage: experience ? `url(${experience.image})` : "none",
+          ...bgImage,
+          backgroundImage: `url(${heroImage})`,
         }}
       />
+      <div style={bgOverlay} />
 
       <div style={contentStyle}>
         <div style={cardWide}>
@@ -68,7 +67,7 @@ export default function ConfirmacionPage() {
           </p>
 
           <button
-            onClick={() => router.push("/reservar/seguimiento/" + (experience?.id || "1"))}
+            onClick={() => router.push(`/reservar/seguimiento/${bookingId}`)}
             style={btnStyle}
           >
             Ver seguimiento
@@ -76,6 +75,14 @@ export default function ConfirmacionPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ConfirmacionPage() {
+  return (
+    <Suspense fallback={null}>
+      <ConfirmacionContent />
+    </Suspense>
   )
 }
 
@@ -87,14 +94,21 @@ const wrapperStyle: React.CSSProperties = {
   overflow: "hidden",
 }
 
-const backgroundStyle: React.CSSProperties = {
+const bgImage: React.CSSProperties = {
   position: "absolute",
   inset: 0,
   backgroundSize: "cover",
   backgroundPosition: "center",
-  filter: "blur(8px) brightness(0.9)",
   transform: "scale(1.05)",
   zIndex: 0,
+}
+
+const bgOverlay: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  backdropFilter: "blur(6px)",
+  background: "rgba(255,255,255,0.25)",
+  zIndex: 1,
 }
 
 const contentStyle: React.CSSProperties = {
