@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Experience } from "@/lib/data/types"
 import { categoryColors } from "@/lib/map/categoryColors"
 import { categoryLabel } from "@/lib/map/categoryLabels"
@@ -23,6 +24,7 @@ type Props = {
 
 export default function ExperienceExploreMeta({ exp }: Props) {
   const { isFavorite, toggleFavorite } = useUI()
+  const [activePhoto, setActivePhoto] = useState(0)
 
   if (!exp) return null
 
@@ -30,15 +32,40 @@ export default function ExperienceExploreMeta({ exp }: Props) {
 
   const color = categoryColors[exp.category] || "#333"
 
+  // TEMP: le champ gallery n'est pas encore rempli côté données, donc on
+  // complète avec 2 visuels de démo (sans rapport avec l'expérience) pour
+  // pouvoir visualiser le scroll horizontal. À retirer une fois que
+  // exp.gallery contient de vraies photos.
+  const photos = [
+    exp.image,
+    ...(exp.gallery || []),
+    "/image/image_activado1.jpg",
+    "/image/image_welcome.jpg",
+  ].filter((src, i, arr) => !!src && arr.indexOf(src) === i)
+  if (photos.length === 0) photos.push("/images/placeholder.jpg")
+
   return (
-    <div style={{ paddingBottom: 120 }}>
+    <div style={{ paddingBottom: 24 }}>
       {/* HERO IMAGE */}
       <div style={heroWrap}>
-        <img
-          src={exp.image || "/images/placeholder.jpg"}
-          alt={exp.title}
-          style={heroImg}
-        />
+        <div
+          className="hero-gallery-track"
+          style={heroTrack}
+          onScroll={(e) => {
+            const el = e.currentTarget
+            const idx = Math.round(el.scrollLeft / el.clientWidth)
+            setActivePhoto(idx)
+          }}
+        >
+          {photos.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={`${exp.title} ${i + 1}`}
+              style={heroImg}
+            />
+          ))}
+        </div>
 
         {/* 🏷 CATEGORY BADGE */}
         <div style={{ ...categoryBadge, background: color }}>
@@ -59,6 +86,24 @@ export default function ExperienceExploreMeta({ exp }: Props) {
     fill={fav ? "#E11D48" : "transparent"}
   />
 </button>
+
+        {/* 🔘 DOTS */}
+        {photos.length > 1 && (
+          <div style={dotsWrap}>
+            {photos.map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  ...dot,
+                  background:
+                    i === activePhoto
+                      ? "#fff"
+                      : "rgba(255,255,255,0.5)",
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ padding: "16px" }}>
@@ -174,10 +219,38 @@ const heroWrap: React.CSSProperties = {
   marginBottom: 16,
 }
 
+const heroTrack: React.CSSProperties = {
+  display: "flex",
+  width: "100%",
+  height: "100%",
+  overflowX: "auto",
+  scrollSnapType: "x mandatory",
+  WebkitOverflowScrolling: "touch",
+}
+
 const heroImg: React.CSSProperties = {
+  flex: "0 0 100%",
   width: "100%",
   height: "100%",
   objectFit: "cover",
+  scrollSnapAlign: "center",
+}
+
+const dotsWrap: React.CSSProperties = {
+  position: "absolute",
+  bottom: 12,
+  left: 0,
+  right: 0,
+  display: "flex",
+  justifyContent: "center",
+  gap: 6,
+}
+
+const dot: React.CSSProperties = {
+  width: 6,
+  height: 6,
+  borderRadius: "50%",
+  transition: "background 0.15s ease",
 }
 
 const categoryBadge: React.CSSProperties = {

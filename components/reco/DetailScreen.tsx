@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUI } from '@/components/ui/UIContext'
 import { categoryColors } from '@/lib/map/categoryColors'
@@ -22,12 +23,24 @@ type Props = {
 export default function DetailScreen({ experience, onBack }: Props) {
   const router = useRouter()
   const { isFavorite, toggleFavorite, setSelectedExperience } = useUI()
+  const [activePhoto, setActivePhoto] = useState(0)
 
   if (!experience) return null
 
   const fav = isFavorite(experience.id)
   const categoryColor =
     categoryColors[experience.category] || '#333'
+
+  // TEMP: le champ gallery n'est pas encore rempli côté données, donc on
+  // complète avec 2 visuels de démo pour visualiser le scroll horizontal,
+  // comme dans ExperienceExploreMeta.tsx. À retirer une fois que
+  // experience.gallery contient de vraies photos.
+  const photos = [
+    experience.image,
+    ...(experience.gallery || []),
+    '/image/image_activado1.jpg',
+    '/image/image_welcome.jpg',
+  ].filter((src, i, arr) => !!src && arr.indexOf(src) === i)
 
   return (
     <div
@@ -49,15 +62,65 @@ export default function DetailScreen({ experience, onBack }: Props) {
           overflow: 'hidden',
         }}
       >
-        <img
-          src={experience.image}
-          alt={experience.title}
+        <div
+          className="hero-gallery-track"
           style={{
+            display: 'flex',
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
+            overflowX: 'auto',
+            scrollSnapType: 'x mandatory',
+            WebkitOverflowScrolling: 'touch',
           }}
-        />
+          onScroll={e => {
+            const el = e.currentTarget
+            const idx = Math.round(el.scrollLeft / el.clientWidth)
+            setActivePhoto(idx)
+          }}
+        >
+          {photos.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={`${experience.title} ${i + 1}`}
+              style={{
+                flex: '0 0 100%',
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                scrollSnapAlign: 'center',
+              }}
+            />
+          ))}
+        </div>
+
+        {/* 🔘 DOTS */}
+        {photos.length > 1 && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 12,
+              left: 0,
+              right: 0,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            {photos.map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: i === activePhoto ? '#fff' : 'rgba(255,255,255,0.5)',
+                  transition: 'background 0.15s ease',
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* ← BACK */}
         <button

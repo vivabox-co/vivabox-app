@@ -57,6 +57,20 @@ export default function RecoOverlay({ open, onClose }: Props) {
   }, [open])
 
   /* =====================================================
+     ⎋ FERMER AVEC ÉCHAP
+     ===================================================== */
+  useEffect(() => {
+    if (!open) return
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [open, onClose])
+
+  /* =====================================================
      📦 LOAD & MERGE DATA
      ===================================================== */
   useEffect(() => {
@@ -129,11 +143,10 @@ export default function RecoOverlay({ open, onClose }: Props) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
+          position: 'relative',
           width: '100%',
           maxWidth: 440,
 
-          /* 🔥 RÈGLE UX CENTRALE */
-          minHeight: '45vh',
           maxHeight: '85vh',
 
           background: 'rgba(255,255,255,0.92)',
@@ -145,6 +158,33 @@ export default function RecoOverlay({ open, onClose }: Props) {
           flexDirection: 'column',
         }}
       >
+        {/* ================= PROGRESS ================= */}
+        {(state === 'q1' || state === 'q2' || state === 'q3') && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 6,
+              paddingTop: 20,
+            }}
+          >
+            {[0, 1, 2].map(i => {
+              const currentIndex = { q1: 0, q2: 1, q3: 2 }[state]
+              return (
+                <div
+                  key={i}
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: i <= currentIndex ? '#111' : 'rgba(0,0,0,0.15)',
+                  }}
+                />
+              )
+            })}
+          </div>
+        )}
+
         {/* ================= FLOW ================= */}
 
         {state === 'intro' && (
@@ -203,6 +243,7 @@ export default function RecoOverlay({ open, onClose }: Props) {
           <QuestionScreen
             index={1}
             engagement={answers.engagement}
+            onBack={() => setState('q1')}
             onAnswer={value => {
               setAnswers(prev => ({
                 engagement: prev.engagement,
@@ -228,6 +269,8 @@ export default function RecoOverlay({ open, onClose }: Props) {
           <QuestionScreen
             index={2}
             engagement={answers.engagement}
+            onBack={() => setState('q2')}
+            disabled={!experiences.length}
             onAnswer={value => {
               if (!experiences.length) return
 

@@ -18,19 +18,42 @@ export default function BottomSheet({
   const MIN_HEIGHT = 55
   const MAX_HEIGHT = 80
   const DRAG_SPEED = 0.35
-  const SNAP_THRESHOLD = 4
+  // Au relâchement, on atterrit toujours sur MIN_HEIGHT ou MAX_HEIGHT (snap binaire),
+  // jamais sur une hauteur intermédiaire arbitraire.
+  const SNAP_MIDPOINT = (MIN_HEIGHT + MAX_HEIGHT) / 2
+  // Pull-to-close : distance (px) à tirer sous MIN_HEIGHT pour fermer le drawer.
+  const CLOSE_THRESHOLD = 90
+  const CLOSE_MAX_OFFSET = 160
+  const CLOSE_RESISTANCE = 0.6
 
   const [height, setHeight] = useState(MIN_HEIGHT)
+  const [dragOffset, setDragOffset] = useState(0)
+  // Miroirs synchrones du state : un mousemove attaché sur `window` (voir
+  // plus bas) garde la closure de son render de départ et ne verrait jamais
+  // les setState suivants. Les refs, elles, sont toujours à jour au moment
+  // où on les lit, quel que soit le chemin d'événement (touch ou souris).
+  const heightRef = useRef(MIN_HEIGHT)
+  const dragOffsetRef = useRef(0)
+
   const lastY = useRef<number | null>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
+  // Après un vrai drag, un click "fantôme" peut suivre le relâchement et
+  // atterrir sur l'overlay (qui n'est plus sous le curseur une fois la
+  // sheet redimensionnée) → fermerait le drawer juste après l'avoir
+  // redimensionné. Ce flag absorbe ce click.
+  const suppressNextOverlayClick = useRef(false)
 
   const TAP_THRESHOLD = 6
   const startY = useRef<number | null>(null)
 
-
   useEffect(() => {
-    if (open) setHeight(MIN_HEIGHT)
+    if (open) {
+      setHeight(MIN_HEIGHT)
+      heightRef.current = MIN_HEIGHT
+      setDragOffset(0)
+      dragOffsetRef.current = 0
+    }
   }, [open])
 
   if (!open) return null
@@ -40,78 +63,178 @@ export default function BottomSheet({
     return !!target.closest("button, a, svg, input, textarea, [role='button']")
   }
 
-  function handleTouchStart(e: React.TouchEvent) {
-  const target = e.target as HTMLElement
-  if (isInteractive(target)) {
+  // Comme updateDragOffset : on calcule à partir de la ref (toujours à jour,
+  // synchrone) et pas du paramètre du functional setState (qui peut être
+  // traité par React de façon différée si plusieurs setHeight s'enchaînent
+  // dans le même batch — la ref, elle, ne dépend jamais de ce timing).
+  function updateHeight(updater: (h: number) => number) {
+    const next = updater(heightRef.current)
+    heightRef.current = next
+    setHeight(next)
+  }
+
+  function updateDragOffset(next: number) {
+    dragOffsetRef.current = next
+    setDragOffset(next)
+  }
+
+  function resetDragState() {
     lastY.current = null
     startY.current = null
-    return
+    isDragging.current = false
   }
 
-  startY.current = e.touches[0].clientY
-  lastY.current = startY.current
-  isDragging.current = false
-}
-
-  function handleTouchMove(e: React.TouchEvent) {
-  if (lastY.current === null || startY.current === null) return
-
-  const currentY = e.touches[0].clientY
-  const deltaTotal = Math.abs(currentY - startY.current)
-
-  // 🔥 SI PAS ASSEZ DE MOUVEMENT = TAP → NE PAS PREVENTDEFAULT
-  if (deltaTotal < TAP_THRESHOLD) return
-
-  isDragging.current = true
-
-  const delta = lastY.current - currentY
-  const bodyEl = bodyRef.current
-  if (!bodyEl) return
-
-  const scrollingUp = delta > 0
-  const scrollingDown = delta < 0
-  const atTop = bodyEl.scrollTop <= 0
-  const atMaxHeight = height >= MAX_HEIGHT
-
-  if (!atMaxHeight && scrollingUp) {
-    e.preventDefault()
-    bodyEl.scrollTop = 0
-    setHeight(h => Math.min(MAX_HEIGHT, h + Math.abs(delta) * DRAG_SPEED))
-  }
-  else if (scrollingDown && atTop && height > MIN_HEIGHT) {
-    e.preventDefault()
-    setHeight(h => Math.max(MIN_HEIGHT, h - Math.abs(delta) * DRAG_SPEED))
+  function beginDrag(target: HTMLElement, clientY: number) {
+    if (isInteractive(target)) {
+      resetDragState()
+      return false
+    }
+    startY.current = clientY
+    lastY.current = clientY
+    isDragging.current = false
+    return true
   }
 
-  lastY.current = currentY
-}
+  /** Cœur partagé touch + souris. `preventDefault` doit être un no-op côté souris. */
+  function processMove(currentY: number, preventDefault: () => void) {
+    if (lastY.current === null || startY.current === null) return
+
+    const deltaTotal = Math.abs(currentY - startY.current)
+
+    // 🔥 SI PAS ASSEZ DE MOUVEMENT = TAP → NE PAS PREVENTDEFAULT
+    if (deltaTotal < TAP_THRESHOLD) return
+
+    isDragging.current = true
+
+    const delta = lastY.current - currentY
+    const bodyEl = bodyRef.current
+    if (!bodyEl) return
+
+    const scrollingUp = delta > 0
+    const scrollingDown = delta < 0
+    const atTop = bodyEl.scrollTop <= 0
+    const atMaxHeight = heightRef.current >= MAX_HEIGHT
+    const atMinHeight = heightRef.current <= MIN_HEIGHT
+
+    if (scrollingUp) {
+      if (dragOffsetRef.current > 0) {
+        preventDefault()
+        updateDragOffset(Math.max(0, dragOffsetRef.current - Math.abs(delta)))
+      } else if (!atMaxHeight) {
+        preventDefault()
+        bodyEl.scrollTop = 0
+        updateHeight(h => Math.min(MAX_HEIGHT, h + Math.abs(delta) * DRAG_SPEED))
+      }
+    } else if (scrollingDown && atTop) {
+      if (!atMinHeight) {
+        preventDefault()
+        updateHeight(h => Math.max(MIN_HEIGHT, h - Math.abs(delta) * DRAG_SPEED))
+      } else {
+        // À hauteur mini et on continue de tirer vers le bas → pull-to-close
+        preventDefault()
+        updateDragOffset(
+          Math.min(CLOSE_MAX_OFFSET, dragOffsetRef.current + Math.abs(delta) * CLOSE_RESISTANCE)
+        )
+      }
+    }
+
+    lastY.current = currentY
+  }
+
+  function endDrag() {
+    if (!isDragging.current) {
+      // 👉 C'était un TAP → laisser le click se produire
+      resetDragState()
+      return
+    }
+
+    suppressNextOverlayClick.current = true
+    setTimeout(() => {
+      suppressNextOverlayClick.current = false
+    }, 300)
+
+    if (dragOffsetRef.current > CLOSE_THRESHOLD) {
+      resetDragState()
+      onClose()
+      return
+    }
+
+    isDragging.current = false
+    updateDragOffset(0)
+    updateHeight(h => (h >= SNAP_MIDPOINT ? MAX_HEIGHT : MIN_HEIGHT))
+
+    lastY.current = null
+    startY.current = null
+  }
+
+  function handleOverlayClick() {
+    if (suppressNextOverlayClick.current) {
+      suppressNextOverlayClick.current = false
+      return
+    }
+    onClose()
+  }
+
+  /* ================= TOUCH (mobile) =================
+     Handlers dédiés (pas Pointer Events) : sur mobile, preventDefault()
+     dans un pointermove n'empêche pas fiablement le scroll natif — il
+     faut la propriété CSS touch-action pour ça. touchmove, lui, bloque
+     bien le scroll natif via preventDefault(), comme avant. */
+  function handleTouchStart(e: React.TouchEvent<HTMLDivElement>) {
+    beginDrag(e.target as HTMLElement, e.touches[0].clientY)
+  }
+
+  function handleTouchMove(e: React.TouchEvent<HTMLDivElement>) {
+    processMove(e.touches[0].clientY, () => e.preventDefault())
+  }
 
   function handleTouchEnd() {
-  if (!isDragging.current) {
-    // 👉 C'était un TAP → laisser le click se produire
-    lastY.current = null
-    startY.current = null
-    return
+    endDrag()
   }
 
-  if (height > MAX_HEIGHT - SNAP_THRESHOLD) setHeight(MAX_HEIGHT)
-  else if (height < MIN_HEIGHT + SNAP_THRESHOLD) setHeight(MIN_HEIGHT)
+  /* ================= SOURIS (desktop) =================
+     mousemove/mouseup sont attachés sur `window` pendant le drag : une
+     souris, contrairement au doigt, peut sortir des limites de l'élément
+     sans que l'événement s'arrête pour autant. */
+  function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    if (e.button !== 0) return
+    if (!beginDrag(e.target as HTMLElement, e.clientY)) return
+    window.addEventListener("mousemove", handleWindowMouseMove)
+    window.addEventListener("mouseup", handleWindowMouseUp)
+  }
 
-  lastY.current = null
-  startY.current = null
-  isDragging.current = false
-}
+  function handleWindowMouseMove(e: MouseEvent) {
+    processMove(e.clientY, () => e.preventDefault())
+  }
+
+  function handleWindowMouseUp() {
+    window.removeEventListener("mousemove", handleWindowMouseMove)
+    window.removeEventListener("mouseup", handleWindowMouseUp)
+    endDrag()
+  }
 
   return (
     <>
-      <div className="sheet-overlay" onClick={onClose} />
+      <div className="sheet-overlay" onClick={handleOverlayClick} />
 
       <div
         className="bottom-sheet"
-        style={{ height: `${height}vh` }}
+        style={{
+          height: `${height}vh`,
+          // .bottom-sheet centre horizontalement via translateX(-50%) en CSS ;
+          // un style inline remplace (ne fusionne pas) le transform du
+          // stylesheet, donc il faut reprendre le translateX ici aussi, sinon
+          // le pull-to-close écrase le centrage et la sheet saute à droite.
+          transform: `translateX(-50%) translateY(${dragOffset}px)`,
+          transition: isDragging.current
+            ? "none"
+            : "height 0.18s ease-out, transform 0.18s ease-out",
+        }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        onMouseDown={handleMouseDown}
       >
         <div className="sheet-handle" />
 

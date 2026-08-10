@@ -111,3 +111,52 @@ export async function GET(
     return NextResponse.json({ success: false, error: "SERVER_ERROR" }, { status: 500 });
   }
 }
+
+// Annulation réservée à l'équipe Vivabox : protégée par ADMIN_API_KEY (secret
+// interne, distinct du vb_session client) plutôt que par la session du
+// client qui a fait la réservation — un client ne doit jamais pouvoir
+// annuler sa propre réservation depuis l'app.
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ bookingId: string }> }
+) {
+  try {
+    const adminKey = req.headers.get('x-admin-key');
+    if (!adminKey || adminKey !== process.env.ADMIN_API_KEY) {
+      return NextResponse.json({ success: false, error: "UNAUTHORIZED" }, { status: 401 });
+    }
+
+    const { bookingId } = await params;
+    const body = await req.json().catch(() => ({}));
+
+    // Seule transition supportée pour l'instant : annulation. On valide
+    // explicitement plutôt que d'accepter n'importe quel statut en écriture libre.
+    if (body.status !== "cancelled") {
+      return NextResponse.json({ success: false, error: "INVALID_STATUS" }, { status: 400 });
+    }
+
+    const supabase = getSupabase()
+
+    const { data: booking, error } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .eq("id", bookingId)
+      .select("id, status")
+      .maybeSingle()
+
+    if (error) {
+      console.error("BOOKING CANCEL ERROR:", error)
+      return NextResponse.json({ success: false, error: "SERVER_ERROR" }, { status: 500 });
+    }
+
+    if (!booking) {
+      return NextResponse.json({ success: false, error: "BOOKING_NOT_FOUND" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, data: booking });
+
+  } catch (error) {
+    console.error("BOOKING CANCEL ERROR:", error)
+    return NextResponse.json({ success: false, error: "SERVER_ERROR" }, { status: 500 });
+  }
+}

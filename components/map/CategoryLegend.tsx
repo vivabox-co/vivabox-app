@@ -43,36 +43,14 @@ export default function CategoryLegend({
 
   return (
     <div
+      className="category-legend"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-        alignItems: "center",
         pointerEvents: "auto",
         ...style,
       }}
     >
-      {/* Ligne haute : 3 catégories */}
-      <div
-        style={{
-          display: "flex",
-          gap: 6,
-          justifyContent: "center",
-        }}
-      >
-        {topRow.map(renderButton)}
-      </div>
-
-      {/* Ligne basse : 2 catégories */}
-      <div
-        style={{
-          display: "flex",
-          gap: 6,
-          justifyContent: "center",
-        }}
-      >
-        {bottomRow.map(renderButton)}
-      </div>
+      <div className="category-legend-row">{topRow.map(renderButton)}</div>
+      <div className="category-legend-row">{bottomRow.map(renderButton)}</div>
     </div>
   )
 
@@ -84,28 +62,11 @@ export default function CategoryLegend({
     return (
       <button
         key={cat}
+        className="category-pill"
         onClick={() => handleClick(cat)}
         style={{
-          appearance: "none",
-          border: "none",
-          cursor: "pointer",
-
-          padding: "6px 12px",
-          borderRadius: 999,
-
-          fontSize: 13,
-          fontWeight: 700,
-          lineHeight: 1,
-
           background: color,
-          color: "#fff",
-          boxShadow: "0 4px 14px rgba(0,0,0,0.18)",
-
           opacity: isActive ? 1 : 0.28,
-
-          transition: "opacity 0.2s ease",
-          whiteSpace: "nowrap",
-          textAlign: "center",
         }}
       >
         {label}

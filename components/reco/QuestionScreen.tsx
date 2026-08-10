@@ -10,9 +10,11 @@ import {
   Brain,
   Hand,
   Settings,
-  Sparkles,
+  Palette,
   Eye,
   Hammer,
+  ArrowLeft,
+  LucideIcon,
 } from 'lucide-react'
 
 type Engagement = 'relajado' | 'activo' | 'sacudido'
@@ -21,11 +23,27 @@ type Props = {
   index: 0 | 1 | 2
   engagement?: Engagement
   onAnswer: (answer: string) => void
+  onBack?: () => void
+  disabled?: boolean
 }
+
+/* ================= THEMES ================= */
+/* Palette reprise de categoryColors.ts pour rester cohérent avec les pins de la carte */
+
+const THEMES = {
+  green: { bg: '#DAF5E3', icon: '#22C55E', title: '#14532D', subtitle: '#16A34A' },
+  amber: { bg: '#FDECC8', icon: '#F59E0B', title: '#92400E', subtitle: '#D97706' },
+  red: { bg: '#FCDEDE', icon: '#EF4444', title: '#991B1B', subtitle: '#DC2626' },
+  blue: { bg: '#DCE9FE', icon: '#3B82F6', title: '#1E3A8A', subtitle: '#2563EB' },
+  violet: { bg: '#EDE4FE', icon: '#8B5CF6', title: '#4C1D95', subtitle: '#7C3AED' },
+} as const
+
+type ThemeName = keyof typeof THEMES
 
 /* ================= STYLES ================= */
 
 const screenStyle: React.CSSProperties = {
+  position: 'relative',
   flex: 1,
   display: 'flex',
   flexDirection: 'column',
@@ -59,100 +77,80 @@ const questionStyle: React.CSSProperties = {
   color: '#111',
 }
 
-/* --- Options --- */
+/* --- Options grid --- */
 
-const optionsStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 14,
+const optionsGrid3: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, 1fr)',
+  gap: 8,
   width: '100%',
   maxWidth: 360,
 }
 
-/**
- * Option noire Vivabox
- * = CTA calme
- * = décision sans pression
- */
-const optionCardStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 16,
+const optionsGrid2: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, 1fr)',
+  gap: 10,
   width: '100%',
-  padding: '18px',
-  borderRadius: 16,
-
-  background: '#111',
-  color: '#FFF',
-  border: 'none',
-  font: 'inherit',
-
-  cursor: 'pointer',
-  textAlign: 'left',
-
-  transition: 'background 0.15s ease, transform 0.1s ease',
-}
-
-/**
- * Container icône
- * = même matière que la Card principale
- * = zone de sécurité visuelle
- */
-const iconWrapStyle: React.CSSProperties = {
-  width: 40,
-  height: 40,
-  borderRadius: 12,
-
-  background: '#F4F4F4',
-  boxShadow:
-    'inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 2px rgba(0,0,0,0.08)',
-
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-}
-
-/* Icône = noire, lisible, non décorative */
-const iconStyle: React.CSSProperties = {
-  color: '#111',
-}
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 16,
-  fontWeight: 500,
-  lineHeight: 1.35,
-  color: '#FFF',
+  maxWidth: 280,
 }
 
 /* ================= HELPER ================= */
 
 function OptionCard({
+  icon: Icon,
+  theme,
+  title,
+  subtitle,
   onClick,
-  children,
+  disabled,
 }: {
+  icon: LucideIcon
+  theme: ThemeName
+  title: string
+  subtitle: string
   onClick: () => void
-  children: React.ReactNode
+  disabled?: boolean
 }) {
+  const t = THEMES[theme]
+
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onClick}
-      style={optionCardStyle}
-      onMouseEnter={e => {
-  e.currentTarget.style.background = '#000'
-}}
-onMouseLeave={e => {
-  e.currentTarget.style.background = '#111'
-}}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 6,
+        padding: '14px 6px',
+        borderRadius: 16,
+        background: t.bg,
+        border: 'none',
+        font: 'inherit',
+        textAlign: 'center',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        transition: 'transform 0.1s ease',
+      }}
       onMouseDown={e => {
-        e.currentTarget.style.transform = 'scale(0.985)'
+        if (!disabled) e.currentTarget.style.transform = 'scale(0.97)'
       }}
       onMouseUp={e => {
+        if (!disabled) e.currentTarget.style.transform = 'scale(1)'
+      }}
+      onMouseLeave={e => {
         e.currentTarget.style.transform = 'scale(1)'
       }}
     >
-      {children}
+      <Icon size={28} color={t.icon} strokeWidth={1.75} />
+      <span style={{ fontSize: 13, fontWeight: 600, color: t.title, lineHeight: 1.25 }}>
+        {title}
+      </span>
+      <span style={{ fontSize: 11, color: t.subtitle, lineHeight: 1.2 }}>
+        {subtitle}
+      </span>
     </button>
   )
 }
@@ -163,9 +161,35 @@ export default function QuestionScreen({
   index,
   engagement,
   onAnswer,
+  onBack,
+  disabled,
 }: Props) {
   return (
     <div style={screenStyle}>
+
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Volver"
+          style={{
+            position: 'absolute',
+            top: 14,
+            left: 14,
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: 'rgba(0,0,0,0.06)',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <ArrowLeft size={16} color="#111" />
+        </button>
+      )}
 
       {/* ================= Q1 ================= */}
       {index === 0 && (
@@ -174,21 +198,28 @@ export default function QuestionScreen({
             ¿Cómo te gusta que un momento te haga sentir?
           </div>
 
-          <div style={optionsStyle}>
-            <OptionCard onClick={() => onAnswer('relajado')}>
-              <div style={iconWrapStyle}><Leaf size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Relajado, sin esfuerzo</div>
-            </OptionCard>
-
-            <OptionCard onClick={() => onAnswer('activo')}>
-              <div style={iconWrapStyle}><Activity size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Activo, participando</div>
-            </OptionCard>
-
-            <OptionCard onClick={() => onAnswer('sacudido')}>
-              <div style={iconWrapStyle}><Zap size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Sacudido, fuera de lo habitual</div>
-            </OptionCard>
+          <div style={optionsGrid3}>
+            <OptionCard
+              icon={Leaf}
+              theme="green"
+              title="Relajado"
+              subtitle="sin esfuerzo"
+              onClick={() => onAnswer('relajado')}
+            />
+            <OptionCard
+              icon={Activity}
+              theme="amber"
+              title="Activo"
+              subtitle="participando"
+              onClick={() => onAnswer('activo')}
+            />
+            <OptionCard
+              icon={Zap}
+              theme="red"
+              title="Sacudido"
+              subtitle="fuera de lo habitual"
+              onClick={() => onAnswer('sacudido')}
+            />
           </div>
         </div>
       )}
@@ -198,21 +229,28 @@ export default function QuestionScreen({
         <div style={wrapperStyle}>
           <div style={questionStyle}>¿Qué tipo de calma buscas?</div>
 
-          <div style={optionsStyle}>
-            <OptionCard onClick={() => onAnswer('corporal')}>
-              <div style={iconWrapStyle}><Heart size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Corporal, relajante</div>
-            </OptionCard>
-
-            <OptionCard onClick={() => onAnswer('ambiental')}>
-              <div style={iconWrapStyle}><Globe size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Ambiental, acogedora</div>
-            </OptionCard>
-
-            <OptionCard onClick={() => onAnswer('interior')}>
-              <div style={iconWrapStyle}><Infinity size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Interior, silenciosa</div>
-            </OptionCard>
+          <div style={optionsGrid3}>
+            <OptionCard
+              icon={Heart}
+              theme="red"
+              title="Corporal"
+              subtitle="relajante"
+              onClick={() => onAnswer('corporal')}
+            />
+            <OptionCard
+              icon={Globe}
+              theme="green"
+              title="Ambiental"
+              subtitle="acogedora"
+              onClick={() => onAnswer('ambiental')}
+            />
+            <OptionCard
+              icon={Infinity}
+              theme="blue"
+              title="Interior"
+              subtitle="silenciosa"
+              onClick={() => onAnswer('interior')}
+            />
           </div>
         </div>
       )}
@@ -223,21 +261,28 @@ export default function QuestionScreen({
             Cuando participas, prefieres algo…
           </div>
 
-          <div style={optionsStyle}>
-            <OptionCard onClick={() => onAnswer('mental')}>
-              <div style={iconWrapStyle}><Brain size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Mental, aprendiendo</div>
-            </OptionCard>
-
-            <OptionCard onClick={() => onAnswer('manual')}>
-              <div style={iconWrapStyle}><Hand size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Manual, haciendo</div>
-            </OptionCard>
-
-            <OptionCard onClick={() => onAnswer('tecnico')}>
-              <div style={iconWrapStyle}><Settings size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Técnico, concentrado</div>
-            </OptionCard>
+          <div style={optionsGrid3}>
+            <OptionCard
+              icon={Brain}
+              theme="blue"
+              title="Mental"
+              subtitle="aprendiendo"
+              onClick={() => onAnswer('mental')}
+            />
+            <OptionCard
+              icon={Hand}
+              theme="violet"
+              title="Manual"
+              subtitle="haciendo"
+              onClick={() => onAnswer('manual')}
+            />
+            <OptionCard
+              icon={Settings}
+              theme="amber"
+              title="Técnico"
+              subtitle="concentrado"
+              onClick={() => onAnswer('tecnico')}
+            />
           </div>
         </div>
       )}
@@ -248,21 +293,28 @@ export default function QuestionScreen({
             Lo fuera de lo habitual te atrae si es…
           </div>
 
-          <div style={optionsStyle}>
-            <OptionCard onClick={() => onAnswer('mental')}>
-              <div style={iconWrapStyle}><Brain size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Mental, desafiante</div>
-            </OptionCard>
-
-            <OptionCard onClick={() => onAnswer('sensorial')}>
-              <div style={iconWrapStyle}><Sparkles size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Sensorial, sorprendente</div>
-            </OptionCard>
-
-            <OptionCard onClick={() => onAnswer('emocional')}>
-              <div style={iconWrapStyle}><Heart size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Emocional, intenso</div>
-            </OptionCard>
+          <div style={optionsGrid3}>
+            <OptionCard
+              icon={Brain}
+              theme="blue"
+              title="Mental"
+              subtitle="desafiante"
+              onClick={() => onAnswer('mental')}
+            />
+            <OptionCard
+              icon={Palette}
+              theme="violet"
+              title="Sensorial"
+              subtitle="sorprendente"
+              onClick={() => onAnswer('sensorial')}
+            />
+            <OptionCard
+              icon={Heart}
+              theme="red"
+              title="Emocional"
+              subtitle="intenso"
+              onClick={() => onAnswer('emocional')}
+            />
           </div>
         </div>
       )}
@@ -274,16 +326,23 @@ export default function QuestionScreen({
             Esa calma la prefieres…
           </div>
 
-          <div style={optionsStyle}>
-            <OptionCard onClick={() => onAnswer('cuerpo')}>
-              <div style={iconWrapStyle}><Activity size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>En el cuerpo, soltando</div>
-            </OptionCard>
-
-            <OptionCard onClick={() => onAnswer('entorno')}>
-              <div style={iconWrapStyle}><Globe size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>En el entorno, estando</div>
-            </OptionCard>
+          <div style={optionsGrid2}>
+            <OptionCard
+              icon={Activity}
+              theme="amber"
+              title="En el cuerpo"
+              subtitle="soltando"
+              disabled={disabled}
+              onClick={() => onAnswer('cuerpo')}
+            />
+            <OptionCard
+              icon={Globe}
+              theme="green"
+              title="En el entorno"
+              subtitle="estando"
+              disabled={disabled}
+              onClick={() => onAnswer('entorno')}
+            />
           </div>
         </div>
       )}
@@ -294,16 +353,23 @@ export default function QuestionScreen({
             En ese tipo de experiencia, disfrutas más…
           </div>
 
-          <div style={optionsStyle}>
-            <OptionCard onClick={() => onAnswer('crear')}>
-              <div style={iconWrapStyle}><Hammer size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Creando, haciendo</div>
-            </OptionCard>
-
-            <OptionCard onClick={() => onAnswer('comprender')}>
-              <div style={iconWrapStyle}><Eye size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Comprendiendo, observando</div>
-            </OptionCard>
+          <div style={optionsGrid2}>
+            <OptionCard
+              icon={Hammer}
+              theme="amber"
+              title="Creando"
+              subtitle="haciendo"
+              disabled={disabled}
+              onClick={() => onAnswer('crear')}
+            />
+            <OptionCard
+              icon={Eye}
+              theme="violet"
+              title="Comprendiendo"
+              subtitle="observando"
+              disabled={disabled}
+              onClick={() => onAnswer('comprender')}
+            />
           </div>
         </div>
       )}
@@ -314,17 +380,37 @@ export default function QuestionScreen({
             Ese impacto lo prefieres…
           </div>
 
-          <div style={optionsStyle}>
-            <OptionCard onClick={() => onAnswer('inmediato')}>
-              <div style={iconWrapStyle}><Zap size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Inmediato, en el momento</div>
-            </OptionCard>
-
-            <OptionCard onClick={() => onAnswer('duradero')}>
-              <div style={iconWrapStyle}><Infinity size={20} style={iconStyle} /></div>
-              <div style={labelStyle}>Duradero, que deja huella</div>
-            </OptionCard>
+          <div style={optionsGrid2}>
+            <OptionCard
+              icon={Zap}
+              theme="red"
+              title="Inmediato"
+              subtitle="en el momento"
+              disabled={disabled}
+              onClick={() => onAnswer('inmediato')}
+            />
+            <OptionCard
+              icon={Infinity}
+              theme="blue"
+              title="Duradero"
+              subtitle="que deja huella"
+              disabled={disabled}
+              onClick={() => onAnswer('duradero')}
+            />
           </div>
+        </div>
+      )}
+
+      {index === 2 && disabled && (
+        <div
+          style={{
+            marginTop: 16,
+            textAlign: 'center',
+            fontSize: 13,
+            opacity: 0.6,
+          }}
+        >
+          Cargando experiencias…
         </div>
       )}
     </div>

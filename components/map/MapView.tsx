@@ -18,7 +18,7 @@ import { categoryColors } from "@/lib/map/categoryColors"
 import { categoryLabel } from "@/lib/map/categoryLabels"
 import { formatLabel } from "@/lib/map/formatLabels"
 import { useUI } from "@/components/ui/UIContext"
-import { Heart, MapPin, Users } from "lucide-react"
+import { Heart, MapPin, Users, Locate } from "lucide-react"
 import { filterExperiences } from "@/lib/product/filterExperiences"
 
 import "leaflet/dist/leaflet.css"
@@ -56,6 +56,34 @@ function ResizeFix() {
   return null
 }
 
+/* 📍 Fly to user location when it becomes available */
+function FlyToPosition({ position }: { position: [number, number] | null }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (position) {
+      map.flyTo(position, 15, { duration: 1.2 })
+    }
+  }, [position, map])
+
+  return null
+}
+
+/* 🔵 Blue dot icon for the user's current location */
+function createUserLocationIcon() {
+  return L.divIcon({
+    html: `
+      <div class="vb-user-location">
+        <div class="vb-user-location-pulse"></div>
+        <div class="vb-user-location-dot"></div>
+      </div>
+    `,
+    className: "",
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  })
+}
+
 /* 🎨 Cluster icon */
 function createClusterIcon(color: string) {
   return (cluster: any) =>
@@ -91,8 +119,37 @@ export default function MapView({
   const [experiences, setExperiences] = useState<Experience[]>([])
   const [mapReady, setMapReady] = useState(false)
   const [loadingExperiences, setLoadingExperiences] = useState(true)
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(null)
+  const [locating, setLocating] = useState(false)
+  const [geoError, setGeoError] = useState<string | null>(null)
 
   const { favorites, toggleFavorite } = useUI()
+
+  const handleLocate = () => {
+    if (!navigator.geolocation) {
+      setGeoError("Tu navegador no permite acceder a la ubicación.")
+      return
+    }
+
+    setLocating(true)
+    setGeoError(null)
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserPosition([pos.coords.latitude, pos.coords.longitude])
+        setLocating(false)
+      },
+      (err) => {
+        setLocating(false)
+        setGeoError(
+          err.code === err.PERMISSION_DENIED
+            ? "Activa la ubicación en tu navegador para ver qué hay cerca de ti."
+            : "No pudimos obtener tu ubicación. Intenta de nuevo."
+        )
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    )
+  }
 
   useEffect(() => {
     fetchExperiences()
@@ -153,6 +210,17 @@ export default function MapView({
           <TileLayer url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png" />
         )}
 
+        {mapReady && userPosition && <FlyToPosition position={userPosition} />}
+
+        {mapReady && userPosition && (
+          <Marker
+            position={userPosition}
+            icon={createUserLocationIcon()}
+            interactive={false}
+            zIndexOffset={1000}
+          />
+        )}
+
         {mapReady &&
           Object.entries(categoryColors).map(([rawCategory, color]) => {
             const category = rawCategory as Category
@@ -199,7 +267,9 @@ export default function MapView({
                               height: 120,
                               borderRadius: 10,
                               overflow: "hidden",
+                              cursor: "pointer",
                             }}
+                            onClick={() => onSelect(exp)}
                           >
                             <img
                               src={exp.image || "/placeholder.jpg"}
@@ -296,6 +366,54 @@ export default function MapView({
             )
           })}
       </MapContainer>
+
+      <button
+        onClick={handleLocate}
+        disabled={locating}
+        aria-label="Ver mi ubicación"
+        style={{
+          position: "absolute",
+          right: 16,
+          bottom: 90,
+          zIndex: 1000,
+          width: 46,
+          height: 46,
+          borderRadius: "50%",
+          border: "none",
+          background: "#fff",
+          boxShadow: "0 6px 18px rgba(0,0,0,0.2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: locating ? "default" : "pointer",
+        }}
+      >
+        {locating ? (
+          <div className="vb-spinner" style={{ width: 20, height: 20 }} />
+        ) : (
+          <Locate size={22} color={userPosition ? "#1a73e8" : "#111"} />
+        )}
+      </button>
+
+      {geoError && (
+        <div
+          style={{
+            position: "absolute",
+            right: 16,
+            bottom: 144,
+            zIndex: 1000,
+            maxWidth: 220,
+            background: "#111",
+            color: "#fff",
+            fontSize: 12,
+            padding: "8px 10px",
+            borderRadius: 10,
+            boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
+          }}
+        >
+          {geoError}
+        </div>
+      )}
     </div>
   )
 }

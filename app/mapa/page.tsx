@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 
@@ -43,6 +43,33 @@ export default function MapaPage() {
 
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [recoOpen, setRecoOpen] = useState(false)
+
+  const [logoWiggle, setLogoWiggle] = useState(false)
+  const [showLogoHint, setShowLogoHint] = useState(false)
+  const hasOpenedRecoRef = useRef(false)
+
+  /* =====================================================
+     💡 NUDGE — attire l'attention vers le logo (quiz reco)
+     tant que la personne ne l'a pas encore ouvert
+     ===================================================== */
+  useEffect(() => {
+    const LOGO_HINT_KEY = "vivabox_reco_logo_hint_seen"
+
+    const interval = setInterval(() => {
+      if (hasOpenedRecoRef.current) return
+
+      setLogoWiggle(true)
+      setTimeout(() => setLogoWiggle(false), 600)
+
+      if (!sessionStorage.getItem(LOGO_HINT_KEY)) {
+        sessionStorage.setItem(LOGO_HINT_KEY, "true")
+        setShowLogoHint(true)
+        setTimeout(() => setShowLogoHint(false), 6000)
+      }
+    }, 25000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   const [experiences, setExperiences] = useState<Experience[]>([])
 
@@ -122,6 +149,7 @@ export default function MapaPage() {
 
         {/* ================= TOP BAR CONTENT ================= */}
         <div
+          className="mapa-topbar"
           style={{
             position: "absolute",
             top: 10,
@@ -130,8 +158,6 @@ export default function MapaPage() {
             zIndex: 1200,
             display: "flex",
             alignItems: "center",
-            gap: 12,
-            padding: "10px 12px",
             background: "#fff",
             borderRadius: 20,
             boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
@@ -172,26 +198,55 @@ export default function MapaPage() {
           </div>
 
           {/* Logo */}
-          <button
-  onClick={() => setRecoOpen(true)}
-  aria-label="Abrir recomendaciones Vivabox"
-  style={{
-    background: "transparent",
-    border: "none",
-    padding: 0,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  }}
->
-  <Image
-    src="/logo/LogoVivaboxSVG.svg"
-    alt="Vivabox"
-    width={50}
-    height={50}
-  />
-</button>
+          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+            {showLogoHint && (
+              <div
+                className="vb-logo-hint"
+                style={{
+                  position: "absolute",
+                  right: "100%",
+                  top: "50%",
+                  marginRight: 10,
+                  whiteSpace: "nowrap",
+                  background: "#111",
+                  color: "#fff",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  padding: "8px 12px",
+                  borderRadius: 10,
+                  boxShadow: "0 6px 18px rgba(0,0,0,0.2)",
+                  pointerEvents: "none",
+                }}
+              >
+                ¿No sabes qué elegir? Toca aquí
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                hasOpenedRecoRef.current = true
+                setRecoOpen(true)
+              }}
+              aria-label="Abrir recomendaciones Vivabox"
+              className={logoWiggle ? "vb-logo-wiggle" : undefined}
+              style={{
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Image
+                src="/logo/LogoVivaboxSVG.svg"
+                alt="Vivabox"
+                width={50}
+                height={50}
+              />
+            </button>
+          </div>
         </div>
 
         {/* ================= MAP ================= */}

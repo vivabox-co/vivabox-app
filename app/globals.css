@@ -25,6 +25,81 @@
   to { transform: rotate(360deg); }
 }
 
+/* ================================
+   USER LOCATION DOT (carte /mapa)
+================================ */
+
+.vb-user-location {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+
+.vb-user-location-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  background: #1a73e8;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.vb-user-location-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  background: rgba(26, 115, 232, 0.35);
+  border-radius: 50%;
+  animation: vb-user-pulse 1.8s ease-out infinite;
+}
+
+@keyframes vb-user-pulse {
+  0% { transform: scale(0.4); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* ================================
+   LOGO NUDGE (découvrabilité reco /mapa)
+================================ */
+
+@keyframes vb-logo-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(-8deg); }
+  30% { transform: rotate(7deg); }
+  45% { transform: rotate(-5deg); }
+  60% { transform: rotate(3deg); }
+  75% { transform: rotate(-1deg); }
+}
+
+.vb-logo-wiggle {
+  animation: vb-logo-wiggle 0.6s ease-in-out;
+}
+
+@keyframes vb-logo-hint-fade {
+  0% { opacity: 0; transform: translateY(-50%) translateX(4px); }
+  10% { opacity: 1; transform: translateY(-50%) translateX(0); }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.vb-logo-hint {
+  animation: vb-logo-hint-fade 6s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vb-logo-wiggle,
+  .vb-logo-hint {
+    animation: none;
+  }
+}
+
 html, body {
   height: 100%;
   width: 100%;
@@ -191,6 +266,19 @@ body {
 }
 
 /* ================================
+   HERO GALLERY (fiche expérience)
+================================ */
+
+.hero-gallery-track {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hero-gallery-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* ================================
    CTA BUTTON
 ================================ */
 
@@ -217,5 +305,70 @@ button, a { -webkit-tap-highlight-color: transparent; }
     border-radius: 24px;
     margin: 24px 0;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.mapa-topbar {
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+@media (max-width: 480px) {
+  .mapa-topbar {
+    gap: 8px;
+    padding: 8px 8px;
+  }
+}
+
+/* Catégories : max 2 lignes sur mobile (3 puis 2, chaque ligne centrée), 1 seule ligne sur desktop */
+.category-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.category-legend-row {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .category-legend {
+    flex-direction: row;
+  }
+
+  .category-legend-row {
+    display: contents;
+  }
+}
+
+.category-pill {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+
+  padding: 8px 16px;
+  border-radius: 999px;
+
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Pastilles compactes sur petits écrans pour éviter que la rangée
+   (Filtros + catégories + logo) ne dépasse la largeur de l'écran */
+@media (max-width: 480px) {
+  .category-pill {
+    padding: 6px 9px;
+    font-size: 12px;
   }
 }
