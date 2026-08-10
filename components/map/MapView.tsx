@@ -207,7 +207,12 @@ export default function MapView({
         {mapReady && <ResizeFix />}
 
         {mapReady && (
-          <TileLayer url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png" />
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            subdomains="abcd"
+            maxZoom={20}
+          />
         )}
 
         {mapReady && userPosition && <FlyToPosition position={userPosition} />}
