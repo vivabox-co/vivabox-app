@@ -140,7 +140,7 @@ const container = {
 const bgImage = {
   position: "absolute" as const,
   inset: 0,
-  backgroundImage: "url('/image/image_welcome.jpg')",
+  backgroundImage: "url('/image/image_welcome.png')",
   backgroundSize: "cover",
   backgroundPosition: "center",
   transform: "scale(1.05)",

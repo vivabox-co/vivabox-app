@@ -40,7 +40,7 @@ export default function ExperienceExploreMeta({ exp }: Props) {
     exp.image,
     ...(exp.gallery || []),
     "/image/image_activado1.jpg",
-    "/image/image_welcome.jpg",
+    "/image/image_welcome.png",
   ].filter((src, i, arr) => !!src && arr.indexOf(src) === i)
   if (photos.length === 0) photos.push("/images/placeholder.jpg")
 
