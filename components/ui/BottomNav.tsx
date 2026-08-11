@@ -2,7 +2,32 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { Map, List, Heart, Clock, MessageCircle } from "lucide-react";
+
+/* 🔥 Recale la nav sur le viewport visuel réel : Safari iOS ne repositionne
+   pas toujours les éléments `position: fixed` quand sa barre d'outils du
+   bas se rétracte/déploie, ce qui coupe la nav de façon intermittente. */
+function useSafariToolbarFix(ref: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!el || !vv) return;
+
+    function update() {
+      const offset = window.innerHeight - vv!.height - vv!.offsetTop;
+      el!.style.transform = `translateX(-50%) translateY(${-Math.max(0, offset)}px)`;
+    }
+
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [ref]);
+}
 
 /* 🔥 Logo comme composant icône */
 function LogoIcon({ size = 20 }: { size?: number }) {
@@ -53,6 +78,8 @@ const bookingItems: Item[] = [
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const navRef = useRef<HTMLElement>(null);
+  useSafariToolbarFix(navRef);
 
   const isBookingFlow =
     pathname.startsWith("/reservar/seguimiento") ||
@@ -70,7 +97,7 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="bottom-nav">
+    <nav className="bottom-nav" ref={navRef}>
       {items.map((item, index) => {
         const active = isActive(item);
         const Icon = item.Icon;
