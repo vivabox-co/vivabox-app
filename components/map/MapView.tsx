@@ -118,7 +118,11 @@ export default function MapView({
 }: MapViewProps) {
   const [experiences, setExperiences] = useState<Experience[]>([])
   const [mapReady, setMapReady] = useState(false)
-  const [tilesReady, setTilesReady] = useState(false)
+  // Charge seulement les tuiles visibles au départ (keepBuffer 0) pour un
+  // premier affichage rapide ; une fois ce lot chargé, on relève le buffer
+  // pour que les tuiles voisines se préchargent tranquillement en arrière-
+  // plan avant que l'utilisateur ne déplace la carte.
+  const [tileBuffer, setTileBuffer] = useState(0)
   const [loadingExperiences, setLoadingExperiences] = useState(true)
   const [overlayMounted, setOverlayMounted] = useState(true)
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null)
@@ -159,7 +163,12 @@ export default function MapView({
       .finally(() => setLoadingExperiences(false))
   }, [])
 
-  const mapVisuallyReady = !loadingExperiences && tilesReady
+  // ⚠️ Ne JAMAIS bloquer l'écran d'attente sur le chargement des tuiles :
+  // une tuile lente (cache froid côté Stadia, réseau mobile) ne doit pas
+  // faire attendre l'utilisateur indéfiniment. On ne bloque que sur les
+  // données (rapide, ~1-2s) ; les tuiles apparaissent progressivement
+  // derrière, comme sur n'importe quelle carte (Google Maps, etc.).
+  const mapVisuallyReady = !loadingExperiences
 
   // Laisse le temps au fondu CSS (300ms) avant de retirer l'écran d'attente
   // du DOM, pour un vrai fondu plutôt qu'une disparition brutale.
@@ -218,7 +227,7 @@ export default function MapView({
         center={[4.65, -74.08]}
         zoom={13}
         zoomControl={false}
-        style={{ width: "100%", height: "100%" }}
+        style={{ width: "100%", height: "100%", background: "#f4f1ea" }}
         whenReady={() => setMapReady(true)}
       >
         {mapReady && <ResizeFix />}
@@ -226,9 +235,12 @@ export default function MapView({
         {mapReady && (
           <TileLayer
             url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png"
-            keepBuffer={1}
+            keepBuffer={tileBuffer}
             eventHandlers={{
-              load: () => setTilesReady(true),
+              // Une fois le lot visible chargé, on relève le buffer pour
+              // précharger les tuiles voisines en arrière-plan (sans
+              // bloquer quoi que ce soit à l'écran).
+              load: () => setTileBuffer((b) => (b === 0 ? 2 : b)),
             }}
           />
         )}
