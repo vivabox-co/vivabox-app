@@ -118,7 +118,9 @@ export default function MapView({
 }: MapViewProps) {
   const [experiences, setExperiences] = useState<Experience[]>([])
   const [mapReady, setMapReady] = useState(false)
+  const [tilesReady, setTilesReady] = useState(false)
   const [loadingExperiences, setLoadingExperiences] = useState(true)
+  const [overlayMounted, setOverlayMounted] = useState(true)
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null)
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
@@ -157,6 +159,16 @@ export default function MapView({
       .finally(() => setLoadingExperiences(false))
   }, [])
 
+  const mapVisuallyReady = !loadingExperiences && tilesReady
+
+  // Laisse le temps au fondu CSS (300ms) avant de retirer l'écran d'attente
+  // du DOM, pour un vrai fondu plutôt qu'une disparition brutale.
+  useEffect(() => {
+    if (!mapVisuallyReady) return
+    const id = setTimeout(() => setOverlayMounted(false), 300)
+    return () => clearTimeout(id)
+  }, [mapVisuallyReady])
+
   const { filteredExperiences } = useMemo(() => {
     return filterExperiences(experiences, {
       categories: activeCategories,
@@ -178,7 +190,7 @@ export default function MapView({
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>
-      {loadingExperiences && (
+      {overlayMounted && (
         <div
           style={{
             position: "absolute",
@@ -189,11 +201,16 @@ export default function MapView({
             alignItems: "center",
             justifyContent: "center",
             gap: 12,
-            background: "rgba(255,255,255,0.6)",
+            background: "#f4f1ea",
             pointerEvents: "none",
+            opacity: mapVisuallyReady ? 0 : 1,
+            transition: "opacity 0.3s ease",
           }}
         >
           <div className="vb-spinner" />
+          <span style={{ fontSize: 14, color: "#999" }}>
+            Preparando tu mapa...
+          </span>
         </div>
       )}
 
@@ -207,7 +224,13 @@ export default function MapView({
         {mapReady && <ResizeFix />}
 
         {mapReady && (
-          <TileLayer url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png" />
+          <TileLayer
+            url="https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png"
+            keepBuffer={1}
+            eventHandlers={{
+              load: () => setTilesReady(true),
+            }}
+          />
         )}
 
         {mapReady && userPosition && <FlyToPosition position={userPosition} />}
@@ -261,70 +284,13 @@ export default function MapView({
                           derrière cette barre fixe. */}
                       <Popup autoPanPaddingTopLeft={[20, 150]} autoPanPaddingBottomRight={[20, 20]}>
                         <div style={{ width: 220 }}>
-                          <div
-                            style={{
-                              position: "relative",
-                              height: 120,
-                              borderRadius: 10,
-                              overflow: "hidden",
-                              cursor: "pointer",
-                            }}
-                            onClick={() => onSelect(exp)}
-                          >
-                            <img
-                              src={exp.image || "/placeholder.jpg"}
-                              alt={exp.title}
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                              }}
-                            />
-
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: 8,
-                                left: 8,
-                                padding: "4px 8px",
-                                fontSize: 10,
-                                fontWeight: 600,
-                                color: "white",
-                                background: color,
-                                borderRadius: 8,
-                              }}
-                            >
-                              {categoryLabel(exp.category)}
-                            </div>
-
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                toggleFavorite(exp.id)
-                              }}
-                              style={{
-                                position: "absolute",
-                                top: 8,
-                                right: 8,
-                                background: "rgba(255,255,255,0.95)",
-                                borderRadius: "50%",
-                                border: "none",
-                                width: 34,
-                                height: 34,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                cursor: "pointer",
-                              }}
-                            >
-                              <Heart
-                                size={16}
-                                fill={isFav ? "#ff4d6d" : "none"}
-                                color={isFav ? "#ff4d6d" : "#777"}
-                              />
-                            </button>
-                          </div>
+                          <PopupGallery
+                            exp={exp}
+                            color={color}
+                            isFav={isFav}
+                            onSelect={onSelect}
+                            onToggleFavorite={toggleFavorite}
+                          />
 
                           <div style={{ marginTop: 10 }}>
                             <div
@@ -412,6 +378,151 @@ export default function MapView({
           }}
         >
           {geoError}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* 🖼️ Galerie horizontale du popup (même comportement que le bottomsheet) */
+function PopupGallery({
+  exp,
+  color,
+  isFav,
+  onSelect,
+  onToggleFavorite,
+}: {
+  exp: Experience
+  color: string
+  isFav: boolean
+  onSelect: (exp: Experience) => void
+  onToggleFavorite: (id: string) => void
+}) {
+  const [activePhoto, setActivePhoto] = useState(0)
+
+  // Même logique que ExperienceExploreMeta/DetailScreen : on complète avec
+  // des visuels de démo tant que exp.gallery n'est pas rempli côté données.
+  const photos = [
+    exp.image,
+    ...(exp.gallery || []),
+    "/image/image_activado1.jpg",
+    "/image/image_welcome.webp",
+  ].filter((src, i, arr) => !!src && arr.indexOf(src) === i)
+  if (photos.length === 0) photos.push("/placeholder.jpg")
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        height: 120,
+        borderRadius: 10,
+        overflow: "hidden",
+      }}
+    >
+      <div
+        className="hero-gallery-track"
+        style={{
+          display: "flex",
+          width: "100%",
+          height: "100%",
+          overflowX: "auto",
+          scrollSnapType: "x mandatory",
+          WebkitOverflowScrolling: "touch",
+        }}
+        onScroll={(e) => {
+          const el = e.currentTarget
+          const idx = Math.round(el.scrollLeft / el.clientWidth)
+          setActivePhoto(idx)
+        }}
+      >
+        {photos.map((src, i) => (
+          <img
+            key={i}
+            src={src}
+            alt={`${exp.title} ${i + 1}`}
+            onClick={() => onSelect(exp)}
+            style={{
+              flex: "0 0 100%",
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              scrollSnapAlign: "center",
+              cursor: "pointer",
+            }}
+          />
+        ))}
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          top: 8,
+          left: 8,
+          padding: "4px 8px",
+          fontSize: 10,
+          fontWeight: 600,
+          color: "white",
+          background: color,
+          borderRadius: 8,
+          pointerEvents: "none",
+        }}
+      >
+        {categoryLabel(exp.category)}
+      </div>
+
+      <button
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          onToggleFavorite(exp.id)
+        }}
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          background: "rgba(255,255,255,0.95)",
+          borderRadius: "50%",
+          border: "none",
+          width: 34,
+          height: 34,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+        }}
+      >
+        <Heart
+          size={16}
+          fill={isFav ? "#ff4d6d" : "none"}
+          color={isFav ? "#ff4d6d" : "#777"}
+        />
+      </button>
+
+      {photos.length > 1 && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 8,
+            left: 0,
+            right: 0,
+            display: "flex",
+            justifyContent: "center",
+            gap: 4,
+            pointerEvents: "none",
+          }}
+        >
+          {photos.map((_, i) => (
+            <div
+              key={i}
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: "50%",
+                background:
+                  i === activePhoto ? "#fff" : "rgba(255,255,255,0.5)",
+              }}
+            />
+          ))}
         </div>
       )}
     </div>
