@@ -459,6 +459,7 @@ function PopupGallery({
               height: "100%",
               objectFit: "cover",
               scrollSnapAlign: "center",
+              scrollSnapStop: "always",
               cursor: "pointer",
             }}
           />
