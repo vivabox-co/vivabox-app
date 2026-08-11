@@ -39,7 +39,7 @@ export default function DetailScreen({ experience, onBack }: Props) {
     experience.image,
     ...(experience.gallery || []),
     '/image/image_activado1.jpg',
-    '/image/image_welcome.png',
+    '/image/image_welcome.webp',
   ].filter((src, i, arr) => !!src && arr.indexOf(src) === i)
 
   return (

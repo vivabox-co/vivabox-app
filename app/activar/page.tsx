@@ -70,7 +70,7 @@ const container: React.CSSProperties = {
 const bgImage: React.CSSProperties = {
   position: "absolute",
   inset: 0,
-  backgroundImage: "url('/image/image_welcome.png')",
+  backgroundImage: "url('/image/image_welcome.webp')",
   backgroundSize: "cover",
   backgroundPosition: "center",
   transform: "scale(1.05)",

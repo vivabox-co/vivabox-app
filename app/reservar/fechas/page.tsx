@@ -104,7 +104,7 @@ export default function FechasPage() {
     exp.image,
     ...(exp.gallery || []),
     "/image/image_activado1.jpg",
-    "/image/image_welcome.png",
+    "/image/image_welcome.webp",
   ].filter((src, i, arr) => !!src && arr.indexOf(src) === i)
 
   function selectMoment(value: Moment) {
