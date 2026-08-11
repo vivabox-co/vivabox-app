@@ -145,6 +145,12 @@ export default function MapaPage() {
 
   return (
     <>
+      {/* Démarre la connexion DNS/TLS vers le serveur de tuiles avant
+          même que MapView (chargé dynamiquement) ne monte, pour ne pas
+          payer ce coût sur la première tuile affichée. */}
+      <link rel="preconnect" href="https://tiles.stadiamaps.com" crossOrigin="" />
+      <link rel="dns-prefetch" href="https://tiles.stadiamaps.com" />
+
       <div className={drawerOpen ? "mapa-content blurred" : "mapa-content"}>
 
         {/* ================= TOP BAR CONTENT ================= */}
