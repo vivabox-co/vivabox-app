@@ -26,10 +26,9 @@ function ConfirmacionContent() {
 
     // La photo de l'expérience vient de selectedExperience (état mémoire, pas
     // fiable après un refresh), donc on la reconfirme via le snapshot renvoyé
-    // par la réservation elle-même — la vraie source de vérité.
-    const token = sessionStorage.getItem("vb_session")
-    if (!token) return
-    fetch(`/api/booking/${bookingId}`, { headers: { Authorization: `Bearer ${token}` } })
+    // par la réservation elle-même — la vraie source de vérité. La session
+    // vit dans le cookie vb_session, envoyé automatiquement.
+    fetch(`/api/booking/${bookingId}`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data?.experienceSnapshot?.image) {

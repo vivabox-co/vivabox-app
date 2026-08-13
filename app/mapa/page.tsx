@@ -85,14 +85,9 @@ export default function MapaPage() {
   const [indoorState, setIndoorState] =
     useState<"indoor" | "outdoor" | "any">("any")
 
-  // 🔐 PROTECTED ROUTE: verificar sesión
-  useEffect(() => {
-    const sessionToken = sessionStorage.getItem("vb_session")
-    if (!sessionToken) {
-      router.replace("/activar")
-    }
-  }, [router])
-
+  // 🔐 Route protégée par le middleware (cookie vb_session, 7 jours) — pas
+  // de vérification côté client ici : sessionStorage ne survit pas à la
+  // fermeture de l'onglet/l'app, contrairement au cookie.
   useEffect(() => {
     fetchExperiences().then(setExperiences)
   }, [])
@@ -159,8 +154,8 @@ export default function MapaPage() {
           style={{
             position: "absolute",
             top: 10,
-            left: 10,
-            right: 10,
+            left: 16,
+            right: 16,
             zIndex: 1200,
             display: "flex",
             alignItems: "center",

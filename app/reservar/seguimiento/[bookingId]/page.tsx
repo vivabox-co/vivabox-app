@@ -26,19 +26,11 @@ export default function SeguimientoPage() {
     return () => setHideNav(false)
   }, [setHideNav])
 
-  // Charger la réservation depuis l'API
+  // Charger la réservation depuis l'API (la session vit dans le cookie
+  // vb_session, envoyé automatiquement — le middleware a déjà protégé
+  // cette route en amont)
   useEffect(() => {
-    const sessionToken = sessionStorage.getItem("vb_session")
-    if (!sessionToken) {
-      router.replace("/activar")
-      return
-    }
-
-    fetch(`/api/booking/${bookingId}`, {
-      headers: {
-        Authorization: `Bearer ${sessionToken}`
-      }
-    })
+    fetch(`/api/booking/${bookingId}`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
@@ -52,7 +44,7 @@ export default function SeguimientoPage() {
         setError("NETWORK_ERROR")
       })
       .finally(() => setLoading(false))
-  }, [bookingId, router])
+  }, [bookingId])
 
   // Charger l'expérience complète à partir du snapshot ou de l'experienceId
   useEffect(() => {

@@ -4,12 +4,12 @@ import { normalizeCode } from "@/lib/utils/normalizeCode"
 import { isValidEmail } from "@/lib/utils/isValidEmail"
 import { checkRateLimit, getClientIp } from "@/lib/utils/rateLimit"
 import { generateSessionToken, hashSessionToken } from "@/lib/utils/sessionToken"
+import { SESSION_VALIDITY_DAYS } from "@/lib/constants/session"
 
 const RATE_LIMIT_MAX_ATTEMPTS = 5
 const RATE_LIMIT_WINDOW_MINUTES = 15
 const GLOBAL_RATE_LIMIT_MAX_ATTEMPTS = 100
 const GLOBAL_RATE_LIMIT_WINDOW_MINUTES = 10
-const SESSION_VALIDITY_DAYS = 7
 
 export async function POST(req: Request) {
   try {

@@ -7,7 +7,8 @@ const UNIQUE_VIOLATION = "23505"
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const token = req.headers.get('authorization')?.replace('Bearer ', '');
+    const token = req.headers.get('authorization')?.replace('Bearer ', '')
+                  || req.cookies.get('vb_session')?.value;
     if (!token) {
       return NextResponse.json({ success: false, error: "NO_TOKEN" }, { status: 401 });
     }

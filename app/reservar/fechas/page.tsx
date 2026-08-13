@@ -120,33 +120,17 @@ export default function FechasPage() {
     const finalTime: string[] = [momentBlock]
     setSelectedTime(finalTime)
 
-    // Récupérer le token de session et le code (stocké lors de l'activation)
-    const token = sessionStorage.getItem("vb_session")
-    if (!token) {
-      router.replace("/activar")
-      return
-    }
-
-    // Récupérer le code : on suppose qu'il a été stocké dans sessionStorage
-    // lors de l'activation (à implémenter dans la page d'activation)
-    const codigo = sessionStorage.getItem("vb_codigo")
-    if (!codigo) {
-      console.error("Code non trouvé en session")
-      router.replace("/activar")
-      return
-    }
-
     setLoading(true)
 
     try {
+      // La session vit dans le cookie vb_session, envoyé automatiquement —
+      // le middleware a déjà protégé cette route en amont.
       const response = await fetch("/api/booking", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          codigo,
           experienciaId: exp.id,
           fechaDeseada: selectedDates[0], // première date sélectionnée
           cantidadPersonas: totalPeople,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from "@/lib/services/supabase"
 import { hashSessionToken } from "@/lib/utils/sessionToken"
+import { SESSION_VALIDITY_DAYS, SESSION_RENEWAL_THRESHOLD_DAYS } from "@/lib/constants/session"
 
 // estado renvoyé au middleware, dans le vocabulaire historique (ère Google
 // Sheets) qu'il attend déjà : Activada / Reservada / Confirmada.
@@ -28,6 +29,25 @@ export async function POST(req: NextRequest) {
 
     if (!session || session.revoked_at || new Date(session.expires_at) < new Date()) {
       return NextResponse.json({ success: false, error: "INVALID_SESSION" });
+    }
+
+    // Session glissante : si elle entre dans sa seconde moitié de vie, on la
+    // prolonge de SESSION_VALIDITY_DAYS pleins — tant que le bénéficiaire
+    // revient de temps en temps, il ne se fait jamais déconnecter. Pas de
+    // renouvellement à chaque requête pour éviter un UPDATE Supabase sur
+    // chaque navigation d'un utilisateur déjà bien dans sa fenêtre.
+    let renewedExpiresAt: string | null = null
+    const renewalThreshold = new Date(Date.now() + SESSION_RENEWAL_THRESHOLD_DAYS * 24 * 60 * 60 * 1000)
+    if (new Date(session.expires_at) < renewalThreshold) {
+      renewedExpiresAt = new Date(Date.now() + SESSION_VALIDITY_DAYS * 24 * 60 * 60 * 1000).toISOString()
+      const { error: renewError } = await supabase
+        .from("activation_sessions")
+        .update({ expires_at: renewedExpiresAt })
+        .eq("token_hash", hashSessionToken(token))
+      if (renewError) {
+        console.error("SESSION RENEWAL ERROR:", renewError)
+        renewedExpiresAt = null
+      }
     }
 
     const { data: activationCode, error: codeError } = await supabase
@@ -60,7 +80,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { estado, booking_id: booking?.id ?? null },
+      data: { estado, booking_id: booking?.id ?? null, renewedExpiresAt },
     });
 
   } catch (error) {
