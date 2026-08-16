@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { Search, ArrowRight, Heart, MapPin, Users } from "lucide-react"
+import { Search, Heart, MapPin, Users, Clock, CheckCircle2 } from "lucide-react"
 
 import { Experience, Category, ActivityKey } from "@/lib/data/types"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
@@ -13,11 +13,12 @@ import { buildActivityFilters } from "@/lib/product/buildActivityFilters"
 import BottomSheet from "@/components/ui/BottomSheet"
 import ExperienceExploreMeta from "@/components/experience/ExperienceExploreMeta"
 import FiltersDrawer from "@/components/filters/FiltersDrawer"
-import { useUI } from "@/components/ui/UIContext"
+import { useUI, usePageReady } from "@/components/ui/UIContext"
 
 import { categoryColors } from "@/lib/map/categoryColors"
 import { categoryLabel } from "@/lib/map/categoryLabels"
 import { formatLabel } from "@/lib/map/formatLabels"
+import { formatDuration } from "@/lib/format/duration"
 
 import RecoOverlay from "@/components/reco/RecoOverlay"
 
@@ -58,6 +59,8 @@ export default function ListaPage() {
       .then(setExperiences)
       .finally(() => setLoadingExperiences(false))
   }, [])
+
+  usePageReady(!loadingExperiences)
 
   const activityFilters = useMemo(
     () => buildActivityFilters(experiences),
@@ -184,22 +187,6 @@ export default function ListaPage() {
 
         {/* ================= SECTIONS ================= */}
         <div style={{ paddingBottom: 90 }}>
-          {loadingExperiences && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 12,
-                padding: "80px 20px",
-                color: "#999",
-              }}
-            >
-              <div className="vb-spinner" />
-              <span style={{ fontSize: 14 }}>Cargando experiencias...</span>
-            </div>
-          )}
-
           {categoryOrder.map(category => {
             const items = grouped[category]
             if (!items.length) return null
@@ -228,7 +215,6 @@ export default function ListaPage() {
                       {categoryLabel(category)}
                     </h2>
                   </div>
-                  <ArrowRight size={18} opacity={0.4} />
                 </div>
 
                 <div style={{ padding: "6px 0 4px" }}>
@@ -327,12 +313,35 @@ export default function ListaPage() {
 
 /* ================= CARD ================= */
 
+/**
+ * Dato decisivo de la card: prioriza duración; si no existe,
+ * usa el primer elemento de `includes` (dato real de la experiencia,
+ * nunca inventado).
+ */
+function getKeyFact(exp: Experience): { icon: typeof Clock; text: string } | null {
+  const duration = formatDuration(exp.duration)
+  if (duration) {
+    return { icon: Clock, text: duration }
+  }
+
+  const firstInclude = exp.includes?.find(item => item?.trim())
+  if (firstInclude) {
+    return { icon: CheckCircle2, text: `Incluye ${firstInclude.trim()}` }
+  }
+
+  return null
+}
+
 function ExperienceCard({ exp, onClick, popular, isFav, onFav }: any) {
+  const keyFact = getKeyFact(exp)
+
   return (
     <div
       onClick={onClick}
       style={{
+        width: 210,
         minWidth: 210,
+        flexShrink: 0,
         borderRadius: 20,
         overflow: "hidden",
         background: "#FFFFFFE6",
@@ -402,7 +411,9 @@ function ExperienceCard({ exp, onClick, popular, isFav, onFav }: any) {
             opacity: 0.6,
             marginTop: 6,
             display: "flex",
+            flexWrap: "wrap",
             gap: 10,
+            rowGap: 4,
           }}
         >
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -411,6 +422,11 @@ function ExperienceCard({ exp, onClick, popular, isFav, onFav }: any) {
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <Users size={13} /> {formatLabel(exp.format)}
           </span>
+          {keyFact && (
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <keyFact.icon size={13} /> {keyFact.text}
+            </span>
+          )}
         </div>
       </div>
     </div>

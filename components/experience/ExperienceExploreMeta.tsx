@@ -1,9 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { Fragment, useState } from "react"
 import { Experience } from "@/lib/data/types"
 import { categoryColors } from "@/lib/map/categoryColors"
 import { categoryLabel } from "@/lib/map/categoryLabels"
+import { formatLabel } from "@/lib/map/formatLabels"
+import { formatDuration } from "@/lib/format/duration"
+import { getExperiencePhotos } from "@/lib/data/getExperiencePhotos"
 import { useUI } from "@/components/ui/UIContext"
 import {
   MapPin,
@@ -29,20 +32,15 @@ export default function ExperienceExploreMeta({ exp }: Props) {
   if (!exp) return null
 
   const fav = isFavorite(exp.id)
-
   const color = categoryColors[exp.category] || "#333"
+  const photos = getExperiencePhotos(exp)
 
-  // TEMP: le champ gallery n'est pas encore rempli côté données, donc on
-  // complète avec 2 visuels de démo (sans rapport avec l'expérience) pour
-  // pouvoir visualiser le scroll horizontal. À retirer une fois que
-  // exp.gallery contient de vraies photos.
-  const photos = [
-    exp.image,
-    ...(exp.gallery || []),
-    "/image/image_activado1.jpg",
-    "/image/image_welcome.webp",
-  ].filter((src, i, arr) => !!src && arr.indexOf(src) === i)
-  if (photos.length === 0) photos.push("/images/placeholder.jpg")
+  // Datos rápidos: solo los que existan, escaneables en una fila.
+  const quickFacts = [
+    (exp.city || exp.zone) && { icon: MapPin, text: exp.city || exp.zone },
+    formatDuration(exp.duration) && { icon: Clock, text: formatDuration(exp.duration)! },
+    formatLabel(exp.format) && { icon: Users, text: formatLabel(exp.format)! },
+  ].filter(Boolean) as { icon: typeof MapPin; text: string }[]
 
   return (
     <div style={{ paddingBottom: 24 }}>
@@ -74,18 +72,18 @@ export default function ExperienceExploreMeta({ exp }: Props) {
 
         {/* 🤍 FAVORITE BUTTON */}
         <button
-  style={favButton}
-  onClick={(e) => {
-    e.stopPropagation()
-    toggleFavorite(exp.id)
-  }}
->
-  <Heart
-    size={20}
-    color={fav ? "#E11D48" : "#333"}
-    fill={fav ? "#E11D48" : "transparent"}
-  />
-</button>
+          style={favButton}
+          onClick={(e) => {
+            e.stopPropagation()
+            toggleFavorite(exp.id)
+          }}
+        >
+          <Heart
+            size={20}
+            color={fav ? "#E11D48" : "#333"}
+            fill={fav ? "#E11D48" : "transparent"}
+          />
+        </button>
 
         {/* 🔘 DOTS */}
         {photos.length > 1 && (
@@ -108,38 +106,31 @@ export default function ExperienceExploreMeta({ exp }: Props) {
 
       <div style={{ padding: "16px" }}>
         {/* TITLE */}
-        <h2 style={{ margin: 0 }}>{exp.title}</h2>
+        <h2 style={titleStyle}>{exp.title}</h2>
+        {exp.subtitle && <p style={subtitleStyle}>{exp.subtitle}</p>}
+        {exp.shortDescription && <p style={desc}>{exp.shortDescription}</p>}
 
-        {exp.shortDescription && (
-          <p style={desc}>{exp.shortDescription}</p>
+        {/* DATOS RÁPIDOS: una fila horizontal, iconos pequeños */}
+        {quickFacts.length > 0 && (
+          <div style={quickFactsRow}>
+            {quickFacts.map((fact, i) => (
+              <Fragment key={i}>
+                {i > 0 && <span style={quickFactSep}>·</span>}
+                <span style={quickFactItem}>
+                  <fact.icon size={14} strokeWidth={2} />
+                  {fact.text}
+                </span>
+              </Fragment>
+            ))}
+          </div>
         )}
 
-        {/* META */}
-        <div style={{ marginTop: 14 }}>
-          <InfoRow icon={MapPin} value={exp.zone} />
-          <InfoRow icon={Clock} value={exp.duration} />
-          <InfoRow icon={Users} value={exp.format} />
-        </div>
-
-        {/* SECTIONS */}
+        {/* SECCIONES: cada una solo aparece si hay contenido real */}
         {exp.vivanote && (
-  <Section
-    icon={() => (
-      <img
-        src="/logo/LogoVivaboxSVG.svg"
-        alt="Vivabox"
-        style={{
-          width: 24,
-          height: 24,
-          objectFit: "contain",
-        }}
-      />
-    )}
-    title="Qué vas a vivir"
-  >
-    <p style={{ margin: 0 }}>{exp.vivanote}</p>
-  </Section>
-)}
+          <Section icon={Sparkles} title="Qué vas a vivir">
+            <p style={p}>{exp.vivanote}</p>
+          </Section>
+        )}
 
         {exp.includes?.length ? (
           <Section icon={CheckCircle2} title="Qué incluye">
@@ -177,21 +168,11 @@ export default function ExperienceExploreMeta({ exp }: Props) {
 
 /* ================= UI PARTS ================= */
 
-function InfoRow({ icon: Icon, value }: { icon: any; value?: string }) {
-  if (!value) return null
-  return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 6, color: "#444" }}>
-      <Icon size={16} />
-      <span>{value}</span>
-    </div>
-  )
-}
-
 function Section({ icon: Icon, title, children }: any) {
   return (
-    <div style={{ marginTop: 24 }}>
+    <div style={{ marginTop: 26 }}>
       <div style={sectionTitle}>
-        <Icon size={16} />
+        <Icon size={15} strokeWidth={2} />
         {title}
       </div>
       {children}
@@ -272,8 +253,8 @@ const favButton: React.CSSProperties = {
   width: 42,
   height: 42,
   borderRadius: "50%",
-  background: "rgba(255,255,255,0.82)",   // 🔥 transparence
-  backdropFilter: "blur(8px)",            // 🔥 glass effect
+  background: "rgba(255,255,255,0.82)",
+  backdropFilter: "blur(8px)",
   WebkitBackdropFilter: "blur(8px)",
   border: "1px solid rgba(255,255,255,0.6)",
   display: "flex",
@@ -289,12 +270,48 @@ const sectionTitle: React.CSSProperties = {
   gap: 8,
   fontWeight: 600,
   marginBottom: 8,
+  color: "#111",
+}
+
+const titleStyle: React.CSSProperties = {
+  margin: 0,
+  fontSize: 22,
+  fontWeight: 700,
+  lineHeight: 1.25,
+  color: "#111",
+}
+
+const subtitleStyle: React.CSSProperties = {
+  margin: "4px 0 0",
+  fontSize: 15,
+  fontWeight: 500,
+  color: "#666",
 }
 
 const desc: React.CSSProperties = {
   marginTop: 8,
   color: "#444",
   lineHeight: 1.5,
+}
+
+const quickFactsRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 8,
+  marginTop: 14,
+  fontSize: 14,
+  color: "#444",
+}
+
+const quickFactItem: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 5,
+}
+
+const quickFactSep: React.CSSProperties = {
+  color: "#ccc",
 }
 
 const p: React.CSSProperties = { margin: 0, color: "#444" }

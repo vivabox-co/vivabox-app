@@ -2,6 +2,7 @@
 
 import { Experience } from "@/lib/data/types"
 import { Heart } from "lucide-react"
+import { formatDuration } from "@/lib/format/duration"
 
 type Props = {
   exp?: Experience | null
@@ -126,7 +127,7 @@ export default function ListCard({
             color: "#8a8a8a",
           }}
         >
-          {exp.duration}
+          {formatDuration(exp.duration)}
         </div>
       </div>
     </div>

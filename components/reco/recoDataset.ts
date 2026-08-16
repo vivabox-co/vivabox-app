@@ -8,86 +8,36 @@ import {
   SacudidaTipo,
   Resolucion
 } from './recoTypes'
+import { parseCSV } from '@/lib/utils/csv'
+import { normalizeActivityKey } from '@/lib/data/fetchExperiences'
 
 const SHEET_CSV_URL =
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4Jf6eOcGsbnRYIPVP60JVWDp1KkqZMGdcj3t8ABR9hdaFY9t3bLcvqgVjTVWVtz9GFUDtWADB_iLx/pub?output=csv'
+  'https://docs.google.com/spreadsheets/d/e/2PACX-1vS0wvZlSud-v8_n6IWeI6_qfWgmuViBjkp1-yHP-RJ90VlxhistJE2MuV0k_jc88cUeyOngtBI3ZdWM/pub?gid=1700161859&single=true&output=csv'
 
-/**
- * CSV parser tenant compte des champs entre guillemets (ex: titres/descriptions
- * contenant une virgule, comme `"Escuela de buceo en Bogota, Colombia"`).
- * Un simple split(',') décale toutes les colonnes suivantes dès qu'un champ
- * cité contient une virgule — c'est ce qui causait des activity_key mal
- * alignés (donc introuvables) pour certaines lignes du Sheet.
- */
-function splitCsvLine(line: string): string[] {
-  const values: string[] = []
-  let current = ''
-  let inQuotes = false
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i]
-
-    if (inQuotes) {
-      if (char === '"' && line[i + 1] === '"') {
-        current += '"'
-        i++
-      } else if (char === '"') {
-        inQuotes = false
-      } else {
-        current += char
-      }
-    } else if (char === '"') {
-      inQuotes = true
-    } else if (char === ',') {
-      values.push(current.trim())
-      current = ''
-    } else {
-      current += char
-    }
-  }
-
-  values.push(current.trim())
-  return values
-}
-
-function parseCSV(csv: string): Record<string, string>[] {
-  const [headerLine, ...lines] = csv.trim().split('\n')
-  const headers = splitCsvLine(headerLine)
-
-  return lines
-    .filter(line => line.trim())
-    .map(line => {
-      const values = splitCsvLine(line)
-      const row: Record<string, string> = {}
-
-      headers.forEach((h, i) => {
-        row[h] = values[i] ?? ''
-      })
-
-      return row
-    })
-}
+const PUBLISHED_STATUS = 'listo para publicar'
 
 export async function loadExperiences(): Promise<RecoExperience[]> {
   const res = await fetch(SHEET_CSV_URL, { cache: 'no-store' })
   const csv = await res.text()
-  const rows = parseCSV(csv)
+  const rows = parseCSV(csv).filter(
+    row => row.estado?.trim().toLowerCase() === PUBLISHED_STATUS
+  )
 
   return rows.map(row => ({
-  id: row.id,
-  activity_key: row.activity_key,
-  engagement: row.engagement as Engagement,
+  id: row.codigo_interno,
+  activity_key: normalizeActivityKey(row.tipo_actividad),
+  engagement: row.ritmo as Engagement,
 
-  calma_tipo: row.calma_tipo
-    ? (row.calma_tipo as CalmaTipo)
+  calma_tipo: row.tipo_calma
+    ? (row.tipo_calma as CalmaTipo)
     : undefined,
 
-  participacion_tipo: row.participacion_tipo
-    ? (row.participacion_tipo as ParticipacionTipo)
+  participacion_tipo: row.tipo_participacion
+    ? (row.tipo_participacion as ParticipacionTipo)
     : undefined,
 
-  sacudida_tipo: row.sacudida_tipo
-    ? (row.sacudida_tipo as SacudidaTipo)
+  sacudida_tipo: row.tipo_sacudida
+    ? (row.tipo_sacudida as SacudidaTipo)
     : undefined,
 
   resolucion: row.resolucion

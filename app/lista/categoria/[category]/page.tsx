@@ -6,9 +6,11 @@ import { Experience, Category } from "@/lib/data/types"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
 import BottomSheet from "@/components/ui/BottomSheet"
 import ExperienceExploreMeta from "@/components/experience/ExperienceExploreMeta"
-import { useUI } from "@/components/ui/UIContext"
+import { useUI, usePageReady } from "@/components/ui/UIContext"
 import { ArrowLeft } from "lucide-react"
 import { categoryColors } from "@/lib/map/categoryColors"
+import { formatLabel } from "@/lib/map/formatLabels"
+import { formatDuration } from "@/lib/format/duration"
 
 export default function CategoryPage() {
   const params = useParams()
@@ -19,6 +21,7 @@ export default function CategoryPage() {
   const { selectedExperience, setSelectedExperience, drawerOpen, setDrawerOpen } = useUI()
 
   const [experiences, setExperiences] = useState<Experience[]>([])
+  const [loading, setLoading] = useState(true)
 
   /* ---------- FILTER STATE ---------- */
   const [formatFilter, setFormatFilter] = useState<"all" | "solo" | "duo">("all")
@@ -26,7 +29,13 @@ export default function CategoryPage() {
   const [indoorFilter, setIndoorFilter] = useState<"all" | "indoor" | "outdoor">("all")
   const [sortBy, setSortBy] = useState<"popular" | "shortest">("popular")
 
-  useEffect(() => { fetchExperiences().then(setExperiences) }, [])
+  useEffect(() => {
+    fetchExperiences()
+      .then(setExperiences)
+      .finally(() => setLoading(false))
+  }, [])
+
+  usePageReady(!loading)
 
   const filtered = useMemo(() => {
     let list = experiences.filter(e => e.category === category)
@@ -156,10 +165,7 @@ function CategoryCard({ exp, onClick }: { exp: Experience; onClick: () => void }
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 600, fontSize: 16 }}>{exp.title}</div>
         <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>
-          {exp.duration} · {exp.format}
-        </div>
-        <div style={{ fontSize: 14, marginTop: 8, fontWeight: 500 }}>
-          Disponible para reservar
+          {[formatDuration(exp.duration), formatLabel(exp.format)].filter(Boolean).join(" · ")}
         </div>
       </div>
     </div>

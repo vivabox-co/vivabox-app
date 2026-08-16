@@ -6,7 +6,7 @@ import { Experience } from "@/lib/data/types"
 import BottomSheet from "@/components/ui/BottomSheet"
 import ExperienceExploreMeta from "@/components/experience/ExperienceExploreMeta"
 import ListCard from "@/components/list/ListCard"
-import { useUI } from "@/components/ui/UIContext"
+import { useUI, usePageReady } from "@/components/ui/UIContext"
 import { Heart } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -24,10 +24,15 @@ export default function FavoritosPage() {
 
   const [experiences, setExperiences] = useState<Experience[]>([])
   const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchExperiences().then(setExperiences)
+    fetchExperiences()
+      .then(setExperiences)
+      .finally(() => setLoading(false))
   }, [])
+
+  usePageReady(!loading)
 
   const favoriteExperiences = useMemo(() => {
     return experiences.filter(exp => favorites.includes(exp.id))

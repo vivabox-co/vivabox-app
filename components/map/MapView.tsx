@@ -12,6 +12,7 @@ import L from "leaflet"
 import { useEffect, useMemo, useState } from "react"
 
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
+import { getExperiencePhotos } from "@/lib/data/getExperiencePhotos"
 import { Experience, Format, Category, ActivityKey } from "@/lib/data/types"
 import { createPinIcon } from "@/lib/map/createPinIcon"
 import { categoryColors } from "@/lib/map/categoryColors"
@@ -412,15 +413,7 @@ function PopupGallery({
 }) {
   const [activePhoto, setActivePhoto] = useState(0)
 
-  // Même logique que ExperienceExploreMeta/DetailScreen : on complète avec
-  // des visuels de démo tant que exp.gallery n'est pas rempli côté données.
-  const photos = [
-    exp.image,
-    ...(exp.gallery || []),
-    "/image/image_activado1.jpg",
-    "/image/image_welcome.webp",
-  ].filter((src, i, arr) => !!src && arr.indexOf(src) === i)
-  if (photos.length === 0) photos.push("/placeholder.jpg")
+  const photos = getExperiencePhotos(exp)
 
   return (
     <div

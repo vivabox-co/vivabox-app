@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import BottomNav from "@/components/ui/BottomNav"
+import RouteLoaderOverlay from "@/components/ui/RouteLoaderOverlay"
 import { useUI } from "@/components/ui/UIContext"
 
 // Pages où la nav doit être cachée dès le premier rendu — dérivé du pathname
@@ -41,6 +42,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   return (
     <>
+      <RouteLoaderOverlay />
       {children}
       {!hideNav && !pathHidesNav && <BottomNav />}
     </>

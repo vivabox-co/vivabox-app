@@ -78,10 +78,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Récupérer le token de session (cookie)
+  // 2. Racine de l'app → toujours vers l'activation. C'est /activar
+  //    (bloc suivant) qui décide ensuite, selon l'état de session, si on
+  //    montre le formulaire ou si on redirige plus loin (/mapa, suivi...).
+  //    Pas de boucle : '/' est un cas à part, distinct de '/activar'.
+  if (pathname === '/') {
+    return NextResponse.redirect(new URL(activationEntryRoute, request.url));
+  }
+
+  // 3. Récupérer le token de session (cookie)
   const sessionToken = request.cookies.get('vb_session')?.value;
 
-  // 3. /activar : si une session valide existe déjà, on saute le formulaire
+  // 4. /activar : si une session valide existe déjà, on saute le formulaire
   //    et on renvoie directement dans le flux (mêmes règles de routage que
   //    pour les routes protégées ci-dessous). Pas de session → on laisse
   //    passer normalement (route publique).
@@ -106,18 +114,18 @@ export async function middleware(request: NextRequest) {
     return withRenewedCookie(NextResponse.redirect(new URL('/mapa', request.url)), sessionToken, context);
   }
 
-  // 4. Si route publique → on laisse passer
+  // 5. Si route publique → on laisse passer
   if (publicRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next();
   }
 
-  // 5. Pas de token → rediriger vers /activar
+  // 6. Pas de token → rediriger vers /activar
   if (!sessionToken) {
     const url = new URL('/activar', request.url);
     return NextResponse.redirect(url);
   }
 
-  // 6. Pour les routes protégées, on valide la session et on récupère le contexte du code
+  // 7. Pour les routes protégées, on valide la session et on récupère le contexte du code
   //    (appel asynchrone bloquant - attention performance)
   const context = await resolveSessionContext(request, sessionToken);
 

@@ -29,6 +29,12 @@ type UIContextType = {
   favorites: string[]
   toggleFavorite: (id: string) => void
   isFavorite: (id: string) => boolean
+
+  // Vrai une fois que la page courante a ses données prêtes à l'affichage
+  // (voir usePageReady). Consommé par RouteLoaderOverlay pour savoir quand
+  // masquer le loader plein écran.
+  pageReady: boolean
+  setPageReady: (v: boolean) => void
 }
 
 const UIContext = createContext<UIContextType | null>(null)
@@ -42,6 +48,8 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [selectedTime, setSelectedTime] = useState<string[] | null>(null)
 
   const [hideNav, setHideNav] = useState(false)
+
+  const [pageReady, setPageReady] = useState(true)
 
   // ⭐ FAVORIS PERSISTANTS
   const [favorites, setFavorites] = useState<string[]>([])
@@ -92,6 +100,9 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         favorites,
         toggleFavorite,
         isFavorite,
+
+        pageReady,
+        setPageReady,
       }}
     >
       {children}
@@ -105,4 +116,19 @@ export function useUI() {
     throw new Error("useUI must be used within UIProvider")
   }
   return ctx
+}
+
+// Pages avec un chargement de données async l'appellent avec leur condition
+// "prêt" (ex: `usePageReady(!loading)`) pour que RouteLoaderOverlay reste
+// affiché jusqu'à ce que le contenu réel soit là, pas seulement le temps
+// d'un lap fixe. Le cleanup remet pageReady à true au démontage, pour ne
+// jamais laisser le loader suivant bloqué par un fetch abandonné.
+export function usePageReady(ready: boolean) {
+  const { setPageReady } = useUI()
+
+  useEffect(() => {
+    setPageReady(ready)
+    return () => setPageReady(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready])
 }

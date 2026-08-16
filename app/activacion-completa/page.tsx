@@ -43,7 +43,13 @@ function ActivacionCompletaContent() {
   }, [router, searchParams, setHideNav])
 
   const handleContinue = () => {
-    router.push("/mapa")
+    // Navigation "dure" et non un router.push : le Router Cache du client
+    // peut avoir mis en cache une redirection vers /activar depuis une
+    // visite précédente de /mapa (avant activation, ou session expirée) —
+    // il ignore que le cookie de session vient de changer via ce fetch()
+    // (pas une Server Action), donc router.push rejouerait ce résultat
+    // périmé sans même repasser par le serveur/middleware.
+    window.location.href = "/mapa"
   }
 
   return (

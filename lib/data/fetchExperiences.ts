@@ -7,25 +7,31 @@ import {
   Environment,
   DurationType,
 } from "./types"
+import { parseCSV } from "@/lib/utils/csv"
+import { formatDuration } from "@/lib/format/duration"
 
 // ------------------------------
-// ANCIENNE URL (gardée pour fallback)
+// SHEET (fallback CSV quand /api/experiencias échoue)
 // ------------------------------
-const LEGACY_SHEET_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vR4Jf6eOcGsbnRYIPVP60JVWDp1KkqZMGdcj3t8ABR9hdaFY9t3bLcvqgVjTVWVtz9GFUDtWADB_iLx/pub?gid=467010857&single=true&output=csv"
+const SHEET_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0wvZlSud-v8_n6IWeI6_qfWgmuViBjkp1-yHP-RJ90VlxhistJE2MuV0k_jc88cUeyOngtBI3ZdWM/pub?gid=1700161859&single=true&output=csv"
+
+// Seules les lignes marquées ainsi dans la colonne `estado` sont publiables ;
+// le reste du sheet est du contenu en brouillon (colonnes vides).
+const PUBLISHED_STATUS = "listo para publicar"
 
 const DEFAULT_FORMAT: Format = "solo"
 const DEFAULT_CATEGORY: Category = "cultura"
 
-/* ================= UTIL (inchangé) ================= */
+/* ================= UTIL ================= */
 
 function clean(value: string = "") {
   return value.replace(/^"|"$/g, "").replace(/\r/g, "").trim()
 }
 
-function toArray(value: string = ""): string[] {
+function toArray(value: string = "", separator = ","): string[] {
   return clean(value)
-    .split(",")
+    .split(separator)
     .map((v) => v.trim())
     .filter(Boolean)
 }
@@ -35,15 +41,15 @@ function toBool(value: string = ""): boolean {
 }
 
 function toNumber(value: string = ""): number | undefined {
-  const n = Number(clean(value))
-  return Number.isNaN(n) ? undefined : n
+  const match = clean(value).match(/\d+/)
+  return match ? Number(match[0]) : undefined
 }
 
-/* 🔥 Normalisation Sheet → code (identique) */
-function normalizeActivityKey(value: string): ActivityKey {
+/* 🔥 Normalisation Sheet → code */
+export function normalizeActivityKey(value: string): ActivityKey {
   return clean(value)
     .toLowerCase()
-    .replace(/\u00A0/g, "")       // espace insécable Google
+    .replace(/ /g, "")       // espace insécable Google
     .replace(/[ -]+/g, "_")      // "chef hat" → chef_hat
     .replace(/[^\w_]/g, "")      // supprime accents / symboles
     .trim() as ActivityKey
@@ -62,64 +68,73 @@ function isExperience(exp: Experience | null): exp is Experience {
   return exp !== null
 }
 
-/* ================= PARSING CSV (legacy) ================= */
+// Le sheet référence les photos sous "/images/..." mais le dossier réel
+// dans ce repo est public/image/ (singulier) — /images/experiencias-reales/*
+// → /image/experiencias-reales/*.
+function toAssetPath(value: string = ""): string {
+  const v = clean(value)
+  return v.replace(/^\/images\//, "/image/")
+}
+
+/* ================= PARSING CSV (fallback) ================= */
+
+function mapRow(row: Record<string, string>): Experience | null {
+  const id = clean(row.codigo_interno)
+  const lat = Number(clean(row.ubicacion_lat).replace(",", "."))
+  const lng = Number(clean(row.ubicacion_lng).replace(",", "."))
+
+  if (!id || Number.isNaN(lat) || Number.isNaN(lng)) {
+    console.warn("⚠️ Ligne ignorée (id ou coordonnées invalides) :", id)
+    return null
+  }
+
+  return {
+    id,
+    title: clean(row.nombre_experiencia),
+    providerName: clean(row.proveedor_nombre) || clean(row.nombre_experiencia),
+    category: normalizeCategory(row.categoria),
+    activity_key: normalizeActivityKey(row.tipo_actividad),
+    lat,
+    lng,
+    zone: clean(row.zona),
+    city: clean(row.ciudad),
+    duration: formatDuration(row.duracion_min) || "",
+    durationType: clean(row.tipo_duracion) as DurationType,
+    format: (clean(row.formato) as Format) || DEFAULT_FORMAT,
+    image: toAssetPath(row.imagen) || "/images/placeholder.jpg",
+    gallery: toArray(row.imagenes_adicionales, "|").map(toAssetPath),
+    vivanote: clean(row.nota_vivabox),
+    shortDescription: clean(row.descripcion_corta),
+    includes: toArray(row.incluye),
+    requirements: toArray(row.requisitos),
+    idealFor: toArray(row.ideal_para),
+    effortLevel: clean(row.nivel_esfuerzo) as EffortLevel,
+    weatherNote: clean(row.nota_clima),
+    clothingNote: clean(row.nota_vestimenta),
+    importantToKnow: toArray(row.info_importante),
+    ambiance: toArray(row.ambiente_animo),
+    environment: clean(row.entorno) as Environment,
+    providerPhone: clean(row.proveedor_telefono),
+    needsPhone: toBool(row.requiere_telefono),
+    needsPeopleCount: toBool(row.requiere_num_personas),
+    extraPeopleOption: {
+      allowed: toBool(row.permite_extra),
+      maxExtraPeople: toNumber(row.max_personas_extra),
+      requiresManualApproval: toBool(row.extra_requiere_aprobacion),
+      note: clean(row.nota_extra) || undefined,
+    },
+  }
+}
+
 async function fetchLegacyCSV(): Promise<Experience[]> {
-  const res = await fetch(LEGACY_SHEET_URL, { cache: "no-store" })
+  const res = await fetch(SHEET_CSV_URL, { cache: "no-store" })
   const text = await res.text()
-  const lines = text.split("\n").slice(1)
+  const rows = parseCSV(text)
 
-  const data = lines.map((line, index): Experience | null => {
-    const cols = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
-    if (!cols || cols.length < 30) {
-      console.warn("⚠️ Ligne ignorée", index + 2)
-      return null
-    }
+  const data = rows
+    .filter((row) => clean(row.estado).toLowerCase() === PUBLISHED_STATUS)
+    .map(mapRow)
 
-    const lat = Number(clean(cols[4]).replace(",", "."))
-    const lng = Number(clean(cols[5]).replace(",", "."))
-    if (Number.isNaN(lat) || Number.isNaN(lng)) {
-      console.warn("⚠️ Coordonnées invalides ligne", index + 2)
-      return null
-    }
-
-    const activityKey = normalizeActivityKey(cols[3])
-
-    return {
-      id: clean(cols[0]),
-      title: clean(cols[1]),
-      providerName: clean(cols[30]) || clean(cols[1]),
-      category: normalizeCategory(cols[2]),
-      activity_key: activityKey,
-      lat,
-      lng,
-      zone: clean(cols[8]),
-      distance: clean(cols[9]),
-      city: clean(cols[26]),
-      duration: clean(cols[6]),
-      durationType: clean(cols[29]) as DurationType,
-      format: (clean(cols[7]) as Format) || DEFAULT_FORMAT,
-      image: clean(cols[10]) || "/images/placeholder.jpg",
-      vivanote: clean(cols[11]),
-      shortDescription: clean(cols[12]),
-      includes: toArray(cols[13]),
-      requirements: toArray(cols[14]),
-      idealFor: toArray(cols[15]),
-      effortLevel: clean(cols[16]) as EffortLevel,
-      weatherNote: clean(cols[17]),
-      clothingNote: clean(cols[18]),
-      importantToKnow: toArray(cols[19]),
-      ambiance: toArray(cols[27]),
-      environment: clean(cols[28]) as Environment,
-      needsPhone: toBool(cols[20]),
-      needsPeopleCount: toBool(cols[21]),
-      extraPeopleOption: {
-        allowed: toBool(cols[22]),
-        maxExtraPeople: toNumber(cols[23]),
-        requiresManualApproval: toBool(cols[24]),
-        note: clean(cols[25]),
-      },
-    }
-  })
   return data.filter(isExperience)
 }
 
