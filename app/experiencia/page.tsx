@@ -1,27 +1,73 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { MapPin, Calendar, Clock, Phone, CheckCircle } from "lucide-react"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
+import { useUI } from "@/components/ui/UIContext"
 
 export default function ExperienciaPage() {
+  const { activeExperience } = useUI()
+  const router = useRouter()
   const [booking, setBooking] = useState<any>(null)
-  const [experience, setExperience] = useState<any>(null)
+  const [experience, setExperience] = useState<any>(activeExperience)
+  const [error, setError] = useState(false)
 
+  /* Charger la réservation complète depuis l'API — le localStorage ne
+     contient que l'id (voir confirmacion/page.tsx), pas experienceId. */
   useEffect(() => {
     const stored = localStorage.getItem("currentBooking")
-    if (stored) setBooking(JSON.parse(stored))
+    if (!stored) {
+      setError(true)
+      return
+    }
+    const { id } = JSON.parse(stored)
+
+    fetch(`/api/booking/${id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          setBooking(data.data)
+        } else {
+          setError(true)
+        }
+      })
+      .catch(() => setError(true))
   }, [])
 
-  /* Charger la vraie expérience */
+  /* Charger la vraie expérience (sauf si déjà fournie via le contexte
+     UI par la page de seguimiento) */
   useEffect(() => {
-    if (!booking?.experienceId) return
+    if (activeExperience || !booking?.experienceId) return
 
     fetchExperiences().then((list) => {
       const found = list.find((e) => e.id === booking.experienceId)
       if (found) setExperience(found)
     })
-  }, [booking])
+  }, [booking, activeExperience])
+
+  /* Erreur : réservation introuvable */
+  if (error) {
+    return (
+      <div style={{ padding: 24, minHeight: "100vh", background: "#FAF8F5" }}>
+        <h2>No se pudo cargar tu experiencia</h2>
+        <p>Por favor, intenta de nuevo más tarde o contacta con soporte.</p>
+        <button
+          onClick={() => router.push("/mapa")}
+          style={{
+            marginTop: 16,
+            padding: "10px 20px",
+            background: "#111",
+            color: "#fff",
+            border: "none",
+            borderRadius: 12,
+          }}
+        >
+          Volver al mapa
+        </button>
+      </div>
+    )
+  }
 
   /* Sécurité */
   if (!booking || !experience) {
