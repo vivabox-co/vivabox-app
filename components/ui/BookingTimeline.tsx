@@ -42,17 +42,7 @@ type Props = {
 export default function BookingTimeline({ status, category, onNext, onPrev }: Props) {
   const color = categoryColors[category] || "#111"
   const currentIndex = PROGRESS_INDEX[status]
-
-  /* 🧠 TIMELINE GEOMETRY */
-  const STEP_HEIGHT = 74
   const CIRCLE_SIZE = 22
-  const CENTER_OFFSET = CIRCLE_SIZE / 2
-
-  const lineHeight = (steps.length - 1) * STEP_HEIGHT + CENTER_OFFSET
-  // currentIndex vaut -1 pour "rejected" (absent de `steps`, cf. encadré
-  // rouge au-dessus) : on borne à 0 plutôt que de passer une hauteur
-  // négative invalide en CSS.
-  const progressHeight = Math.max(0, currentIndex * STEP_HEIGHT + CENTER_OFFSET)
 
   return (
     <div style={{ marginTop: 30 }}>
@@ -97,69 +87,62 @@ export default function BookingTimeline({ status, category, onNext, onPrev }: Pr
         </div>
       )}
 
-      <div style={{ position: "relative", paddingLeft: 22 }}>
-
-        {/* LIGNE FOND */}
-        <div
-          style={{
-            position: "absolute",
-            left: CENTER_OFFSET + 21,
-            top: CENTER_OFFSET,
-            height: lineHeight,
-            width: 2,
-            background: "#E8E3DC",
-            zIndex: 0,
-          }}
-        />
-
-        {/* LIGNE PROGRESSION */}
-        <div
-          style={{
-            position: "absolute",
-            left: CENTER_OFFSET + 21,
-            top: CENTER_OFFSET,
-            height: progressHeight,
-            width: 2,
-            background: color,
-            zIndex: 1,
-            transition: "height 0.4s ease",
-          }}
-        />
-
+      <div>
         {steps.map((step, i) => {
           const reached = i <= currentIndex
+          const isLast = i === steps.length - 1
+          // Le connecteur sous ce cercle est rempli seulement si l'étape
+          // suivante est elle aussi atteinte — pas de pourcentage intermédiaire,
+          // ça reste net avec `flex: 1` quelle que soit la hauteur réelle de la
+          // ligne (texte sur une ou deux lignes selon l'écran).
+          const nextReached = i + 1 <= currentIndex
 
           return (
             <div
               key={step.key}
               style={{
                 display: "flex",
-                alignItems: "flex-start",
+                alignItems: "stretch",
                 gap: 14,
-                marginBottom: STEP_HEIGHT - CIRCLE_SIZE,
-                position: "relative",
               }}
             >
-              {/* CERCLE */}
-              <div
-                style={{
-                  width: CIRCLE_SIZE,
-                  height: CIRCLE_SIZE,
-                  borderRadius: "50%",
-                  backgroundColor: reached ? color : "#E8E3DC",
-                  border: reached ? "none" : "2px solid #E8E3DC",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  zIndex: 2,
-                }}
-              >
-                {reached && <Check size={13} color="#FFF" />}
+              {/* RAIL : cercle + connecteur, empilés pour occuper toute la
+                  hauteur réelle de la ligne (voir `alignItems: stretch`
+                  ci-dessus) au lieu d'un calcul en pixels fixes qui décalait
+                  la ligne dès que le texte passait sur deux lignes. */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: CIRCLE_SIZE, flexShrink: 0 }}>
+                <div
+                  style={{
+                    width: CIRCLE_SIZE,
+                    height: CIRCLE_SIZE,
+                    borderRadius: "50%",
+                    backgroundColor: reached ? color : "#E8E3DC",
+                    border: reached ? "none" : "2px solid #E8E3DC",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  {reached && <Check size={13} color="#FFF" />}
+                </div>
+
+                {!isLast && (
+                  <div
+                    style={{
+                      width: 2,
+                      flex: 1,
+                      minHeight: 24,
+                      margin: "2px 0",
+                      background: nextReached ? color : "#E8E3DC",
+                      transition: "background 0.4s ease",
+                    }}
+                  />
+                )}
               </div>
 
               {/* LABEL + DESCRIPTION */}
-              <div>
+              <div style={{ paddingBottom: isLast ? 0 : 28 }}>
                 <div style={{
                   color: reached ? "#111" : "#999",
                   fontWeight: reached ? 500 : 400,
