@@ -11,10 +11,10 @@ export type BookingStatus =
   | "done"
 
 const steps = [
-  { key: "requested", label: "Recibimos tu solicitud" },
-  { key: "waiting_provider", label: "Estamos coordinando tu experiencia" },
-  { key: "confirmed", label: "Fecha confirmada" },
-  { key: "done", label: "Todo listo para disfrutar" },
+  { key: "requested", label: "Solicitud recibida", description: "Tu elección llegó correctamente." },
+  { key: "waiting_provider", label: "Confirmando con el lugar", description: "Estamos verificando disponibilidad." },
+  { key: "confirmed", label: "Fecha confirmada", description: "Te avisaremos cuando esté lista." },
+  { key: "done", label: "Todo listo", description: "Ya puedes disfrutar." },
 ]
 
 type Props = {
@@ -29,7 +29,7 @@ export default function BookingTimeline({ status, category, onNext, onPrev }: Pr
   const currentIndex = steps.findIndex((s) => s.key === status)
 
   /* 🧠 TIMELINE GEOMETRY */
-  const STEP_HEIGHT = 56
+  const STEP_HEIGHT = 74
   const CIRCLE_SIZE = 22
   const CENTER_OFFSET = CIRCLE_SIZE / 2
 
@@ -113,7 +113,7 @@ export default function BookingTimeline({ status, category, onNext, onPrev }: Pr
               key={step.key}
               style={{
                 display: "flex",
-                alignItems: "center",
+                alignItems: "flex-start",
                 gap: 14,
                 marginBottom: STEP_HEIGHT - CIRCLE_SIZE,
                 position: "relative",
@@ -130,18 +130,30 @@ export default function BookingTimeline({ status, category, onNext, onPrev }: Pr
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  flexShrink: 0,
                   zIndex: 2,
                 }}
               >
                 {reached && <Check size={13} color="#FFF" />}
               </div>
 
-              {/* LABEL */}
-              <div style={{
-                color: reached ? "#111" : "#999",
-                fontWeight: reached ? 500 : 400,
-              }}>
-                {step.label}
+              {/* LABEL + DESCRIPTION */}
+              <div>
+                <div style={{
+                  color: reached ? "#111" : "#999",
+                  fontWeight: reached ? 500 : 400,
+                  lineHeight: 1.3,
+                }}>
+                  {step.label}
+                </div>
+                <div style={{
+                  marginTop: 3,
+                  fontSize: 13,
+                  color: reached ? "#888" : "#bbb",
+                  lineHeight: 1.4,
+                }}>
+                  {step.description}
+                </div>
               </div>
             </div>
           )

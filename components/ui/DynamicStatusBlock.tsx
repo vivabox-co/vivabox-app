@@ -2,7 +2,10 @@
 
 import { BookingStatus } from "./BookingTimeline"
 
-export type StatusAction = "change_dates" | "contact" | "view_details" | "leave_review"
+// Seule "leave_review" reste une action directe ici : c'est la seule étape
+// qui n'appartient qu'à Seguimiento (pas de doublon avec Ayuda, qui
+// concentre déjà WhatsApp et le changement de date — voir /ayuda).
+export type StatusAction = "leave_review"
 
 type Props = {
   status: BookingStatus
@@ -16,36 +19,23 @@ export default function DynamicStatusBlock({ status, onAction, reviewed }: Props
     { title: string; text: string; actions?: { key: StatusAction; label: string }[] }
   > = {
     requested: {
-      title: "Fechas recibidas",
-      text: "Ya tenemos tus fechas. Estamos empezando a coordinar con el lugar para que todo encaje perfectamente.",
-      actions: [
-        { key: "change_dates", label: "Cambiar fechas" },
-        { key: "contact", label: "Hablar con Mariana" },
-      ],
+      title: "¿Qué sigue?",
+      text: "No necesitas hacer nada por ahora. Nosotros nos encargamos de la confirmación.",
     },
 
     waiting_provider: {
-      title: "Coordinando con el lugar",
-      text: "Estamos en contacto con el lugar para asegurar tu experiencia. Te avisamos apenas quede confirmada.",
-      actions: [
-        { key: "change_dates", label: "Cambiar fechas" },
-        { key: "contact", label: "Hablar con Mariana" },
-      ],
+      title: "¿Qué sigue?",
+      text: "No necesitas hacer nada por ahora. Nosotros nos encargamos de la confirmación.",
     },
 
     confirmed: {
-      title: "Fecha confirmada ✨",
-      text: "Tu momento quedó agendado. Desde aquí ya no se puede cambiar la fecha — si necesitas ajustar algo, escríbenos directamente.",
-      actions: [
-        { key: "view_details", label: "Ver detalles" },
-        { key: "contact", label: "Hablar con Mariana" },
-      ],
+      title: "¿Qué sigue?",
+      text: "Ya quedó agendado. Nosotros te avisamos si hay algo más que necesites saber antes del día.",
     },
 
     rejected: {
-      title: "Busquemos otra fecha",
-      text: "No pudimos confirmar esa opción, pero ya estamos viendo alternativas que funcionen mejor para ti.",
-      actions: [{ key: "contact", label: "Hablar con Mariana" }],
+      title: "¿Qué sigue?",
+      text: "Estamos buscando otra opción para ti. Te contactaremos pronto para coordinar una nueva fecha.",
     },
 
     done: reviewed

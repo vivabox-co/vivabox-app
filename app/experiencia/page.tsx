@@ -2,14 +2,38 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { MapPin, Calendar, Clock, Phone, CheckCircle } from "lucide-react"
+import Link from "next/link"
+import { MapPin, Calendar, Clock, ChevronRight, Shirt, CloudSun, AlertCircle, Info, Users } from "lucide-react"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
 import { getExperiencePhotos } from "@/lib/data/getExperiencePhotos"
-import { getWhatsAppLink } from "@/lib/constants/contact"
+import { formatLabel } from "@/lib/map/formatLabels"
 import { usePageReady } from "@/components/ui/UIContext"
 import PhotoGallery from "@/components/ui/PhotoGallery"
 import { Booking } from "@/lib/data/types/booking"
 import { Experience } from "@/lib/data/types"
+
+/* Construit la liste "Antes de ir" à partir des seuls champs réellement
+   renseignés sur l'expérience — pas de conseils génériques inventés. Chaque
+   nouveau champ produit (ex: futur "qué llevar") s'ajoute simplement ici. */
+type PrepItem = { icon: typeof Clock; text: string }
+
+function buildPreparationItems(experience: Experience | null, isConfirmed: boolean): PrepItem[] {
+  if (!experience) return []
+  const items: PrepItem[] = []
+
+  if (experience.duration) items.push({ icon: Clock, text: `Duración: ${experience.duration}` })
+  if (experience.clothingNote) items.push({ icon: Shirt, text: experience.clothingNote })
+  if (experience.weatherNote) items.push({ icon: CloudSun, text: experience.weatherNote })
+  experience.requirements?.forEach((r) => items.push({ icon: AlertCircle, text: r }))
+  experience.importantToKnow?.forEach((i) => items.push({ icon: Info, text: i }))
+  // El punto de encuentro solo se muestra una vez confirmada, igual que el
+  // proveedor más abajo.
+  if (isConfirmed && experience.meetingPointNote) {
+    items.push({ icon: MapPin, text: experience.meetingPointNote })
+  }
+
+  return items
+}
 
 export default function ExperienciaPage() {
   const router = useRouter()
@@ -66,6 +90,7 @@ export default function ExperienciaPage() {
   // snapshot de la réservation — tant qu'elle n'est pas arrivée, on retombe
   // sur la seule image du snapshot pour ne pas laisser le hero vide.
   const photos = getExperiencePhotos(experience ?? { image: exp.image, gallery: undefined })
+  const prepItems = buildPreparationItems(experience, isConfirmed)
 
   return (
     <div
@@ -104,57 +129,40 @@ export default function ExperienciaPage() {
         <InfoRow icon={MapPin} value={exp.zone} />
         <InfoRow icon={Calendar} value={booking.date} />
         <InfoRow icon={Clock} value={booking.time} />
+        {experience?.format && <InfoRow icon={Users} value={formatLabel(experience.format)} />}
       </div>
 
-      {/* PREPARACIÓN */}
-      <Section title="Antes de ir">
-        <Bullet>Llega 10 minutos antes.</Bullet>
-        <Bullet>Lleva ropa cómoda.</Bullet>
-        <Bullet>Ten tu confirmación a mano.</Bullet>
-      </Section>
+      {/* PREPARACIÓN — solo campos realmente disponibles en la experiencia */}
+      {prepItems.length > 0 && (
+        <Section title="Antes de ir">
+          {prepItems.map((item, i) => (
+            <Bullet key={i} icon={item.icon}>{item.text}</Bullet>
+          ))}
+        </Section>
+      )}
 
       {/* VIVANOTE */}
       {experience?.vivanote && (
-        <Section title="Recomendación Vivabox">
+        <Section title="Una recomendación Vivabox">
           <p style={{ margin: 0, color: "#555" }}>{experience.vivanote}</p>
         </Section>
       )}
 
-      {/* AYUDA */}
-      <div
-        style={{
-          marginTop: 28,
-          padding: 18,
-          borderRadius: 20,
-          background: "#fff",
-          boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>¿Necesitas ayuda?</h3>
-        <p style={{ color: "#666" }}>
-          Nuestro equipo puede ayudarte con cualquier detalle.
-        </p>
-        <button
-          onClick={() => window.open(getWhatsAppLink(`Hola, tengo una pregunta sobre "${exp.title}".`), "_blank")}
+      <div style={{ marginTop: 8, textAlign: "center" }}>
+        <Link
+          href="/ayuda"
           style={{
-            marginTop: 10,
-            width: "100%",
-            padding: 14,
-            borderRadius: 12,
-            background: "#111",
-            color: "#fff",
-            border: "none",
-            fontSize: 15,
-            display: "flex",
+            display: "inline-flex",
             alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            cursor: "pointer",
+            gap: 4,
+            fontSize: 13,
+            color: "#777",
+            textDecoration: "none",
           }}
         >
-          <Phone size={16} />
-          Hablar con Mariana
-        </button>
+          ¿Necesitas ayuda?
+          <ChevronRight size={14} />
+        </Link>
       </div>
     </div>
   )
@@ -180,10 +188,10 @@ function Section({ title, children }: any) {
   )
 }
 
-function Bullet({ children }: any) {
+function Bullet({ icon: Icon, children }: any) {
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 6, color: "#555" }}>
-      <CheckCircle size={16} />
+      <Icon size={16} style={{ marginTop: 2, flexShrink: 0 }} />
       <span>{children}</span>
     </div>
   )

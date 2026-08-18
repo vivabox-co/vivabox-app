@@ -2,23 +2,30 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
+import Link from "next/link"
+import { ChevronRight } from "lucide-react"
 import BookingTimeline, { BookingStatus } from "@/components/ui/BookingTimeline"
 import DynamicStatusBlock, { StatusAction } from "@/components/ui/DynamicStatusBlock"
-import RescheduleModal from "@/components/ui/RescheduleModal"
 import ReviewModal from "@/components/ui/ReviewModal"
 import ExperienceSummaryCard from "@/components/list/ExperienceSummaryCard"
 import { useUI, usePageReady } from "@/components/ui/UIContext"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
-import { getWhatsAppLink } from "@/lib/constants/contact"
-import { formatLocalDate } from "@/lib/utils/formatLocalDate"
-import { formatRelativeTime } from "@/lib/utils/relativeTime"
 import { buildCalendarLink } from "@/lib/utils/calendarLink"
 import { Booking } from "@/lib/data/types/booking"
 import { Experience } from "@/lib/data/types"
 
+// Statuts "en confirmación" (requested/waiting_provider) partagent le même
+// message : côté beneficiario, il n'y a rien à distinguer avant que le
+// lugar confirme réellement — un seul texte "todo está bajo control" évite
+// de laisser croire à une étape intermédiaire actionnable.
+const CONFIRMING_HEADER = {
+  title: "Estamos confirmando tu experiencia",
+  subtitle: "Estamos coordinando con el lugar. Te avisaremos apenas esté confirmada.",
+}
+
 const HEADER_COPY: Record<BookingStatus, { title: string; subtitle: string }> = {
-  requested: { title: "Todo se está organizando para ti", subtitle: "Ya recibimos tu solicitud." },
-  waiting_provider: { title: "Todo se está organizando para ti", subtitle: "Estamos coordinando con el lugar." },
+  requested: CONFIRMING_HEADER,
+  waiting_provider: CONFIRMING_HEADER,
   confirmed: { title: "¡Tu experiencia está confirmada!", subtitle: "Ya tienes fecha y hora." },
   rejected: { title: "Busquemos otra fecha juntos", subtitle: "No pudimos confirmar esta opción." },
   done: { title: "Esperamos que la hayas disfrutado", subtitle: "Gracias por vivir esta experiencia con nosotros." },
@@ -34,7 +41,7 @@ export default function SeguimientoPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reviewed, setReviewed] = useState(false)
-  const [modal, setModal] = useState<"reschedule" | "review" | null>(null)
+  const [showReview, setShowReview] = useState(false)
   // Persisté par booking (voir l'effet plus bas) : lu ici de façon paresseuse
   // plutôt que dans un effet, pour ne pas rejouer un flash "requested" avant
   // que l'effet n'ait eu le temps de le corriger. Sûr côté hydratation : le
@@ -116,17 +123,8 @@ export default function SeguimientoPage() {
   }, [booking?.status, bookingId])
 
   function handleAction(action: StatusAction) {
-    if (action === "change_dates") {
-      setModal("reschedule")
-    } else if (action === "leave_review") {
-      setModal("review")
-    } else if (action === "view_details") {
-      if (realExperience) {
-        setActiveExperience(realExperience)
-        router.push("/experiencia")
-      }
-    } else if (action === "contact") {
-      window.open(getWhatsAppLink(`Hola, tengo una pregunta sobre mi reserva (ref. ${bookingRef}).`), "_blank")
+    if (action === "leave_review") {
+      setShowReview(true)
     }
   }
 
@@ -155,15 +153,14 @@ export default function SeguimientoPage() {
   const exp = booking.experienceSnapshot
 
   const badgeMap: Record<string, string | null> = {
-    requested: "En preparación",
-    waiting_provider: "Coordinando",
+    requested: "Confirmando",
+    waiting_provider: "Confirmando",
     confirmed: "Reservado",
     rejected: null,
     done: null,
   }
 
   const header = HEADER_COPY[status]
-  const isWaiting = status === "requested" || status === "waiting_provider"
   const calendarLink = status === "confirmed" ? buildCalendarLink(booking.date, booking.time, exp.title) : ""
 
   return (
@@ -171,15 +168,9 @@ export default function SeguimientoPage() {
       <h1 style={{ marginTop: 6, marginBottom: 4, fontSize: 24, fontWeight: 600 }}>
         {header.title}
       </h1>
-      <p style={{ marginBottom: isWaiting ? 6 : 18, color: "#666", fontSize: 14 }}>
+      <p style={{ marginBottom: 18, color: "#666", fontSize: 14 }}>
         {header.subtitle}
       </p>
-
-      {isWaiting && (
-        <p style={{ marginBottom: 18, color: "#999", fontSize: 12 }}>
-          Enviado {formatRelativeTime(booking.createdAt)} · normalmente confirmamos en menos de 48 horas.
-        </p>
-      )}
 
       <div style={{ marginBottom: 18 }}>
         <ExperienceSummaryCard
@@ -212,70 +203,52 @@ export default function SeguimientoPage() {
         <DynamicStatusBlock status={status} onAction={handleAction} reviewed={reviewed} />
       </div>
 
-      {status === "confirmed" && (
-        <div style={{
-          marginTop: 32,
-          padding: 16,
-          background: "#fff",
-          borderRadius: 14,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.04)"
-        }}>
-          <p style={{ marginBottom: 6, fontWeight: 500 }}>
-            Ese día vas a estar en {exp.zone || "el lugar acordado"}.
-          </p>
-          <p style={{ color: "#666", fontSize: 14, marginBottom: calendarLink ? 14 : 0 }}>
-            {formatLocalDate(booking.date, { day: "numeric", month: "long" })} · {booking.time}
-          </p>
-          {calendarLink && (
-            <a
-              href={calendarLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "inline-block",
-                padding: "9px 16px",
-                borderRadius: 999,
-                background: "#F3EFEA",
-                color: "#333",
-                fontSize: 13,
-                fontWeight: 500,
-                textDecoration: "none",
-              }}
-            >
-              Añadir al calendario
-            </a>
-          )}
+      {calendarLink && (
+        <div style={{ marginTop: 28, textAlign: "center" }}>
+          <a
+            href={calendarLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-block",
+              padding: "9px 16px",
+              borderRadius: 999,
+              background: "#F3EFEA",
+              color: "#333",
+              fontSize: 13,
+              fontWeight: 500,
+              textDecoration: "none",
+            }}
+          >
+            Añadir al calendario
+          </a>
         </div>
       )}
 
       <div style={{ marginTop: 24, textAlign: "center" }}>
-        <a
-          href={getWhatsAppLink(`Hola, tengo una pregunta sobre mi reserva (ref. ${bookingRef}).`)}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ fontSize: 13, color: "#777", textDecoration: "underline" }}
+        <Link
+          href="/ayuda"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 13,
+            color: "#777",
+            textDecoration: "none",
+          }}
         >
-          ¿Tienes una duda? Estamos aquí.
-        </a>
+          ¿Necesitas ayuda?
+          <ChevronRight size={14} />
+        </Link>
         <div style={{ marginTop: 6, fontSize: 11, color: "#aaa" }}>
           Referencia: {bookingRef}
         </div>
       </div>
 
-      {modal === "reschedule" && (
-        <RescheduleModal
-          bookingId={bookingId}
-          onClose={() => setModal(null)}
-          onSuccess={({ date, time }) => {
-            setBooking(prev => (prev ? { ...prev, date, time } : prev))
-          }}
-        />
-      )}
-
-      {modal === "review" && (
+      {showReview && (
         <ReviewModal
           bookingId={bookingId}
-          onClose={() => setModal(null)}
+          onClose={() => setShowReview(false)}
           onSuccess={() => setReviewed(true)}
         />
       )}

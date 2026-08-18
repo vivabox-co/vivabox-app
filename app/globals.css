@@ -173,22 +173,22 @@ body {
   width: 100%;
   max-width: 1100px;
   height: calc(56px + env(safe-area-inset-bottom));
-  padding-bottom: env(safe-area-inset-bottom);
+  padding: 0 8px env(safe-area-inset-bottom);
   background: #fff;
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -8px 20px rgba(0,0,0,0.08);
   display: flex;
-  justify-content: space-around;
   align-items: center;
   z-index: 1000; /* 🔥 Sous le sheet */
 }
 
 .bottom-nav-item {
+  flex: 1;
   text-align: center;
   font-size: 12px;
   color: #a8998c;
   text-decoration: none;
-  padding: 6px 16px;
+  padding: 6px 8px;
   border-radius: 999px;
   display: flex;
   flex-direction: column;
