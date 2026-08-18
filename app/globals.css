@@ -203,6 +203,33 @@ body {
   font-weight: 600;
 }
 
+/* Déconnexion discrète : petit bouton flottant sur le coin de la pastille,
+   volontairement peu visible (opacité faible, pas de libellé) pour ne pas
+   concurrencer la navigation principale. */
+.bottom-nav-logout {
+  position: absolute;
+  top: -14px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  color: #a8998c;
+  opacity: 0.55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.bottom-nav-logout:hover,
+.bottom-nav-logout:active {
+  opacity: 0.9;
+}
+
 /* ================================
    BOTTOM SHEET SYSTEM
 ================================ */

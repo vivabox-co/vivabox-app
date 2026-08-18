@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { Map, List, Heart, Clock, MessageCircle } from "lucide-react";
+import { Map, List, Heart, Clock, MessageCircle, LogOut } from "lucide-react";
 
 /* 🔥 Recale la nav sur le viewport visuel réel : Safari iOS ne repositionne
    pas toujours les éléments `position: fixed` quand sa barre d'outils du
@@ -75,6 +75,25 @@ const bookingItems: Item[] = [
   { href: "/ayuda", label: "Ayuda", Icon: MessageCircle },
 ];
 
+async function handleLogout() {
+  if (!window.confirm("¿Cerrar sesión y volver al inicio?")) return;
+
+  try {
+    await fetch("/api/logout", { method: "POST" });
+  } catch {
+    // Le cookie httpOnly ne peut être effacé que côté serveur ; si l'appel
+    // échoue on redirige quand même — /activar redemandera le code au
+    // prochain accès si le cookie a survécu.
+  }
+
+  sessionStorage.removeItem("vb_session");
+  sessionStorage.removeItem("vb_codigo");
+  localStorage.removeItem("currentBooking");
+
+  // Full reload (pas router.push) pour repartir avec un contexte UI/état vierge.
+  window.location.href = "/activar";
+}
+
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -98,6 +117,14 @@ export default function BottomNav() {
 
   return (
     <nav className="bottom-nav" ref={navRef}>
+      <button
+        onClick={handleLogout}
+        aria-label="Cerrar sesión"
+        className="bottom-nav-logout"
+      >
+        <LogOut size={13} strokeWidth={1.8} />
+      </button>
+
       {items.map((item, index) => {
         const active = isActive(item);
         const Icon = item.Icon;
