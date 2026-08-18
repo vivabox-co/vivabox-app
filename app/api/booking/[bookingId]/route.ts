@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from "@/lib/services/supabase"
 import { hashSessionToken } from "@/lib/utils/sessionToken"
+import { MOMENT_LABEL } from "@/lib/utils/moment"
 import type { Experience } from "@/lib/data/types"
 
 // bookings.status (Supabase) → BookingStatus attendu par le front
@@ -8,6 +9,7 @@ import type { Experience } from "@/lib/data/types"
 // d'équivalent dans le schéma Supabase actuel — jamais renvoyé pour l'instant.
 const STATUS_MAP: Record<string, string> = {
   requested: "requested",
+  alternative_proposed: "alternative_proposed",
   confirmed: "confirmed",
   completed: "done",
   cancelled: "rejected",
@@ -45,7 +47,7 @@ export async function GET(
 
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
-      .select("id, activation_code_id, experience_code, requested_date, message, status, created_at")
+      .select("id, activation_code_id, experience_code, requested_date, message, status, created_at, proposed_date, proposed_moment, proposed_hour")
       .eq("id", bookingId)
       .maybeSingle()
 
@@ -97,6 +99,8 @@ export async function GET(
     // colonne dédiée dans le schéma partagé) — on l'en extrait ici.
     const timeMatch = booking.message?.match(/Horario:\s*([^·]+)/)
 
+    const proposedMomentLabel = booking.proposed_moment ? (MOMENT_LABEL[booking.proposed_moment] ?? booking.proposed_moment) : null
+
     return NextResponse.json({
       success: true,
       data: {
@@ -106,6 +110,9 @@ export async function GET(
         time: timeMatch ? timeMatch[1].trim() : "",
         status: STATUS_MAP[booking.status] ?? booking.status,
         createdAt: booking.created_at,
+        proposedDate: booking.proposed_date ?? null,
+        proposedMoment: proposedMomentLabel,
+        proposedHour: booking.proposed_hour ?? null,
         experienceSnapshot,
       },
     });

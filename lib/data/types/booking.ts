@@ -8,6 +8,12 @@ export type Booking = {
   status: BookingStatus
   createdAt: string
 
+  // Renseignés uniquement quand status === "alternative_proposed" — la date
+  // et le créneau que le lugar a proposés à la place de la demande initiale.
+  proposedDate: string | null
+  proposedMoment: string | null
+  proposedHour: string | null
+
   experienceSnapshot: {
     id: string
     title: string

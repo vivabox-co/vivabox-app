@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from "@/lib/services/supabase"
 import { hashSessionToken } from "@/lib/utils/sessionToken"
+import { MOMENT_LABEL } from "@/lib/utils/moment"
 
 // Distinct de PATCH sur /api/booking/[bookingId] (annulation, réservée à
 // l'équipe via ADMIN_API_KEY) : ici c'est le client lui-même, via sa propre
 // session vb_session, qui ajuste sa demande de date tant qu'elle n'a pas
 // encore été confirmée par le lieu.
-const MOMENT_LABEL: Record<string, string> = {
-  morning: "Mañana",
-  afternoon: "Tarde",
-  night: "Noche",
-}
 
 export async function POST(
   req: NextRequest,

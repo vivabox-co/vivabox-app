@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { ChevronRight } from "lucide-react"
@@ -26,6 +26,7 @@ const CONFIRMING_HEADER = {
 const HEADER_COPY: Record<BookingStatus, { title: string; subtitle: string }> = {
   requested: CONFIRMING_HEADER,
   waiting_provider: CONFIRMING_HEADER,
+  alternative_proposed: { title: "Te proponemos una nueva fecha", subtitle: "El lugar no pudo con la fecha original, pero tiene otra opción." },
   confirmed: { title: "¡Tu experiencia está confirmada!", subtitle: "Ya tienes fecha y hora." },
   rejected: { title: "Busquemos otra fecha juntos", subtitle: "No pudimos confirmar esta opción." },
   done: { title: "Esperamos que la hayas disfrutado", subtitle: "Gracias por vivir esta experiencia con nosotros." },
@@ -42,6 +43,8 @@ export default function SeguimientoPage() {
   const [error, setError] = useState<string | null>(null)
   const [reviewed, setReviewed] = useState(false)
   const [showReview, setShowReview] = useState(false)
+  const [actionPending, setActionPending] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
   // Persisté par booking (voir l'effet plus bas) : lu ici de façon paresseuse
   // plutôt que dans un effet, pour ne pas rejouer un flash "requested" avant
   // que l'effet n'ait eu le temps de le corriger. Sûr côté hydratation : le
@@ -66,13 +69,15 @@ export default function SeguimientoPage() {
 
   // Charger la réservation depuis l'API (la session vit dans le cookie
   // vb_session, envoyé automatiquement — le middleware a déjà protégé
-  // cette route en amont)
-  useEffect(() => {
-    fetch(`/api/booking/${bookingId}`)
+  // cette route en amont). Extrait en fonction réutilisable pour pouvoir
+  // rafraîchir après une réponse à une date alternative (handleAction).
+  const fetchBooking = useCallback(() => {
+    return fetch(`/api/booking/${bookingId}`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
           setBooking(data.data)
+          setError(null)
         } else {
           setError(data.error || "BOOKING_NOT_FOUND")
         }
@@ -81,8 +86,11 @@ export default function SeguimientoPage() {
         console.error("Error fetching booking:", err)
         setError("NETWORK_ERROR")
       })
-      .finally(() => setLoading(false))
   }, [bookingId])
+
+  useEffect(() => {
+    fetchBooking().finally(() => setLoading(false))
+  }, [fetchBooking])
 
   // Charger l'expérience complète à partir du snapshot ou de l'experienceId
   useEffect(() => {
@@ -122,9 +130,44 @@ export default function SeguimientoPage() {
       .catch(err => console.error("Error fetching review status:", err))
   }, [booking?.status, bookingId])
 
-  function handleAction(action: StatusAction) {
+  async function handleAction(action: StatusAction) {
     if (action === "leave_review") {
       setShowReview(true)
+      return
+    }
+
+    // "choose_new_experience" annule la réservation en cours (qu'elle vienne
+    // d'un refus sec ou d'une alternative refusée) : le bénéficiaire perd
+    // cette option pour de bon, donc on double-vérifie avant d'agir.
+    if (action === "choose_new_experience") {
+      if (!window.confirm("¿Elegir otra experiencia? Esta reserva se cancelará.")) return
+    }
+
+    setActionError(null)
+    setActionPending(true)
+    try {
+      const res = await fetch(`/api/booking/${bookingId}/respond-alternative`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: action === "accept_alternative" ? "accept" : "decline" }),
+      })
+      const data = await res.json()
+
+      if (!data.success) {
+        setActionError("No pudimos procesar tu respuesta. Intenta de nuevo o contáctanos.")
+        return
+      }
+
+      if (action === "choose_new_experience") {
+        router.push("/mapa")
+      } else {
+        await fetchBooking()
+      }
+    } catch (err) {
+      console.error("Error responding to alternative date:", err)
+      setActionError("No pudimos procesar tu respuesta. Intenta de nuevo o contáctanos.")
+    } finally {
+      setActionPending(false)
     }
   }
 
@@ -155,6 +198,7 @@ export default function SeguimientoPage() {
   const badgeMap: Record<string, string | null> = {
     requested: "Confirmando",
     waiting_provider: "Confirmando",
+    alternative_proposed: "Nueva fecha propuesta",
     confirmed: "Reservado",
     rejected: null,
     done: null,
@@ -200,7 +244,18 @@ export default function SeguimientoPage() {
       />
 
       <div style={{ marginTop: 28 }}>
-        <DynamicStatusBlock status={status} onAction={handleAction} reviewed={reviewed} />
+        <DynamicStatusBlock
+          status={status}
+          onAction={handleAction}
+          reviewed={reviewed}
+          proposedDate={booking.proposedDate}
+          proposedMoment={booking.proposedMoment}
+          proposedHour={booking.proposedHour}
+          actionPending={actionPending}
+        />
+        {actionError && (
+          <p style={{ marginTop: 10, fontSize: 13, color: "#B42318", textAlign: "center" }}>{actionError}</p>
+        )}
       </div>
 
       {calendarLink && (

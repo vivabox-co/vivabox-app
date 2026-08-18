@@ -6,6 +6,7 @@ import { categoryColors } from "@/lib/map/categoryColors"
 export type BookingStatus =
   | "requested"
   | "waiting_provider"
+  | "alternative_proposed"
   | "confirmed"
   | "rejected"
   | "done"
@@ -17,6 +18,20 @@ const steps = [
   { key: "done", label: "Todo listo", description: "Ya puedes disfrutar." },
 ]
 
+// Position de chaque statut sur la ligne de progression. "alternative_proposed"
+// n'a pas d'étape dédiée (c'est un aparté, pas une progression) mais le lugar
+// a bien répondu à la demande, donc ça reste au niveau de "waiting_provider" —
+// pas de raison de faire retomber les étapes déjà atteintes à zéro.
+// "rejected" retombe à -1 : rien n'est acquis (cf. encadré rouge au-dessus).
+const PROGRESS_INDEX: Record<BookingStatus, number> = {
+  requested: 0,
+  waiting_provider: 1,
+  alternative_proposed: 1,
+  confirmed: 2,
+  rejected: -1,
+  done: 3,
+}
+
 type Props = {
   status: BookingStatus
   category: string
@@ -26,7 +41,7 @@ type Props = {
 
 export default function BookingTimeline({ status, category, onNext, onPrev }: Props) {
   const color = categoryColors[category] || "#111"
-  const currentIndex = steps.findIndex((s) => s.key === status)
+  const currentIndex = PROGRESS_INDEX[status]
 
   /* 🧠 TIMELINE GEOMETRY */
   const STEP_HEIGHT = 74
@@ -73,6 +88,12 @@ export default function BookingTimeline({ status, category, onNext, onPrev }: Pr
         <div style={errorBox}>
           <X size={14} />
           No pudimos confirmar la fecha solicitada. Te ayudaremos a encontrar una alternativa.
+        </div>
+      )}
+
+      {status === "alternative_proposed" && (
+        <div style={infoBox}>
+          El lugar no tenía disponible tu fecha, pero propuso una alternativa. Revisa los detalles abajo.
         </div>
       )}
 
@@ -187,4 +208,14 @@ const errorBox: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
+}
+
+const infoBox: React.CSSProperties = {
+  padding: "10px 14px",
+  background: "#FFF3E0",
+  color: "#8A5300",
+  borderRadius: 12,
+  marginBottom: 18,
+  fontSize: 14,
+  lineHeight: 1.4,
 }
