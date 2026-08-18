@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useUI } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
 import { Calendar, Clock, Users, Sunrise, Sun, Sunset, Check, Plus } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
+import PhotoGallery from "@/components/ui/PhotoGallery"
 import { formatLocalDate } from "@/lib/utils/formatLocalDate"
 
 type Moment = "morning" | "afternoon" | "night" | null
@@ -33,34 +34,6 @@ export default function FechasPage() {
   const [preferredHour, setPreferredHour] = useState<string | null>(null)
   const [extraPeople, setExtraPeople] = useState(0)
   const [loading, setLoading] = useState(false) // 👈 pour l'appel API
-  const [activePhoto, setActivePhoto] = useState(0)
-
-  // Le scroll-snap horizontal marche nativement au doigt/trackpad, mais pas
-  // au clic-glissé souris — on ajoute donc un drag-to-scroll pour desktop.
-  const heroTrackRef = useRef<HTMLDivElement>(null)
-  const isDraggingRef = useRef(false)
-  const dragStartXRef = useRef(0)
-  const dragStartScrollRef = useRef(0)
-
-  function handleHeroMouseDown(e: React.MouseEvent) {
-    if (e.button !== 0 || !heroTrackRef.current) return
-    isDraggingRef.current = true
-    dragStartXRef.current = e.clientX
-    dragStartScrollRef.current = heroTrackRef.current.scrollLeft
-    window.addEventListener("mousemove", handleHeroMouseMove)
-    window.addEventListener("mouseup", handleHeroMouseUp)
-  }
-
-  function handleHeroMouseMove(e: MouseEvent) {
-    if (!isDraggingRef.current || !heroTrackRef.current) return
-    heroTrackRef.current.scrollLeft = dragStartScrollRef.current - (e.clientX - dragStartXRef.current)
-  }
-
-  function handleHeroMouseUp() {
-    isDraggingRef.current = false
-    window.removeEventListener("mousemove", handleHeroMouseMove)
-    window.removeEventListener("mouseup", handleHeroMouseUp)
-  }
 
   useEffect(() => {
     setHideNav(true)
@@ -164,30 +137,14 @@ export default function FechasPage() {
 
         {/* 🔥 HERO IMMERSION — galería scrollable, comme dans DetailScreen */}
         <div style={heroWrapper}>
-          <div
-            ref={heroTrackRef}
-            style={heroTrack}
-            onMouseDown={handleHeroMouseDown}
-            onScroll={e => {
-              const el = e.currentTarget
-              const idx = Math.round(el.scrollLeft / el.clientWidth)
-              setActivePhoto(idx)
-            }}
+          <PhotoGallery
+            photos={photos.length > 0 ? photos : ["/images/placeholder.jpg"]}
+            alt={exp.title}
+            dotsBottom={66}
           >
-            {(photos.length > 0 ? photos : ["/images/placeholder.jpg"]).map((src, i) => (
-              <img key={i} src={src} alt={`${exp.title} ${i + 1}`} style={heroImage} draggable={false} />
-            ))}
-          </div>
-          <div style={heroGradient} />
-          <div style={heroTitle}>{exp.title}</div>
-
-          {photos.length > 1 && (
-            <div style={heroDots}>
-              {photos.map((_, i) => (
-                <div key={i} style={{ ...heroDot, background: i === activePhoto ? "#fff" : "rgba(255,255,255,0.5)" }} />
-              ))}
-            </div>
-          )}
+            <div style={heroGradient} />
+            <div style={heroTitle}>{exp.title}</div>
+          </PhotoGallery>
         </div>
 
         <p style={subtitle}>
@@ -369,42 +326,6 @@ const heroWrapper: React.CSSProperties = {
   width: "100%",
   height: "40vh",
   overflow: "hidden",
-}
-
-const heroTrack: React.CSSProperties = {
-  display: "flex",
-  width: "100%",
-  height: "100%",
-  overflowX: "auto",
-  scrollSnapType: "x mandatory",
-  WebkitOverflowScrolling: "touch",
-  cursor: "grab",
-  userSelect: "none",
-}
-
-const heroImage: React.CSSProperties = {
-  flex: "0 0 100%",
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-  scrollSnapAlign: "center",
-}
-
-const heroDots: React.CSSProperties = {
-  position: "absolute",
-  bottom: 66,
-  left: 0,
-  right: 0,
-  display: "flex",
-  justifyContent: "center",
-  gap: 6,
-}
-
-const heroDot: React.CSSProperties = {
-  width: 6,
-  height: 6,
-  borderRadius: "50%",
-  transition: "background 0.15s ease",
 }
 
 const heroGradient: React.CSSProperties = {

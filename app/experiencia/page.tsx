@@ -1,20 +1,44 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { MapPin, Calendar, Clock, Phone, CheckCircle } from "lucide-react"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
+import { getExperiencePhotos } from "@/lib/data/getExperiencePhotos"
 import { getWhatsAppLink } from "@/lib/constants/contact"
+import { usePageReady } from "@/components/ui/UIContext"
+import PhotoGallery from "@/components/ui/PhotoGallery"
+import { Booking } from "@/lib/data/types/booking"
+import { Experience } from "@/lib/data/types"
 
 export default function ExperienciaPage() {
-  const [booking, setBooking] = useState<any>(null)
-  const [experience, setExperience] = useState<any>(null)
+  const router = useRouter()
+  const [booking, setBooking] = useState<Booking | null>(null)
+  const [experience, setExperience] = useState<Experience | null>(null)
+  const [loading, setLoading] = useState(true)
 
+  // "currentBooking" ne contient que l'id (voir confirmacion/page.tsx) — le
+  // reste (statut, date, snapshot...) vient toujours de l'API, jamais du
+  // localStorage, pour ne pas afficher une réservation périmée.
   useEffect(() => {
     const stored = localStorage.getItem("currentBooking")
-    if (stored) setBooking(JSON.parse(stored))
-  }, [])
+    const bookingId = stored ? JSON.parse(stored).id : null
+    if (!bookingId) {
+      router.replace("/mapa")
+      return
+    }
 
-  /* Charger la vraie expérience */
+    fetch(`/api/booking/${bookingId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) setBooking(data.data)
+        else router.replace("/mapa")
+      })
+      .catch(() => router.replace("/mapa"))
+      .finally(() => setLoading(false))
+  }, [router])
+
+  /* Charger la vraie expérience (pour la vivanote, absente du snapshot) */
   useEffect(() => {
     if (!booking?.experienceId) return
 
@@ -24,8 +48,10 @@ export default function ExperienciaPage() {
     })
   }, [booking])
 
+  usePageReady(!loading)
+
   /* Sécurité */
-  if (!booking || !experience) {
+  if (loading || !booking) {
     return (
       <div style={{ padding: 24, minHeight: "100vh", background: "#FAF8F5" }}>
         Cargando experiencia...
@@ -33,11 +59,13 @@ export default function ExperienciaPage() {
     )
   }
 
+  const exp = booking.experienceSnapshot
   const isConfirmed =
     booking.status === "confirmed" || booking.status === "done"
-
-  // 🔥 id = nom du prestataire
-  const providerName = experience.id
+  // La galerie complète vit sur l'Experience (fetchée à part), pas sur le
+  // snapshot de la réservation — tant qu'elle n'est pas arrivée, on retombe
+  // sur la seule image du snapshot pour ne pas laisser le hero vide.
+  const photos = getExperiencePhotos(experience ?? { image: exp.image, gallery: undefined })
 
   return (
     <div
@@ -49,13 +77,9 @@ export default function ExperienciaPage() {
     >
       <h1 style={{ fontSize: 26, marginBottom: 16 }}>Tu experiencia</h1>
 
-      {/* IMAGE */}
-      <div style={{ borderRadius: 18, overflow: "hidden", marginBottom: 18 }}>
-        <img
-          src={experience.image}
-          alt={experience.title}
-          style={{ width: "100%", height: 200, objectFit: "cover" }}
-        />
+      {/* GALERIE */}
+      <div style={{ borderRadius: 18, overflow: "hidden", marginBottom: 18, aspectRatio: "16 / 9" }}>
+        <PhotoGallery photos={photos} alt={exp.title} />
       </div>
 
       {/* INFO CARD */}
@@ -68,16 +92,16 @@ export default function ExperienciaPage() {
           marginBottom: 20,
         }}
       >
-        <h2 style={{ marginTop: 0 }}>{experience.title}</h2>
+        <h2 style={{ marginTop: 0 }}>{exp.title}</h2>
 
         {/* 🔥 PRESTATAIRE visible seulement après confirmation */}
-        {isConfirmed && (
+        {isConfirmed && exp.providerName && (
           <div style={{ fontSize: 14, color: "#555", marginBottom: 6 }}>
-            Prestador: {providerName}
+            Prestador: {exp.providerName}
           </div>
         )}
 
-        <InfoRow icon={MapPin} value={experience.zone} />
+        <InfoRow icon={MapPin} value={exp.zone} />
         <InfoRow icon={Calendar} value={booking.date} />
         <InfoRow icon={Clock} value={booking.time} />
       </div>
@@ -90,9 +114,11 @@ export default function ExperienciaPage() {
       </Section>
 
       {/* VIVANOTE */}
-      <Section title="Recomendación Vivabox">
-        <p style={{ margin: 0, color: "#555" }}>{experience.vivanote}</p>
-      </Section>
+      {experience?.vivanote && (
+        <Section title="Recomendación Vivabox">
+          <p style={{ margin: 0, color: "#555" }}>{experience.vivanote}</p>
+        </Section>
+      )}
 
       {/* AYUDA */}
       <div
@@ -109,7 +135,7 @@ export default function ExperienciaPage() {
           Nuestro equipo puede ayudarte con cualquier detalle.
         </p>
         <button
-          onClick={() => window.open(getWhatsAppLink(`Hola, tengo una pregunta sobre "${experience.title}".`), "_blank")}
+          onClick={() => window.open(getWhatsAppLink(`Hola, tengo una pregunta sobre "${exp.title}".`), "_blank")}
           style={{
             marginTop: 10,
             width: "100%",

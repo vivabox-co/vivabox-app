@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUI } from '@/components/ui/UIContext'
 import { categoryColors } from '@/lib/map/categoryColors'
@@ -13,6 +12,7 @@ import {
   Users,
   Heart,
 } from 'lucide-react'
+import PhotoGallery from '@/components/ui/PhotoGallery'
 import { RecoExperience } from './recoTypes'
 
 type Props = {
@@ -23,7 +23,6 @@ type Props = {
 export default function DetailScreen({ experience, onBack }: Props) {
   const router = useRouter()
   const { isFavorite, toggleFavorite, setSelectedExperience } = useUI()
-  const [activePhoto, setActivePhoto] = useState(0)
 
   if (!experience) return null
 
@@ -62,98 +61,40 @@ export default function DetailScreen({ experience, onBack }: Props) {
           overflow: 'hidden',
         }}
       >
-        <div
-          className="hero-gallery-track"
-          style={{
-            display: 'flex',
-            width: '100%',
-            height: '100%',
-            overflowX: 'auto',
-            scrollSnapType: 'x mandatory',
-            WebkitOverflowScrolling: 'touch',
-          }}
-          onScroll={e => {
-            const el = e.currentTarget
-            const idx = Math.round(el.scrollLeft / el.clientWidth)
-            setActivePhoto(idx)
-          }}
-        >
-          {photos.map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt={`${experience.title} ${i + 1}`}
-              style={{
-                flex: '0 0 100%',
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                scrollSnapAlign: 'center',
-              }}
-            />
-          ))}
-        </div>
+        <PhotoGallery photos={photos} alt={experience.title}>
+          {/* ← BACK */}
+          <button
+            onClick={onBack}
+            style={iconLeft}
+          >
+            <ArrowLeft size={18} />
+          </button>
 
-        {/* 🔘 DOTS */}
-        {photos.length > 1 && (
+          {/* CATEGORY */}
           <div
             style={{
-              position: 'absolute',
-              bottom: 12,
-              left: 0,
-              right: 0,
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 6,
+              ...categoryBadge,
+              background: categoryColor,
             }}
           >
-            {photos.map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  background: i === activePhoto ? '#fff' : 'rgba(255,255,255,0.5)',
-                  transition: 'background 0.15s ease',
-                }}
-              />
-            ))}
+            {categoryLabel(experience.category)}
           </div>
-        )}
 
-        {/* ← BACK */}
-        <button
-          onClick={onBack}
-          style={iconLeft}
-        >
-          <ArrowLeft size={18} />
-        </button>
-
-        {/* CATEGORY */}
-        <div
-          style={{
-            ...categoryBadge,
-            background: categoryColor,
-          }}
-        >
-          {categoryLabel(experience.category)}
-        </div>
-
-        {/* FAVORITE */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            toggleFavorite(experience.id)
-          }}
-          style={iconRight}
-        >
-          <Heart
-            size={18}
-            color={fav ? '#E11D48' : '#333'}
-            fill={fav ? '#E11D48' : 'transparent'}
-          />
-        </button>
+          {/* FAVORITE */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleFavorite(experience.id)
+            }}
+            style={iconRight}
+          >
+            <Heart
+              size={18}
+              color={fav ? '#E11D48' : '#333'}
+              fill={fav ? '#E11D48' : 'transparent'}
+            />
+          </button>
+        </PhotoGallery>
       </div>
 
       {/* ===== CONTENT ===== */}
