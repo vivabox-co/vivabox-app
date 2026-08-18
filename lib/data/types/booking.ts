@@ -6,6 +6,7 @@ export type Booking = {
   date: string
   time: string
   status: BookingStatus
+  createdAt: string
 
   experienceSnapshot: {
     id: string

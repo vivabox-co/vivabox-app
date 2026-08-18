@@ -45,7 +45,7 @@ export async function GET(
 
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
-      .select("id, activation_code_id, experience_code, requested_date, message, status")
+      .select("id, activation_code_id, experience_code, requested_date, message, status, created_at")
       .eq("id", bookingId)
       .maybeSingle()
 
@@ -61,10 +61,13 @@ export async function GET(
 
     // Le catalogue d'expériences reste sur Google Sheets (pas de FK possible
     // côté Supabase) — on va chercher le snapshot via la route existante.
+    // image vide par défaut (pas de placeholder codé en dur) : si aucun match
+    // n'est trouvé, le front garde la photo déjà affichée (selectedExperience)
+    // au lieu de l'écraser par un chemin qui peut ne pas exister.
     let experienceSnapshot = {
       id: booking.experience_code,
       title: "",
-      image: "/images/placeholder.jpg",
+      image: "",
       zone: "",
       category: "",
       providerName: "",
@@ -102,6 +105,7 @@ export async function GET(
         date: booking.requested_date ?? "",
         time: timeMatch ? timeMatch[1].trim() : "",
         status: STATUS_MAP[booking.status] ?? booking.status,
+        createdAt: booking.created_at,
         experienceSnapshot,
       },
     });

@@ -34,7 +34,10 @@ export default function BookingTimeline({ status, category, onNext, onPrev }: Pr
   const CENTER_OFFSET = CIRCLE_SIZE / 2
 
   const lineHeight = (steps.length - 1) * STEP_HEIGHT + CENTER_OFFSET
-  const progressHeight = currentIndex * STEP_HEIGHT + CENTER_OFFSET
+  // currentIndex vaut -1 pour "rejected" (absent de `steps`, cf. encadré
+  // rouge au-dessus) : on borne à 0 plutôt que de passer une hauteur
+  // négative invalide en CSS.
+  const progressHeight = Math.max(0, currentIndex * STEP_HEIGHT + CENTER_OFFSET)
 
   return (
     <div style={{ marginTop: 30 }}>

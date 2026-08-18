@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { MapPin, Calendar, Clock, Phone, CheckCircle } from "lucide-react"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
+import { getWhatsAppLink } from "@/lib/constants/contact"
 
 export default function ExperienciaPage() {
   const [booking, setBooking] = useState<any>(null)
@@ -108,6 +109,7 @@ export default function ExperienciaPage() {
           Nuestro equipo puede ayudarte con cualquier detalle.
         </p>
         <button
+          onClick={() => window.open(getWhatsAppLink(`Hola, tengo una pregunta sobre "${experience.title}".`), "_blank")}
           style={{
             marginTop: 10,
             width: "100%",
@@ -121,6 +123,7 @@ export default function ExperienciaPage() {
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
+            cursor: "pointer",
           }}
         >
           <Phone size={16} />

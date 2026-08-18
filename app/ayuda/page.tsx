@@ -1,6 +1,7 @@
 "use client"
 
 import { MessageCircle, Phone, Clock, CalendarX, Info } from "lucide-react"
+import { getWhatsAppLink, WHATSAPP_NUMBER } from "@/lib/constants/contact"
 
 export default function AyudaPage() {
   return (
@@ -22,6 +23,7 @@ export default function AyudaPage() {
 
         {/* PRIMARY */}
         <button
+          onClick={() => window.open(getWhatsAppLink("Hola, necesito ayuda con mi Vivabox."), "_blank")}
           style={{
             marginTop: 12,
             width: "100%",
@@ -45,7 +47,8 @@ export default function AyudaPage() {
         </button>
 
         {/* SECONDARY */}
-        <button
+        <a
+          href={`tel:+${WHATSAPP_NUMBER}`}
           style={{
             marginTop: 10,
             width: "100%",
@@ -61,11 +64,13 @@ export default function AyudaPage() {
             justifyContent: "center",
             gap: 8,
             cursor: "pointer",
+            textDecoration: "none",
+            boxSizing: "border-box",
           }}
         >
           <Phone size={16} />
           Llamar
-        </button>
+        </a>
       </Card>
 
       {/* CAMBIOS */}

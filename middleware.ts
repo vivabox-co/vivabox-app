@@ -23,7 +23,7 @@ const publicRoutes = [
 const activationEntryRoute = '/activar';
 
 type SessionContext = {
-  estado: 'Activada' | 'Reservada' | 'Confirmada';
+  estado: 'Activada' | 'Reservada' | 'Confirmada' | 'Rechazada';
   booking_id: string | null;
   // Non-null quand /api/codigo/context a glissé la session (voir ce fichier) :
   // le cookie doit être réémis avec cette nouvelle expiration.
@@ -78,6 +78,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // 1bis. Routes protégées par leur propre secret (pas par vb_session) :
+  //       le cron Vercel (CRON_SECRET) et l'annulation admin (ADMIN_API_KEY,
+  //       voir PATCH /api/booking/[bookingId]) sont des appels serveur-à-
+  //       serveur qui n'ont jamais de cookie de session bénéficiaire — les
+  //       laisser tomber dans la règle 6 ci-dessous les redirigeait vers
+  //       /activar avant même d'atteindre le handler, qui revalide de toute
+  //       façon son propre header.
+  if (
+    pathname.startsWith('/api/cron/') ||
+    (pathname.startsWith('/api/booking/') && request.method === 'PATCH')
+  ) {
+    return NextResponse.next();
+  }
+
   // 2. Racine de l'app → toujours vers l'activation. C'est /activar
   //    (bloc suivant) qui décide ensuite, selon l'état de session, si on
   //    montre le formulaire ou si on redirige plus loin (/mapa, suivi...).
@@ -107,7 +121,7 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    if (context.estado === 'Reservada' || context.estado === 'Confirmada') {
+    if (context.estado === 'Reservada' || context.estado === 'Confirmada' || context.estado === 'Rechazada') {
       const redirect = NextResponse.redirect(new URL(`/reservar/seguimiento/${context.booking_id}`, request.url));
       return withRenewedCookie(redirect, sessionToken, context);
     }
@@ -154,6 +168,15 @@ export async function middleware(request: NextRequest) {
       return withRenewedCookie(redirect, sessionToken, context);
     }
     // Sinon, laisser passer (ex: page de suivi elle-même)
+    return withRenewedCookie(NextResponse.next(), sessionToken, context);
+  }
+
+  if (estado === 'Rechazada') {
+    // Contrairement à Reservada/Confirmada, on ne force pas la redirection
+    // depuis /mapa ou /lista : la personne doit pouvoir repartir chercher une
+    // autre expérience. Mais contrairement à Activada, on ne bloque plus
+    // l'accès à /reservar/seguimiento — elle doit pouvoir revoir pourquoi sa
+    // réservation a été refusée si elle y retourne (bouton retour, lien...).
     return withRenewedCookie(NextResponse.next(), sessionToken, context);
   }
 

@@ -4,8 +4,10 @@ import { hashSessionToken } from "@/lib/utils/sessionToken"
 import { SESSION_VALIDITY_DAYS, SESSION_RENEWAL_THRESHOLD_DAYS } from "@/lib/constants/session"
 
 // estado renvoyé au middleware, dans le vocabulaire historique (ère Google
-// Sheets) qu'il attend déjà : Activada / Reservada / Confirmada.
-type Estado = "Activada" | "Reservada" | "Confirmada"
+// Sheets) qu'il attend déjà : Activada / Reservada / Confirmada. "Rechazada"
+// est propre à l'app (pas de site vitrine concerné) : réservation refusée
+// par le lieu, pas encore relancée.
+type Estado = "Activada" | "Reservada" | "Confirmada" | "Rechazada"
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,11 +62,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "NOT_ACTIVATED" });
     }
 
+    // "cancelled" est inclus (contrairement à avant) pour que le middleware
+    // puisse renvoyer estado="Rechazada" plutôt que de faire comme si aucune
+    // réservation n'avait jamais existé — sinon /reservar/seguimiento devenait
+    // inaccessible pile quand la personne a le plus besoin d'y lire pourquoi.
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
       .select("id, status")
       .eq("activation_code_id", session.activation_code_id)
-      .in("status", ["requested", "confirmed", "completed"])
+      .in("status", ["requested", "confirmed", "completed", "cancelled"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -77,6 +83,7 @@ export async function POST(req: NextRequest) {
     let estado: Estado = "Activada"
     if (booking?.status === "requested") estado = "Reservada"
     if (booking?.status === "confirmed" || booking?.status === "completed") estado = "Confirmada"
+    if (booking?.status === "cancelled") estado = "Rechazada"
 
     return NextResponse.json({
       success: true,

@@ -11,7 +11,10 @@ import { parseCSV } from "@/lib/utils/csv"
 import { formatDuration } from "@/lib/format/duration"
 
 // ------------------------------
-// SHEET (fallback CSV quand /api/experiencias échoue)
+// SHEET (source du catalogue — remplace l'ancien backend Apps Script,
+// dont l'action "get_experiencias" n'existe plus côté script : voir
+// fetchExperiencesFromSheet, utilisée à la fois ici en fallback client
+// et côté serveur par /api/experiencias)
 // ------------------------------
 const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0wvZlSud-v8_n6IWeI6_qfWgmuViBjkp1-yHP-RJ90VlxhistJE2MuV0k_jc88cUeyOngtBI3ZdWM/pub?gid=1700161859&single=true&output=csv"
@@ -126,7 +129,9 @@ function mapRow(row: Record<string, string>): Experience | null {
   }
 }
 
-async function fetchLegacyCSV(): Promise<Experience[]> {
+// Exportée : appelée aussi bien ici (fallback client) que côté serveur par
+// /api/experiencias/route.ts, qui n'a plus de backend Apps Script à appeler.
+export async function fetchExperiencesFromSheet(): Promise<Experience[]> {
   const res = await fetch(SHEET_CSV_URL, { cache: "no-store" })
   const text = await res.text()
   const rows = parseCSV(text)
@@ -199,10 +204,10 @@ async function fetchExperiencesUncached(): Promise<Experience[]> {
 
     // Si l'API retourne un succès mais pas le bon format, on log et on fallback
     console.warn("⚠️ API réponse inattendue, fallback CSV", json)
-    return await fetchLegacyCSV()
+    return await fetchExperiencesFromSheet()
   } catch (error) {
     console.error("❌ Erreur API /api/experiencias, fallback CSV :", error)
     // En attendant que l'API soit prête, on utilise l'ancienne méthode
-    return await fetchLegacyCSV()
+    return await fetchExperiencesFromSheet()
   }
 }

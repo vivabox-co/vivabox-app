@@ -2,44 +2,62 @@
 
 import { BookingStatus } from "./BookingTimeline"
 
+export type StatusAction = "change_dates" | "contact" | "view_details" | "leave_review"
+
 type Props = {
   status: BookingStatus
+  onAction: (action: StatusAction) => void
+  reviewed?: boolean
 }
 
-export default function DynamicStatusBlock({ status }: Props) {
+export default function DynamicStatusBlock({ status, onAction, reviewed }: Props) {
   const content: Record<
     BookingStatus,
-    { title: string; text: string; actions?: string[] }
+    { title: string; text: string; actions?: { key: StatusAction; label: string }[] }
   > = {
     requested: {
       title: "Fechas recibidas",
       text: "Ya tenemos tus fechas. Estamos empezando a coordinar con el lugar para que todo encaje perfectamente.",
-      actions: ["Cambiar fechas", "Hablar con Mariana"],
+      actions: [
+        { key: "change_dates", label: "Cambiar fechas" },
+        { key: "contact", label: "Hablar con Mariana" },
+      ],
     },
 
     waiting_provider: {
       title: "Coordinando con el lugar",
       text: "Estamos en contacto con el lugar para asegurar tu experiencia. Te avisamos apenas quede confirmada.",
-      actions: ["Cambiar fechas", "Hablar con Mariana"],
+      actions: [
+        { key: "change_dates", label: "Cambiar fechas" },
+        { key: "contact", label: "Hablar con Mariana" },
+      ],
     },
 
     confirmed: {
       title: "Fecha confirmada ✨",
-      text: "Tu momento quedó agendado. Pronto podrás ver los detalles finales para ese día.",
-      actions: ["Ver detalles"],
+      text: "Tu momento quedó agendado. Desde aquí ya no se puede cambiar la fecha — si necesitas ajustar algo, escríbenos directamente.",
+      actions: [
+        { key: "view_details", label: "Ver detalles" },
+        { key: "contact", label: "Hablar con Mariana" },
+      ],
     },
 
     rejected: {
       title: "Busquemos otra fecha",
       text: "No pudimos confirmar esa opción, pero ya estamos viendo alternativas que funcionen mejor para ti.",
-      actions: ["Hablar con Mariana"],
+      actions: [{ key: "contact", label: "Hablar con Mariana" }],
     },
 
-    done: {
-      title: "¿Cómo te fue?",
-      text: "Tu opinión ayuda a otros a descubrir experiencias que valen la pena.",
-      actions: ["Dejar opinión"],
-    },
+    done: reviewed
+      ? {
+          title: "¡Gracias por tu opinión!",
+          text: "Ya recibimos tu comentario. Nos ayuda a seguir mejorando cada experiencia.",
+        }
+      : {
+          title: "¿Cómo te fue?",
+          text: "Tu opinión ayuda a otros a descubrir experiencias que valen la pena.",
+          actions: [{ key: "leave_review", label: "Dejar opinión" }],
+        },
   }
 
   const block = content[status]
@@ -79,9 +97,10 @@ export default function DynamicStatusBlock({ status }: Props) {
 
       {block.actions && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {block.actions.map((label) => (
+          {block.actions.map((action) => (
             <button
-              key={label}
+              key={action.key}
+              onClick={() => onAction(action.key)}
               style={{
                 padding: "9px 16px",
                 borderRadius: 999,
@@ -93,7 +112,7 @@ export default function DynamicStatusBlock({ status }: Props) {
                 cursor: "pointer",
               }}
             >
-              {label}
+              {action.label}
             </button>
           ))}
         </div>
