@@ -11,7 +11,13 @@ type Estado = "Activada" | "Reservada" | "Confirmada" | "Rechazada"
 
 export async function POST(req: NextRequest) {
   try {
-    const { token } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    // Le middleware appelle avec { token } (il lit le cookie lui-même côté
+    // serveur avant d'atteindre cette route). Un appel direct depuis le
+    // client (ex: getCurrentBookingId, pour retrouver la réservation active
+    // après un logout/relogin qui a vidé le localStorage) n'a pas accès au
+    // cookie httpOnly en JS — il envoie un corps vide et on lit le cookie ici.
+    const token = body.token || req.cookies.get('vb_session')?.value;
     if (!token) {
       return NextResponse.json({ success: false, error: "NO_TOKEN" });
     }

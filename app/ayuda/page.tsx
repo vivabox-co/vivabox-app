@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { MessageCircle, Phone, CalendarX, ChevronDown } from "lucide-react"
 import { getWhatsAppLink, WHATSAPP_NUMBER } from "@/lib/constants/contact"
 import RescheduleModal from "@/components/ui/RescheduleModal"
+import { getCurrentBookingId } from "@/lib/data/getCurrentBookingId"
 import { Booking } from "@/lib/data/types/booking"
 
 const FAQS = [
@@ -30,20 +31,27 @@ export default function AyudaPage() {
   const [showReschedule, setShowReschedule] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
 
-  // Reprend la réservation active (même logique que /experiencia) pour
+  // Reprend la réservation active (même logique que /experiencia, y compris
+  // le fallback serveur si le localStorage a été vidé par un logout) pour
   // pouvoir brancher "Solicitar cambio" sur le flux de reprogrammation déjà
   // existant, sans avoir à redemander l'identité de la réservation ici.
   useEffect(() => {
-    const stored = localStorage.getItem("currentBooking")
-    const bookingId = stored ? JSON.parse(stored).id : null
-    if (!bookingId) return
+    let cancelled = false
 
-    fetch(`/api/booking/${bookingId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.data) setBooking(data.data)
-      })
-      .catch(() => {})
+    getCurrentBookingId().then((bookingId) => {
+      if (cancelled || !bookingId) return
+
+      fetch(`/api/booking/${bookingId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!cancelled && data.success && data.data) setBooking(data.data)
+        })
+        .catch(() => {})
+    })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // La reprogramación solo tiene sentido mientras la reserva sigue en

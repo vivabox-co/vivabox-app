@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { Map, List, Heart, Clock, MessageCircle, LogOut } from "lucide-react";
+import { getCurrentBookingId } from "@/lib/data/getCurrentBookingId";
 
 /* 🔥 Recale la nav sur le viewport visuel réel : Safari iOS ne repositionne
    pas toujours les éléments `position: fixed` quand sa barre d'outils du
@@ -64,11 +65,10 @@ const bookingItems: Item[] = [
   {
     label: "Seguimiento",
     Icon: Clock,
-    action: (router) => {
-      const stored = localStorage.getItem("currentBooking");
-      if (!stored) return;
-      const booking = JSON.parse(stored);
-      router.push(`/reservar/seguimiento/${booking.id}`);
+    action: async (router) => {
+      const bookingId = await getCurrentBookingId();
+      if (!bookingId) return;
+      router.push(`/reservar/seguimiento/${bookingId}`);
     },
   },
   { href: "/experiencia", label: "Tu experiencia", Icon: (props) => <LogoIcon size={36} /> },

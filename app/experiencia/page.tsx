@@ -6,6 +6,7 @@ import Link from "next/link"
 import { MapPin, Calendar, Clock, ChevronRight, Shirt, CloudSun, AlertCircle, Info, Users } from "lucide-react"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
 import { getExperiencePhotos } from "@/lib/data/getExperiencePhotos"
+import { getCurrentBookingId } from "@/lib/data/getCurrentBookingId"
 import { formatLabel } from "@/lib/map/formatLabels"
 import { usePageReady } from "@/components/ui/UIContext"
 import PhotoGallery from "@/components/ui/PhotoGallery"
@@ -43,23 +44,37 @@ export default function ExperienciaPage() {
 
   // "currentBooking" ne contient que l'id (voir confirmacion/page.tsx) — le
   // reste (statut, date, snapshot...) vient toujours de l'API, jamais du
-  // localStorage, pour ne pas afficher une réservation périmée.
+  // localStorage, pour ne pas afficher une réservation périmée. Si ce
+  // localStorage a été vidé (ex: logout puis reconnexion), getCurrentBookingId
+  // le retrouve via la session côté serveur au lieu de nous faire échouer ici.
   useEffect(() => {
-    const stored = localStorage.getItem("currentBooking")
-    const bookingId = stored ? JSON.parse(stored).id : null
-    if (!bookingId) {
-      router.replace("/mapa")
-      return
-    }
+    let cancelled = false
 
-    fetch(`/api/booking/${bookingId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.data) setBooking(data.data)
-        else router.replace("/mapa")
-      })
-      .catch(() => router.replace("/mapa"))
-      .finally(() => setLoading(false))
+    getCurrentBookingId().then((bookingId) => {
+      if (cancelled) return
+      if (!bookingId) {
+        router.replace("/mapa")
+        return
+      }
+
+      fetch(`/api/booking/${bookingId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (cancelled) return
+          if (data.success && data.data) setBooking(data.data)
+          else router.replace("/mapa")
+        })
+        .catch(() => {
+          if (!cancelled) router.replace("/mapa")
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false)
+        })
+    })
+
+    return () => {
+      cancelled = true
+    }
   }, [router])
 
   /* Charger la vraie expérience (pour la vivanote, absente du snapshot) */
