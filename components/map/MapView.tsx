@@ -124,8 +124,6 @@ export default function MapView({
   // pour que les tuiles voisines se préchargent tranquillement en arrière-
   // plan avant que l'utilisateur ne déplace la carte.
   const [tileBuffer, setTileBuffer] = useState(0)
-  const [loadingExperiences, setLoadingExperiences] = useState(true)
-  const [overlayMounted, setOverlayMounted] = useState(true)
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null)
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
@@ -159,25 +157,8 @@ export default function MapView({
   }
 
   useEffect(() => {
-    fetchExperiences()
-      .then(setExperiences)
-      .finally(() => setLoadingExperiences(false))
+    fetchExperiences().then(setExperiences)
   }, [])
-
-  // ⚠️ Ne JAMAIS bloquer l'écran d'attente sur le chargement des tuiles :
-  // une tuile lente (cache froid côté Stadia, réseau mobile) ne doit pas
-  // faire attendre l'utilisateur indéfiniment. On ne bloque que sur les
-  // données (rapide, ~1-2s) ; les tuiles apparaissent progressivement
-  // derrière, comme sur n'importe quelle carte (Google Maps, etc.).
-  const mapVisuallyReady = !loadingExperiences
-
-  // Laisse le temps au fondu CSS (300ms) avant de retirer l'écran d'attente
-  // du DOM, pour un vrai fondu plutôt qu'une disparition brutale.
-  useEffect(() => {
-    if (!mapVisuallyReady) return
-    const id = setTimeout(() => setOverlayMounted(false), 300)
-    return () => clearTimeout(id)
-  }, [mapVisuallyReady])
 
   const { filteredExperiences } = useMemo(() => {
     return filterExperiences(experiences, {
@@ -200,30 +181,6 @@ export default function MapView({
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>
-      {overlayMounted && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 900,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 12,
-            background: "#f4f1ea",
-            pointerEvents: "none",
-            opacity: mapVisuallyReady ? 0 : 1,
-            transition: "opacity 0.3s ease",
-          }}
-        >
-          <div className="vb-spinner" />
-          <span style={{ fontSize: 14, color: "#999" }}>
-            Preparando tu mapa...
-          </span>
-        </div>
-      )}
-
       <MapContainer
         center={[4.65, -74.08]}
         zoom={13}

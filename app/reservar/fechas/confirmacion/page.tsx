@@ -40,7 +40,7 @@ function ConfirmacionContent() {
 
   if (!bookingId) return null
 
-  const heroImage = bookedImage || selectedExperience?.image || "/images/placeholder.jpg"
+  const heroImage = bookedImage || selectedExperience?.image || "/image/image_welcome.webp"
 
   return (
     <div style={wrapperStyle}>

@@ -88,6 +88,8 @@ export default function FechasPage() {
   }
   const exp = selectedExperience
 
+  const isFormComplete = selectedDates.length > 0 && !!momentBlock
+
   // La cantidad de base viene del producto (format), pas d'un choix libre —
   // seul le nombre de personnes EN PLUS (si l'expérience le permet) est
   // ajustable, sans plafond : chaque personne extra passe par validation du
@@ -288,10 +290,10 @@ export default function FechasPage() {
           )}
         </Card>
 
-        <button onClick={handleSubmit} disabled={loading} style={{
+        <button onClick={handleSubmit} disabled={loading || !isFormComplete} style={{
           ...cta,
-          opacity: loading ? 0.6 : 1,
-          cursor: loading ? "not-allowed" : "pointer"
+          opacity: loading ? 0.6 : isFormComplete ? 1 : 0.4,
+          cursor: loading || !isFormComplete ? "not-allowed" : "pointer"
         }}>
           {loading ? "Creando reserva..." : "Continuar"}
         </button>

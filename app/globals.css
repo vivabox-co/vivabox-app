@@ -378,9 +378,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
    Ported from the marketing site (vivabox web). The gift box
    fills with its four brand colors, holds complete, empties,
    and repeats — a 1.3s lap, looping for as long as the caller
-   keeps it mounted (see useMinDisplayTime / RouteLoaderOverlay,
-   which guarantee at least one full lap is seen before swapping
-   to real content).
+   keeps it mounted (see useLoaderReveal / RouteLoaderOverlay,
+   which wait for the real "all 4 colors visible" DOM state
+   before swapping to real content).
 ========================================= */
 
 @keyframes vb-loader-ink-in {

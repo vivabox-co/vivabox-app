@@ -19,7 +19,7 @@ import { buildAmbianceFilters } from "@/lib/product/buildAmbianceFilters"
 import BottomSheet from "@/components/ui/BottomSheet"
 import ExperienceExploreMeta from "@/components/experience/ExperienceExploreMeta"
 import FiltersDrawer from "@/components/filters/FiltersDrawer"
-import { useUI } from "@/components/ui/UIContext"
+import { useUI, usePageReady } from "@/components/ui/UIContext"
 
 import RecoOverlay from "@/components/reco/RecoOverlay"
 import CategoryLegend from "../../components/map/CategoryLegend"
@@ -72,6 +72,7 @@ export default function MapaPage() {
   }, [])
 
   const [experiences, setExperiences] = useState<Experience[]>([])
+  const [loadingExperiences, setLoadingExperiences] = useState(true)
 
   const [activeActivities, setActiveActivities] = useState<ActivityKey[]>([])
   const [activeCategories, setActiveCategories] =
@@ -89,8 +90,15 @@ export default function MapaPage() {
   // de vérification côté client ici : sessionStorage ne survit pas à la
   // fermeture de l'onglet/l'app, contrairement au cookie.
   useEffect(() => {
-    fetchExperiences().then(setExperiences)
+    fetchExperiences()
+      .then(setExperiences)
+      .finally(() => setLoadingExperiences(false))
   }, [])
+
+  // Garde le loader Vivabox plein écran affiché jusqu'à ce que le catalogue
+  // soit chargé, pour ne jamais laisser apparaître le spinner générique de
+  // secours de MapView (voir son commentaire) pendant la transition de route.
+  usePageReady(!loadingExperiences)
 
   const availableCities = useMemo(() => {
     const set = new Set<string>()
