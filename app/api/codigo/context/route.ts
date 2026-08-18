@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       .from("bookings")
       .select("id, status")
       .eq("activation_code_id", session.activation_code_id)
-      .in("status", ["requested", "confirmed", "completed", "cancelled"])
+      .in("status", ["requested", "alternative_proposed", "confirmed", "completed", "cancelled"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     }
 
     let estado: Estado = "Activada"
-    if (booking?.status === "requested") estado = "Reservada"
+    if (booking?.status === "requested" || booking?.status === "alternative_proposed") estado = "Reservada"
     if (booking?.status === "confirmed" || booking?.status === "completed") estado = "Confirmada"
     if (booking?.status === "cancelled") estado = "Rechazada"
 
