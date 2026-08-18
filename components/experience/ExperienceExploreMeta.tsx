@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useState } from "react"
+import { Fragment } from "react"
 import { Experience } from "@/lib/data/types"
 import { categoryColors } from "@/lib/map/categoryColors"
 import { categoryLabel } from "@/lib/map/categoryLabels"
@@ -8,6 +8,7 @@ import { formatLabel } from "@/lib/map/formatLabels"
 import { formatDuration } from "@/lib/format/duration"
 import { getExperiencePhotos } from "@/lib/data/getExperiencePhotos"
 import { useUI } from "@/components/ui/UIContext"
+import PhotoGallery from "@/components/ui/PhotoGallery"
 import {
   MapPin,
   Clock,
@@ -27,7 +28,6 @@ type Props = {
 
 export default function ExperienceExploreMeta({ exp }: Props) {
   const { isFavorite, toggleFavorite } = useUI()
-  const [activePhoto, setActivePhoto] = useState(0)
 
   if (!exp) return null
 
@@ -46,62 +46,27 @@ export default function ExperienceExploreMeta({ exp }: Props) {
     <div style={{ paddingBottom: 24 }}>
       {/* HERO IMAGE */}
       <div style={heroWrap}>
-        <div
-          className="hero-gallery-track"
-          style={heroTrack}
-          onScroll={(e) => {
-            const el = e.currentTarget
-            const idx = Math.round(el.scrollLeft / el.clientWidth)
-            setActivePhoto(idx)
-          }}
-        >
-          {photos.map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt={`${exp.title} ${i + 1}`}
-              style={heroImg}
-            />
-          ))}
-        </div>
-
-        {/* 🏷 CATEGORY BADGE */}
-        <div style={{ ...categoryBadge, background: color }}>
-          {categoryLabel(exp.category)}
-        </div>
-
-        {/* 🤍 FAVORITE BUTTON */}
-        <button
-          style={favButton}
-          onClick={(e) => {
-            e.stopPropagation()
-            toggleFavorite(exp.id)
-          }}
-        >
-          <Heart
-            size={20}
-            color={fav ? "#E11D48" : "#333"}
-            fill={fav ? "#E11D48" : "transparent"}
-          />
-        </button>
-
-        {/* 🔘 DOTS */}
-        {photos.length > 1 && (
-          <div style={dotsWrap}>
-            {photos.map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  ...dot,
-                  background:
-                    i === activePhoto
-                      ? "#fff"
-                      : "rgba(255,255,255,0.5)",
-                }}
-              />
-            ))}
+        <PhotoGallery photos={photos} alt={exp.title}>
+          {/* 🏷 CATEGORY BADGE */}
+          <div style={{ ...categoryBadge, background: color }}>
+            {categoryLabel(exp.category)}
           </div>
-        )}
+
+          {/* 🤍 FAVORITE BUTTON */}
+          <button
+            style={favButton}
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleFavorite(exp.id)
+            }}
+          >
+            <Heart
+              size={20}
+              color={fav ? "#E11D48" : "#333"}
+              fill={fav ? "#E11D48" : "transparent"}
+            />
+          </button>
+        </PhotoGallery>
       </div>
 
       <div style={{ padding: "16px" }}>
@@ -198,40 +163,6 @@ const heroWrap: React.CSSProperties = {
   borderRadius: 16,
   overflow: "hidden",
   marginBottom: 16,
-}
-
-const heroTrack: React.CSSProperties = {
-  display: "flex",
-  width: "100%",
-  height: "100%",
-  overflowX: "auto",
-  scrollSnapType: "x mandatory",
-  WebkitOverflowScrolling: "touch",
-}
-
-const heroImg: React.CSSProperties = {
-  flex: "0 0 100%",
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-  scrollSnapAlign: "center",
-}
-
-const dotsWrap: React.CSSProperties = {
-  position: "absolute",
-  bottom: 12,
-  left: 0,
-  right: 0,
-  display: "flex",
-  justifyContent: "center",
-  gap: 6,
-}
-
-const dot: React.CSSProperties = {
-  width: 6,
-  height: 6,
-  borderRadius: "50%",
-  transition: "background 0.15s ease",
 }
 
 const categoryBadge: React.CSSProperties = {
