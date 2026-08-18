@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
 
 type DragState = {
   startX: number
@@ -19,7 +18,7 @@ type Props = {
   children?: React.ReactNode
 }
 
-// Galerie photo partagée (scroll-snap + dots cliquables + flèches + drag
+// Galerie photo partagée (scroll-snap + dots cliquables + drag
 // souris/tactile) — portée depuis ExperienceModal.tsx du site vitrine pour
 // remplacer les 3 implémentations dupliquées (experiencia, fechas, DetailScreen).
 export default function PhotoGallery({ photos, alt, style, imageStyle, dotsBottom = 12, children }: Props) {
@@ -40,9 +39,6 @@ export default function PhotoGallery({ photos, alt, style, imageStyle, dotsBotto
     if (!el) return
     el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" })
   }
-
-  const goPrev = () => goTo((active - 1 + photos.length) % photos.length)
-  const goNext = () => goTo((active + 1) % photos.length)
 
   const handlePointerDown = (e: React.PointerEvent) => {
     const el = trackRef.current
@@ -123,14 +119,6 @@ export default function PhotoGallery({ photos, alt, style, imageStyle, dotsBotto
 
       {showNav && (
         <>
-          <button onClick={goPrev} aria-label="Foto anterior" style={{ ...arrowBase, left: 10 }}>
-            <ChevronLeft size={18} strokeWidth={2} />
-          </button>
-
-          <button onClick={goNext} aria-label="Foto siguiente" style={{ ...arrowBase, right: 10 }}>
-            <ChevronRight size={18} strokeWidth={2} />
-          </button>
-
           <div
             style={{
               position: "absolute",
@@ -167,21 +155,4 @@ export default function PhotoGallery({ photos, alt, style, imageStyle, dotsBotto
       {children}
     </div>
   )
-}
-
-const arrowBase: React.CSSProperties = {
-  position: "absolute",
-  top: "50%",
-  transform: "translateY(-50%)",
-  width: 32,
-  height: 32,
-  borderRadius: "50%",
-  border: "none",
-  background: "rgba(0,0,0,0.35)",
-  color: "#fff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer",
-  zIndex: 20,
 }
