@@ -4,8 +4,11 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useUI } from "@/components/ui/UIContext"
 import { prefersReducedMotion } from "@/lib/utils/prefersReducedMotion"
+import { ActivatedCard } from "@/app/activacion-completa/page"
 
-const CARD_TRANSITION_MS = 500
+// Un peu plus douce pour le dernier saut (vers "Tu regalo está activo"),
+// comme pour les autres transitions de ce flow (voir app/activar/page.tsx).
+const CARD_TRANSITION_MS = 600
 
 export default function DatosPage() {
   const router = useRouter()
@@ -131,70 +134,133 @@ console.log("activateData.error:", activateData?.error)
           alt="Vivabox"
           style={logo}
         />
-        <div style={cardSoft}>
-          <div style={cardViewport} className="vb-activation-viewport">
-            <div
-              style={cardContent}
-              className={
-                leaving ? "vb-activation-content--exit" : "vb-activation-content--enter"
-              }
-            >
 
-              <h1 style={h1}>Activemos tu experiencia</h1>
-
-              <form onSubmit={handleSubmit}>
-
-                {/* CODE */}
-                <div style={section}>
-                  <p style={label}>Código Vivabox</p>
-
-                  <input
-                    value={codigo}
-                    onChange={(e) => setCodigo(formatCode(e.target.value))}
-                    placeholder="VIVA-XXXX-XXXX"
-                    style={inputCode}
-                  />
-
-                  <p style={helper}>Está dentro de tu cajita</p>
-                </div>
-
-                {/* DATOS */}
-                <div style={section}>
-                  <p style={labelStrong}>Para coordinar tu experiencia</p>
-
-                  <input
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                    placeholder="Tu nombre"
-                    style={input}
-                  />
-
-                  <input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Tu email"
-                    type="email"
-                    style={input}
-                  />
-
-                  <p style={helper}>Solo para enviarte los detalles</p>
-                </div>
-
-                {/* REASSURANCE */}
-                <p style={included}>Tu experiencia ya está incluida</p>
-
-                {error && <p style={errorText}>{error}</p>}
-
-                <button type="submit" style={btnStyle} disabled={loading || leaving}>
-                  {loading ? "Activando..." : "Activar mi regalo"}
-                </button>
-
-              </form>
-
-            </div>
+        <div
+          style={{ "--vb-activation-duration": `${CARD_TRANSITION_MS}ms` } as React.CSSProperties}
+          className="vb-activation-viewport"
+        >
+          {/* Carte actuelle : reste en flux normal (donne sa hauteur au
+              viewport) et glisse en entier vers la gauche à la sortie. */}
+          <div
+            className="vb-activation-card-current"
+            style={{
+              transform: leaving ? "translateX(-100%)" : "translateX(0)",
+              opacity: leaving ? 0.92 : 1,
+            }}
+          >
+            <DatosCardBody
+              codigo={codigo}
+              nombre={nombre}
+              email={email}
+              error={error}
+              loading={loading}
+              disabled={leaving}
+              onCodigoChange={(value) => setCodigo(formatCode(value))}
+              onNombreChange={setNombre}
+              onEmailChange={setEmail}
+              onSubmit={handleSubmit}
+            />
           </div>
+
+          {/* Carte suivante : montée déjà entièrement construite (aperçu
+              statique de l'écran "Tu regalo está activo", non interactif)
+              et glisse depuis la droite en même temps que l'autre sort. */}
+          {leaving && (
+            <div className="vb-activation-card-next" aria-hidden="true">
+              <ActivatedCard onFinish={() => {}} />
+            </div>
+          )}
         </div>
       </div>
+    </div>
+  )
+}
+
+/* ============================= */
+/* CARTE (contenu) — exportée : réutilisée telle quelle par
+   app/activar/page.tsx comme aperçu de la carte "suivante" pendant la
+   transition État 1 → État 2. */
+/* ============================= */
+
+type DatosCardBodyProps = {
+  codigo: string
+  nombre: string
+  email: string
+  error: string
+  loading: boolean
+  disabled?: boolean
+  onCodigoChange: (value: string) => void
+  onNombreChange: (value: string) => void
+  onEmailChange: (value: string) => void
+  onSubmit: (e: React.FormEvent) => void
+}
+
+export function DatosCardBody({
+  codigo,
+  nombre,
+  email,
+  error,
+  loading,
+  disabled,
+  onCodigoChange,
+  onNombreChange,
+  onEmailChange,
+  onSubmit,
+}: DatosCardBodyProps) {
+  return (
+    <div style={cardSoft}>
+
+      <h1 style={h1}>Activemos tu experiencia</h1>
+
+      <form onSubmit={onSubmit}>
+
+        {/* CODE */}
+        <div style={section}>
+          <p style={label}>Código Vivabox</p>
+
+          <input
+            value={codigo}
+            onChange={(e) => onCodigoChange(e.target.value)}
+            placeholder="VIVA-XXXX-XXXX"
+            style={inputCode}
+          />
+
+          <p style={helper}>Está dentro de tu cajita</p>
+        </div>
+
+        {/* DATOS */}
+        <div style={section}>
+          <p style={labelStrong}>Para coordinar tu experiencia</p>
+
+          <input
+            value={nombre}
+            onChange={(e) => onNombreChange(e.target.value)}
+            placeholder="Tu nombre"
+            style={input}
+          />
+
+          <input
+            value={email}
+            onChange={(e) => onEmailChange(e.target.value)}
+            placeholder="Tu email"
+            type="email"
+            style={input}
+          />
+
+          <p style={helper}>Solo para enviarte los detalles</p>
+        </div>
+
+        {/* REASSURANCE */}
+        <p style={included}>Tu experiencia ya está incluida</p>
+
+        {error && <p style={errorText}>{error}</p>}
+
+        <button type="submit" style={btnStyle} disabled={loading || disabled}>
+          {loading ? "Activando..." : "Activar mi regalo"}
+        </button>
+
+      </form>
+
     </div>
   )
 }
@@ -295,19 +361,13 @@ const centerWrap: React.CSSProperties = {
 const cardSoft: React.CSSProperties = {
   maxWidth: 420,
   width: "100%",
+  margin: "0 auto",
   background: "rgba(255,255,255,0.75)",
   backdropFilter: "blur(14px)",
+  padding: "32px 24px",
   borderRadius: 26,
   boxShadow: "0 30px 80px rgba(0,0,0,0.12)",
   textAlign: "center",
-}
-
-const cardViewport: React.CSSProperties = {
-  borderRadius: 26,
-}
-
-const cardContent: React.CSSProperties = {
-  padding: "32px 24px",
 }
 
 const h1 = {

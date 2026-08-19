@@ -70,32 +70,33 @@ function ActivacionCompletaContent() {
 /* CARD PRINCIPAL (inchangé) */
 /* ============================= */
 
-function ActivatedCard({ onFinish }: { onFinish: () => void }) {
+// Exportée : réutilisée telle quelle par app/activar/datos/page.tsx comme
+// carte "suivante" pendant la transition glissée État 2 → État 3 (voir
+// ACTIVATION FLOW dans globals.css). Ce composant reste 100% statique
+// (aucune prop dépendante de données) donc l'aperçu affiché pendant le
+// slide est toujours identique au rendu réel de cette page.
+export function ActivatedCard({ onFinish }: { onFinish: () => void }) {
   return (
     <div style={cardWide}>
-      <div style={cardViewport} className="vb-activation-viewport">
-        <div style={cardContent} className="vb-activation-content--enter-soft">
-          <div style={checkCircle} className="vb-activation-check">
-            <Check size={54} strokeWidth={3} color="#1E7A3B" />
-          </div>
-          <h2 style={h2}>Tu regalo está activo</h2>
-          <div style={flowRow}>
-            <IconStep icon={<Compass size={40} />} label="Explorás" sub="Todo disponible" />
-            <BigArrow />
-            <IconStep
-              icon={<img src="/logo/LogoVivaboxSVG.svg" style={{ width: 58 }} alt="Vivabox" />}
-              label="Elegís"
-              sub="Una experiencia"
-              highlight
-            />
-            <BigArrow />
-            <IconStep icon={<CalendarDays size={40} />} label="Reservás" sub="Y coordinamos" />
-          </div>
-          <button onClick={onFinish} style={btnStyle}>
-            Ver experiencias
-          </button>
-        </div>
+      <div style={checkCircle} className="vb-activation-check">
+        <Check size={54} strokeWidth={3} color="#1E7A3B" />
       </div>
+      <h2 style={h2}>Tu regalo está activo</h2>
+      <div style={flowRow}>
+        <IconStep icon={<Compass size={40} />} label="Explorás" sub="Todo disponible" />
+        <BigArrow />
+        <IconStep
+          icon={<img src="/logo/LogoVivaboxSVG.svg" style={{ width: 58 }} alt="Vivabox" />}
+          label="Elegís"
+          sub="Una experiencia"
+          highlight
+        />
+        <BigArrow />
+        <IconStep icon={<CalendarDays size={40} />} label="Reservás" sub="Y coordinamos" />
+      </div>
+      <button onClick={onFinish} style={btnStyle}>
+        Ver experiencias
+      </button>
     </div>
   )
 }
@@ -178,19 +179,13 @@ const centerWrap = {
 const cardWide = {
   maxWidth: 520,
   width: "100%",
+  margin: "0 auto",
   background: "rgba(255,255,255,0.8)",
   backdropFilter: "blur(14px)",
+  padding: "32px 24px",
   borderRadius: 26,
   boxShadow: "0 30px 80px rgba(0,0,0,0.12)",
   textAlign: "center" as const,
-}
-
-const cardViewport = {
-  borderRadius: 26,
-}
-
-const cardContent = {
-  padding: "32px 24px",
 }
 
 const checkCircle = {

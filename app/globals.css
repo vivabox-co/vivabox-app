@@ -465,28 +465,53 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 /* ================================
-   ACTIVATION FLOW — carte en viewport/slider horizontal
+   ACTIVATION FLOW — carrousel de cartes complètes
    (Bienvenida → Activación del código → Regalo activo)
-   Le fond/blur (hors carte) n'est jamais touché ici : seul le contenu
-   de la carte glisse, clippé par .vb-activation-viewport pour rester
-   dans le border-radius existant de la carte (voir app/activar/*,
-   app/activacion-completa).
+
+   Le fond/blur (hors carte) n'est jamais touché ici. La page qui possède
+   le CTA de sortie ("current") rend, en plus de sa propre carte, un
+   aperçu déjà entièrement construit de la carte suivante ("next" — voir
+   ActivatedCard exporté par app/activacion-completa/page.tsx et
+   DatosCardBody exporté par app/activar/datos/page.tsx). Les deux cartes
+   COMPLÈTES (fond translucide, blur, radius, contenu) coexistent dans
+   .vb-activation-viewport pendant les ~500-600ms de la transition :
+   - la carte "current" reste en flux normal et glisse via `transition`
+     (transform piloté par l'état React `leaving`) — c'est elle qui donne
+     sa hauteur au viewport, donc aucun jump quand la carte "next" (plus
+     ou moins haute) apparaît.
+   - la carte "next" est en position:absolute (ne participe pas au calcul
+     de hauteur) et glisse via l'animation vb-activation-card-enter,
+     jouée automatiquement à son montage.
+   Le contenu interne de chaque carte ne bouge jamais par rapport à sa
+   carte : c'est tout le bloc (DatosCardBody, ActivatedCard, etc.) qui se
+   déplace comme un seul élément rigide.
 ================================ */
 
 .vb-activation-viewport {
   position: relative;
-  overflow: hidden;
-  border-radius: inherit;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
-@keyframes vb-activation-enter {
-  from { transform: translateX(100%); opacity: 0; }
+.vb-activation-card-current {
+  width: 100%;
+  transition: transform var(--vb-activation-duration, 500ms) cubic-bezier(0.16, 1, 0.3, 1),
+              opacity var(--vb-activation-duration, 500ms) ease;
+}
+
+.vb-activation-card-next {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  animation: vb-activation-card-enter var(--vb-activation-duration, 500ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes vb-activation-card-enter {
+  from { transform: translateX(100%); opacity: 0.92; }
   to   { transform: translateX(0);    opacity: 1; }
-}
-
-@keyframes vb-activation-exit {
-  from { transform: translateX(0);     opacity: 1; }
-  to   { transform: translateX(-100%); opacity: 0; }
 }
 
 @keyframes vb-activation-check-in {
@@ -494,27 +519,15 @@ button, a { -webkit-tap-highlight-color: transparent; }
   to   { transform: scale(1);    opacity: 1; }
 }
 
-.vb-activation-content--enter {
-  animation: vb-activation-enter 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* Dernière étape ("Tu regalo está activo") : transition un peu plus douce */
-.vb-activation-content--enter-soft {
-  animation: vb-activation-enter 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.vb-activation-content--exit {
-  animation: vb-activation-exit 500ms cubic-bezier(0.4, 0, 1, 1) both;
-}
-
 .vb-activation-check {
   animation: vb-activation-check-in 600ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vb-activation-content--enter,
-  .vb-activation-content--enter-soft,
-  .vb-activation-content--exit,
+  .vb-activation-card-current {
+    transition: none;
+  }
+  .vb-activation-card-next,
   .vb-activation-check {
     animation: none;
     opacity: 1;

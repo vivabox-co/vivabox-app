@@ -4,8 +4,14 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useUI } from "@/components/ui/UIContext"
 import { prefersReducedMotion } from "@/lib/utils/prefersReducedMotion"
+import { DatosCardBody } from "@/app/activar/datos/page"
 
 const CARD_TRANSITION_MS = 500
+
+// Aperçu statique (aucune interaction réelle) de la carte "Activemos tu
+// experiencia" : état initial, toujours identique quel que soit ce que
+// l'utilisateur tapera une fois sur la vraie page /activar/datos.
+const NOOP = () => {}
 
 export default function ActivarFlowPage() {
   const router = useRouter()
@@ -43,7 +49,43 @@ export default function ActivarFlowPage() {
           alt="Vivabox"
           style={logo}
         />
-        <WelcomeCard onFinish={handleContinue} leaving={leaving} />
+
+        <div
+          style={{ "--vb-activation-duration": `${CARD_TRANSITION_MS}ms` } as React.CSSProperties}
+          className="vb-activation-viewport"
+        >
+          {/* Carte actuelle : reste en flux normal (donne sa hauteur au
+              viewport) et glisse en entier vers la gauche à la sortie. */}
+          <div
+            className="vb-activation-card-current"
+            style={{
+              transform: leaving ? "translateX(-100%)" : "translateX(0)",
+              opacity: leaving ? 0.92 : 1,
+            }}
+          >
+            <WelcomeCard onFinish={handleContinue} leaving={leaving} />
+          </div>
+
+          {/* Carte suivante : montée déjà entièrement construite (aperçu
+              statique, non interactif, de l'écran d'activation du code)
+              et glisse depuis la droite en même temps que l'autre sort. */}
+          {leaving && (
+            <div className="vb-activation-card-next" aria-hidden="true">
+              <DatosCardBody
+                codigo=""
+                nombre=""
+                email=""
+                error=""
+                loading={false}
+                disabled
+                onCodigoChange={NOOP}
+                onNombreChange={NOOP}
+                onEmailChange={NOOP}
+                onSubmit={(e) => e.preventDefault()}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -52,26 +94,19 @@ export default function ActivarFlowPage() {
 function WelcomeCard({ onFinish, leaving }: { onFinish: () => void; leaving: boolean }) {
   return (
     <div style={cardSoft}>
-      <div style={cardViewport} className="vb-activation-viewport">
-        <div
-          style={cardContent}
-          className={leaving ? "vb-activation-content--exit" : undefined}
-        >
-          <h1 style={h1}>Te hicieron un regalo especial</h1>
+      <h1 style={h1}>Te hicieron un regalo especial</h1>
 
-          <p style={pMain}>
-            Podés elegir la experiencia que más te guste y vivir un gran momento.
-          </p>
+      <p style={pMain}>
+        Podés elegir la experiencia que más te guste y vivir un gran momento.
+      </p>
 
-          <p style={pSub}>
-            Activá tu experiencia para empezar.
-          </p>
+      <p style={pSub}>
+        Activá tu experiencia para empezar.
+      </p>
 
-          <button onClick={onFinish} style={btnStyle} disabled={leaving}>
-            Comenzar
-          </button>
-        </div>
-      </div>
+      <button onClick={onFinish} style={btnStyle} disabled={leaving}>
+        Comenzar
+      </button>
     </div>
   )
 }
@@ -127,19 +162,13 @@ const centerWrap: React.CSSProperties = {
 const cardSoft: React.CSSProperties = {
   maxWidth: 420,
   width: "100%",
+  margin: "0 auto",
   background: "rgba(255,255,255,0.75)",
   backdropFilter: "blur(14px)",
+  padding: "32px 24px 24px",
   borderRadius: 26,
   boxShadow: "0 30px 80px rgba(0,0,0,0.12)",
   textAlign: "center",
-}
-
-const cardViewport: React.CSSProperties = {
-  borderRadius: 26,
-}
-
-const cardContent: React.CSSProperties = {
-  padding: "32px 24px 24px",
 }
 
 const h1: React.CSSProperties = {
