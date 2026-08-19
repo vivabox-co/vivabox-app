@@ -19,6 +19,7 @@ import { categoryColors } from "@/lib/map/categoryColors"
 import { categoryLabel } from "@/lib/map/categoryLabels"
 import { formatLabel } from "@/lib/map/formatLabels"
 import { useUI } from "@/components/ui/UIContext"
+import PhotoGallery from "@/components/ui/PhotoGallery"
 import { Heart, MapPin, Users, Locate } from "lucide-react"
 import { filterExperiences } from "@/lib/product/filterExperiences"
 
@@ -354,7 +355,8 @@ export default function MapView({
   )
 }
 
-/* 🖼️ Galerie horizontale du popup (même comportement que le bottomsheet) */
+/* 🖼️ Galerie horizontale du popup — utilise le composant PhotoGallery
+   partagé avec le bottomsheet (scroll-snap + dots cliquables + drag). */
 function PopupGallery({
   exp,
   color,
@@ -368,8 +370,6 @@ function PopupGallery({
   onSelect: (exp: Experience) => void
   onToggleFavorite: (id: string) => void
 }) {
-  const [activePhoto, setActivePhoto] = useState(0)
-
   const photos = getExperiencePhotos(exp)
 
   return (
@@ -381,113 +381,52 @@ function PopupGallery({
         overflow: "hidden",
       }}
     >
-      <div
-        className="hero-gallery-track"
-        style={{
-          display: "flex",
-          width: "100%",
-          height: "100%",
-          overflowX: "auto",
-          scrollSnapType: "x mandatory",
-          WebkitOverflowScrolling: "touch",
-        }}
-        onScroll={(e) => {
-          const el = e.currentTarget
-          const idx = Math.round(el.scrollLeft / el.clientWidth)
-          setActivePhoto(idx)
-        }}
-      >
-        {photos.map((src, i) => (
-          <img
-            key={i}
-            src={src}
-            alt={`${exp.title} ${i + 1}`}
-            onClick={() => onSelect(exp)}
-            style={{
-              flex: "0 0 100%",
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              scrollSnapAlign: "center",
-              scrollSnapStop: "always",
-              cursor: "pointer",
-            }}
-          />
-        ))}
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          top: 8,
-          left: 8,
-          padding: "4px 8px",
-          fontSize: 10,
-          fontWeight: 600,
-          color: "white",
-          background: color,
-          borderRadius: 8,
-          pointerEvents: "none",
-        }}
-      >
-        {categoryLabel(exp.category)}
-      </div>
-
-      <button
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          onToggleFavorite(exp.id)
-        }}
-        style={{
-          position: "absolute",
-          top: 8,
-          right: 8,
-          background: "rgba(255,255,255,0.95)",
-          borderRadius: "50%",
-          border: "none",
-          width: 34,
-          height: 34,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-        }}
-      >
-        <Heart
-          size={16}
-          fill={isFav ? "#ff4d6d" : "none"}
-          color={isFav ? "#ff4d6d" : "#777"}
-        />
-      </button>
-
-      {photos.length > 1 && (
+      <PhotoGallery photos={photos} alt={exp.title} dotsBottom={8}>
         <div
           style={{
             position: "absolute",
-            bottom: 8,
-            left: 0,
-            right: 0,
-            display: "flex",
-            justifyContent: "center",
-            gap: 4,
+            top: 8,
+            left: 8,
+            padding: "4px 8px",
+            fontSize: 10,
+            fontWeight: 600,
+            color: "white",
+            background: color,
+            borderRadius: 8,
             pointerEvents: "none",
           }}
         >
-          {photos.map((_, i) => (
-            <div
-              key={i}
-              style={{
-                width: 5,
-                height: 5,
-                borderRadius: "50%",
-                background:
-                  i === activePhoto ? "#fff" : "rgba(255,255,255,0.5)",
-              }}
-            />
-          ))}
+          {categoryLabel(exp.category)}
         </div>
-      )}
+
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            onToggleFavorite(exp.id)
+          }}
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            background: "rgba(255,255,255,0.95)",
+            borderRadius: "50%",
+            border: "none",
+            width: 34,
+            height: 34,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+          }}
+        >
+          <Heart
+            size={16}
+            fill={isFav ? "#ff4d6d" : "none"}
+            color={isFav ? "#ff4d6d" : "#777"}
+          />
+        </button>
+      </PhotoGallery>
     </div>
   )
 }
