@@ -20,6 +20,7 @@ export default function FavoritosPage() {
     setDrawerOpen,
     selectedExperience,
     setSelectedExperience,
+    beginRouteTransition,
   } = useUI()
 
   const [experiences, setExperiences] = useState<Experience[]>([])
@@ -45,6 +46,7 @@ export default function FavoritosPage() {
 
   function handleChoose(exp: Experience) {
     setSelectedExperience(exp)
+    beginRouteTransition()
     setDrawerOpen(false)
     router.push("/reservar/fechas")
   }
@@ -89,6 +91,7 @@ export default function FavoritosPage() {
       <ExperienceExploreMeta
         exp={selectedExperience}
         onChoose={() => {
+          beginRouteTransition()
           setDrawerOpen(false)
           router.push("/reservar/fechas")
         }}
@@ -100,6 +103,7 @@ export default function FavoritosPage() {
       <button
         className="cta-button"
         onClick={() => {
+          beginRouteTransition()
           setDrawerOpen(false)
           router.push("/reservar/fechas")
         }}
