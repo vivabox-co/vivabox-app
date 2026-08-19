@@ -285,7 +285,6 @@ export default function MapaPage() {
             <ExperienceExploreMeta
               exp={selectedExperience}
               onChoose={() => {
-                setDrawerOpen(false)
                 router.push("/reservar/fechas")
               }}
             />
@@ -297,7 +296,6 @@ export default function MapaPage() {
               className="cta-button"
               onClick={() => {
                 if (!selectedExperience?.id) return
-                setDrawerOpen(false)
                 router.push("/reservar/fechas")
               }}
             >
