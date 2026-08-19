@@ -107,7 +107,8 @@ export default function FechasPage() {
         },
         body: JSON.stringify({
           experienciaId: exp.id,
-          fechaDeseada: selectedDates[0], // première date sélectionnée
+          fechaDeseada: selectedDates[0], // date principale, utilisée pour la confirmation/complétion
+          fechasDeseadas: selectedDates, // jusqu'à 3 options, pour que l'équipe voie toutes les dates proposées
           cantidadPersonas: totalPeople,
           mensaje: preferredHour
             ? `Horario: ${MOMENT_LABEL[momentBlock]} (~${preferredHour})`

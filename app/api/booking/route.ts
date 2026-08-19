@@ -15,6 +15,13 @@ export async function POST(req: NextRequest) {
 
     const experienceCode = typeof body.experienciaId === "string" ? body.experienciaId.trim() : ""
     const requestedDate = typeof body.fechaDeseada === "string" ? body.fechaDeseada : null
+    // Jusqu'à 3 options de date proposées par le bénéficiaire (voir MAX_DATES
+    // dans app/reservar/fechas/page.tsx) — stockées à part de requested_date
+    // (qui reste la date active/effective utilisée par confirm/reschedule/cron)
+    // pour que l'équipe les voie toutes côté /pedidos.
+    const requestedDates = Array.isArray(body.fechasDeseadas)
+      ? body.fechasDeseadas.filter((d: unknown): d is string => typeof d === "string" && d.length > 0).slice(0, 3)
+      : requestedDate ? [requestedDate] : null
     const cantidadPersonas = body.cantidadPersonas
     const mensaje = typeof body.mensaje === "string" ? body.mensaje : ""
     // La table bookings n'a pas de colonne dédiée au nombre de personnes —
@@ -61,6 +68,7 @@ export async function POST(req: NextRequest) {
         activation_code_id: session.activation_code_id,
         experience_code: experienceCode,
         requested_date: requestedDate,
+        requested_dates: requestedDates,
         message,
       })
       .select("id")
