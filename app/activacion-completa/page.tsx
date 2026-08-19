@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useUI } from "@/components/ui/UIContext"
-import { Check, Compass, CalendarDays, ChevronRight } from "lucide-react"
+import { Compass, CalendarDays, ChevronRight } from "lucide-react"
 
 export default function ActivacionCompletaPage() {
   return (
@@ -79,14 +79,14 @@ export function ActivatedCard({ onFinish }: { onFinish: () => void }) {
   return (
     <div style={cardWide}>
       <div style={checkCircle} className="vb-activation-check">
-        <Check size={54} strokeWidth={3} color="#1E7A3B" />
+        <AnimatedCheck />
       </div>
       <h2 style={h2}>Tu regalo está activo</h2>
       <div style={flowRow}>
         <IconStep icon={<Compass size={40} />} label="Explorás" sub="Todo disponible" />
         <BigArrow />
         <IconStep
-          icon={<img src="/logo/LogoVivaboxSVG.svg" style={{ width: 58 }} alt="Vivabox" />}
+          icon={<img src="/logo/LogoVivaboxSVG.svg" style={{ width: 51 }} alt="Vivabox" />}
           label="Elegís"
           sub="Una experiencia"
           highlight
@@ -127,6 +127,28 @@ function IconStep({
       <div style={stepLabel}>{label}</div>
       <div style={stepSub}>{sub}</div>
     </div>
+  )
+}
+
+// Même tracé que l'icône Check de lucide-react, mais rendu en local pour
+// pouvoir animer le <path> (stroke-dash / pathLength) via .vb-activation-checkmark
+// dans globals.css — lucide-react ne permet pas d'y accéder directement.
+function AnimatedCheck() {
+  return (
+    <svg
+      width={54}
+      height={54}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#1E7A3B"
+      strokeWidth={3}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="vb-activation-checkmark"
+      aria-hidden="true"
+    >
+      <path d="M20 6 9 17l-5-5" pathLength={1} />
+    </svg>
   )
 }
 
