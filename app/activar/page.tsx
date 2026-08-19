@@ -1,12 +1,16 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useUI } from "@/components/ui/UIContext"
+import { prefersReducedMotion } from "@/lib/utils/prefersReducedMotion"
+
+const CARD_TRANSITION_MS = 500
 
 export default function ActivarFlowPage() {
   const router = useRouter()
   const { setHideNav } = useUI()
+  const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
     setHideNav(true)
@@ -14,7 +18,15 @@ export default function ActivarFlowPage() {
   }, [])
 
   const handleContinue = () => {
-    router.push("/activar/datos")
+    if (leaving) return
+
+    if (prefersReducedMotion()) {
+      router.push("/activar/datos")
+      return
+    }
+
+    setLeaving(true)
+    setTimeout(() => router.push("/activar/datos"), CARD_TRANSITION_MS)
   }
 
   return (
@@ -31,28 +43,35 @@ export default function ActivarFlowPage() {
           alt="Vivabox"
           style={logo}
         />
-        <WelcomeCard onFinish={handleContinue} />
+        <WelcomeCard onFinish={handleContinue} leaving={leaving} />
       </div>
     </div>
   )
 }
 
-function WelcomeCard({ onFinish }: { onFinish: () => void }) {
+function WelcomeCard({ onFinish, leaving }: { onFinish: () => void; leaving: boolean }) {
   return (
     <div style={cardSoft}>
-      <h1 style={h1}>Te hicieron un regalo especial</h1>
+      <div style={cardViewport} className="vb-activation-viewport">
+        <div
+          style={cardContent}
+          className={leaving ? "vb-activation-content--exit" : undefined}
+        >
+          <h1 style={h1}>Te hicieron un regalo especial</h1>
 
-      <p style={pMain}>
-        Podés elegir la experiencia que más te guste y vivir un gran momento.
-      </p>
+          <p style={pMain}>
+            Podés elegir la experiencia que más te guste y vivir un gran momento.
+          </p>
 
-      <p style={pSub}>
-        Activá tu experiencia para empezar.
-      </p>
+          <p style={pSub}>
+            Activá tu experiencia para empezar.
+          </p>
 
-      <button onClick={onFinish} style={btnStyle}>
-        Comenzar
-      </button>
+          <button onClick={onFinish} style={btnStyle} disabled={leaving}>
+            Comenzar
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -110,10 +129,17 @@ const cardSoft: React.CSSProperties = {
   width: "100%",
   background: "rgba(255,255,255,0.75)",
   backdropFilter: "blur(14px)",
-  padding: "32px 24px 24px",
   borderRadius: 26,
   boxShadow: "0 30px 80px rgba(0,0,0,0.12)",
   textAlign: "center",
+}
+
+const cardViewport: React.CSSProperties = {
+  borderRadius: 26,
+}
+
+const cardContent: React.CSSProperties = {
+  padding: "32px 24px 24px",
 }
 
 const h1: React.CSSProperties = {

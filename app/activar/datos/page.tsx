@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useUI } from "@/components/ui/UIContext"
+import { prefersReducedMotion } from "@/lib/utils/prefersReducedMotion"
+
+const CARD_TRANSITION_MS = 500
 
 export default function DatosPage() {
   const router = useRouter()
@@ -13,11 +16,22 @@ export default function DatosPage() {
   const [codigo, setCodigo] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
     setHideNav(true)
     return () => setHideNav(false)
   }, [])
+
+  const goToActivacionCompleta = () => {
+    if (prefersReducedMotion()) {
+      router.push("/activacion-completa")
+      return
+    }
+
+    setLeaving(true)
+    setTimeout(() => router.push("/activacion-completa"), CARD_TRANSITION_MS)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,7 +72,7 @@ console.log("activateData.error:", activateData?.error)
       if (activateData?.success && activateData?.data?.token) {
         sessionStorage.setItem("vb_session", activateData.data.token)
         sessionStorage.setItem("vb_codigo", activateData.data.codigo ?? codigo)
-        router.push("/activacion-completa")
+        goToActivacionCompleta()
         return
       }
 
@@ -81,7 +95,7 @@ console.log("activateData.error:", activateData?.error)
         if (verifyData?.success && verifyData?.data?.token) {
           sessionStorage.setItem("vb_session", verifyData.data.token)
           sessionStorage.setItem("vb_codigo", verifyData.data.codigo ?? codigo)
-          router.push("/activacion-completa")
+          goToActivacionCompleta()
           return
         } else {
           const errorCode = verifyData?.error || "ACCESS_DENIED"
@@ -118,58 +132,67 @@ console.log("activateData.error:", activateData?.error)
           style={logo}
         />
         <div style={cardSoft}>
+          <div style={cardViewport} className="vb-activation-viewport">
+            <div
+              style={cardContent}
+              className={
+                leaving ? "vb-activation-content--exit" : "vb-activation-content--enter"
+              }
+            >
 
-          <h1 style={h1}>Activemos tu experiencia</h1>
+              <h1 style={h1}>Activemos tu experiencia</h1>
 
-          <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit}>
 
-            {/* CODE */}
-            <div style={section}>
-              <p style={label}>Código Vivabox</p>
+                {/* CODE */}
+                <div style={section}>
+                  <p style={label}>Código Vivabox</p>
 
-              <input
-                value={codigo}
-                onChange={(e) => setCodigo(formatCode(e.target.value))}
-                placeholder="VIVA-XXXX-XXXX"
-                style={inputCode}
-              />
+                  <input
+                    value={codigo}
+                    onChange={(e) => setCodigo(formatCode(e.target.value))}
+                    placeholder="VIVA-XXXX-XXXX"
+                    style={inputCode}
+                  />
 
-              <p style={helper}>Está dentro de tu cajita</p>
+                  <p style={helper}>Está dentro de tu cajita</p>
+                </div>
+
+                {/* DATOS */}
+                <div style={section}>
+                  <p style={labelStrong}>Para coordinar tu experiencia</p>
+
+                  <input
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    placeholder="Tu nombre"
+                    style={input}
+                  />
+
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Tu email"
+                    type="email"
+                    style={input}
+                  />
+
+                  <p style={helper}>Solo para enviarte los detalles</p>
+                </div>
+
+                {/* REASSURANCE */}
+                <p style={included}>Tu experiencia ya está incluida</p>
+
+                {error && <p style={errorText}>{error}</p>}
+
+                <button type="submit" style={btnStyle} disabled={loading || leaving}>
+                  {loading ? "Activando..." : "Activar mi regalo"}
+                </button>
+
+              </form>
+
             </div>
-
-            {/* DATOS */}
-            <div style={section}>
-              <p style={labelStrong}>Para coordinar tu experiencia</p>
-
-              <input
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Tu nombre"
-                style={input}
-              />
-
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Tu email"
-                type="email"
-                style={input}
-              />
-
-              <p style={helper}>Solo para enviarte los detalles</p>
-            </div>
-
-            {/* REASSURANCE */}
-            <p style={included}>Tu experiencia ya está incluida</p>
-
-            {error && <p style={errorText}>{error}</p>}
-
-            <button type="submit" style={btnStyle} disabled={loading}>
-              {loading ? "Activando..." : "Activar mi regalo"}
-            </button>
-
-          </form>
-
+          </div>
         </div>
       </div>
     </div>
@@ -274,10 +297,17 @@ const cardSoft: React.CSSProperties = {
   width: "100%",
   background: "rgba(255,255,255,0.75)",
   backdropFilter: "blur(14px)",
-  padding: "32px 24px",
   borderRadius: 26,
   boxShadow: "0 30px 80px rgba(0,0,0,0.12)",
   textAlign: "center",
+}
+
+const cardViewport: React.CSSProperties = {
+  borderRadius: 26,
+}
+
+const cardContent: React.CSSProperties = {
+  padding: "32px 24px",
 }
 
 const h1 = {
