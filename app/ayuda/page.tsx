@@ -10,19 +10,33 @@ import { Booking } from "@/lib/data/types/booking"
 const FAQS = [
   {
     question: "¿Cuándo se confirma mi experiencia?",
-    answer: "Normalmente confirmamos en menos de 48 horas.",
+    answer:
+      "Después de solicitar tu reserva, contactamos al lugar para confirmar la fecha y hora que elegiste. Te avisaremos apenas tengamos la confirmación.",
   },
   {
-    question: "¿Qué pasa si no pueden confirmar la fecha?",
-    answer: "Te contactaremos para buscar otra opción contigo.",
+    question: "¿Qué significa “En espera de confirmación”?",
+    answer:
+      "Significa que ya recibimos tu solicitud y estamos esperando que el lugar confirme la fecha y hora. No necesitas hacer nada por ahora.",
   },
   {
-    question: "¿Dónde veo las instrucciones?",
-    answer: "Cuando tu experiencia esté confirmada, aparecerán en \"Tu experiencia\".",
+    question: "¿Qué pasa si no pueden confirmar la fecha que elegí?",
+    answer:
+      "Si el lugar no puede confirmar la fecha que elegiste, te contactaremos para proponerte una alternativa disponible. Si la nueva fecha te funciona, la confirmaremos por ti.",
   },
   {
-    question: "¿Puedo cambiar la fecha?",
-    answer: "Sí. Escríbenos y te ayudamos a solicitar el cambio.",
+    question: "¿Qué pasa si necesito cambiar la fecha?",
+    answer:
+      "Si tus planes cambiaron, escríbenos lo antes posible. Revisaremos con el lugar si es posible cambiar la fecha. Los cambios dependen de la disponibilidad y de las condiciones de cada experiencia.",
+  },
+  {
+    question: "¿Dónde veo las instrucciones de mi experiencia?",
+    answer:
+      "Cuando tu reserva esté confirmada, encontrarás toda la información que necesitas para disfrutarla: fecha, hora, lugar e instrucciones especiales.",
+  },
+  {
+    question: "¿Qué hago si tengo un problema con mi reserva?",
+    answer:
+      "Escríbenos por WhatsApp y cuéntanos qué pasó. Revisaremos tu reserva y te ayudaremos con el siguiente paso.",
   },
 ]
 
