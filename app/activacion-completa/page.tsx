@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect } from "react"
+import { Suspense, useEffect, useLayoutEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useUI } from "@/components/ui/UIContext"
 import { Compass, CalendarDays, ChevronRight } from "lucide-react"
@@ -17,6 +17,19 @@ function ActivacionCompletaContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { setHideNav } = useUI()
+
+  // false pour que le 1er rendu client corresponde au SSR (pas de mismatch
+  // d'hydratation). useLayoutEffect bascule ensuite AVANT la peinture du
+  // navigateur si l'aperçu (vb-activation-card-next dans /activar/datos) a
+  // déjà joué l'animation du check, pour éviter qu'elle se rejoue ici.
+  const [instantCheck, setInstantCheck] = useState(false)
+
+  useLayoutEffect(() => {
+    if (sessionStorage.getItem("vb_check_preview_played")) {
+      sessionStorage.removeItem("vb_check_preview_played")
+      setInstantCheck(true)
+    }
+  }, [])
 
   useEffect(() => {
     setHideNav(true)
@@ -60,7 +73,7 @@ function ActivacionCompletaContent() {
 
       {/* CONTENT */}
       <div style={centerWrap}>
-        <ActivatedCard onFinish={handleContinue} />
+        <ActivatedCard onFinish={handleContinue} instant={instantCheck} />
       </div>
     </div>
   )
@@ -75,11 +88,17 @@ function ActivacionCompletaContent() {
 // ACTIVATION FLOW dans globals.css). Ce composant reste 100% statique
 // (aucune prop dépendante de données) donc l'aperçu affiché pendant le
 // slide est toujours identique au rendu réel de cette page.
-export function ActivatedCard({ onFinish }: { onFinish: () => void }) {
+export function ActivatedCard({
+  onFinish,
+  instant = false,
+}: {
+  onFinish: () => void
+  instant?: boolean
+}) {
   return (
     <div style={cardWide}>
-      <div style={checkCircle} className="vb-activation-check">
-        <AnimatedCheck />
+      <div style={checkCircle} className={instant ? undefined : "vb-activation-check"}>
+        <AnimatedCheck instant={instant} />
       </div>
       <h2 style={h2}>Tu regalo está activo</h2>
       <div style={flowRow}>
@@ -133,7 +152,7 @@ function IconStep({
 // Même tracé que l'icône Check de lucide-react, mais rendu en local pour
 // pouvoir animer le <path> (stroke-dash / pathLength) via .vb-activation-checkmark
 // dans globals.css — lucide-react ne permet pas d'y accéder directement.
-function AnimatedCheck() {
+function AnimatedCheck({ instant = false }: { instant?: boolean }) {
   return (
     <svg
       width={54}
@@ -144,7 +163,7 @@ function AnimatedCheck() {
       strokeWidth={3}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="vb-activation-checkmark"
+      className={instant ? undefined : "vb-activation-checkmark"}
       aria-hidden="true"
     >
       <path d="M20 6 9 17l-5-5" pathLength={1} />

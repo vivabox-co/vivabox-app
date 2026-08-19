@@ -34,6 +34,11 @@ export default function DatosPage() {
       return
     }
 
+    // L'aperçu de ActivatedCard (ci-dessous, vb-activation-card-next) va
+    // jouer l'animation complète du check pendant ce slide. Ce flag évite
+    // qu'elle soit rejouée depuis zéro quand /activacion-completa monte sa
+    // propre instance juste après (voir instantCheck côté cette page).
+    sessionStorage.setItem("vb_check_preview_played", "1")
     setLeaving(true)
     setTimeout(() => router.push("/activacion-completa"), CARD_TRANSITION_MS)
   }
