@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useUI, usePageReady } from "@/components/ui/UIContext"
+import { useUI } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
 import { Calendar, Clock, Users, Sunrise, Sun, Sunset, Check } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
@@ -40,12 +40,6 @@ export default function FechasPage() {
     setHideNav(true)
     return () => setHideNav(false)
   }, [])
-
-  // selectedExperience vient déjà de UIContext (aucun fetch au montage) :
-  // la page est prête dès qu'elle est montée. Referme le loader plein écran
-  // déclenché par beginRouteTransition() au clic sur "Elegir esta
-  // experiencia" (voir app/mapa/page.tsx et RouteLoaderOverlay).
-  usePageReady(true)
 
   // selectedExperience ne vit qu'en mémoire (jamais persisté) : un refresh, un
   // lien partagé ou un retour navigateur sur cette route l'efface. Avant, ça
