@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useUI } from "@/components/ui/UIContext"
 import { prefersReducedMotion } from "@/lib/utils/prefersReducedMotion"
+import { useNextCardMinHeight } from "@/components/ui/useNextCardMinHeight"
 import { ActivatedCard } from "@/app/activacion-completa/page"
 
 // Un peu plus douce pour le dernier saut (vers "Tu regalo está activo"),
@@ -20,6 +21,7 @@ export default function DatosPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const { ref: nextCardRef, minHeight: nextCardMinHeight } = useNextCardMinHeight(leaving)
 
   useEffect(() => {
     setHideNav(true)
@@ -136,7 +138,10 @@ console.log("activateData.error:", activateData?.error)
         />
 
         <div
-          style={{ "--vb-activation-duration": `${CARD_TRANSITION_MS}ms` } as React.CSSProperties}
+          style={{
+            "--vb-activation-duration": `${CARD_TRANSITION_MS}ms`,
+            minHeight: nextCardMinHeight ? `${nextCardMinHeight}px` : undefined,
+          } as React.CSSProperties}
           className="vb-activation-viewport"
         >
           {/* Carte actuelle : reste en flux normal (donne sa hauteur au
@@ -164,9 +169,11 @@ console.log("activateData.error:", activateData?.error)
 
           {/* Carte suivante : montée déjà entièrement construite (aperçu
               statique de l'écran "Tu regalo está activo", non interactif)
-              et glisse depuis la droite en même temps que l'autre sort. */}
+              et glisse depuis la droite en même temps que l'autre sort.
+              ref mesuré par useNextCardMinHeight pour agrandir le viewport
+              si elle est plus haute que la carte actuelle. */}
           {leaving && (
-            <div className="vb-activation-card-next" aria-hidden="true">
+            <div className="vb-activation-card-next" ref={nextCardRef} aria-hidden="true">
               <ActivatedCard onFinish={() => {}} />
             </div>
           )}
