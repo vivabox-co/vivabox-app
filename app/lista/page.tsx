@@ -45,6 +45,7 @@ export default function ListaPage() {
     setDrawerOpen,
     toggleFavorite,
     isFavorite,
+    beginRouteTransition,
   } = useUI()
 
   const [recoOpen, setRecoOpen] = useState(false)
@@ -257,6 +258,7 @@ export default function ListaPage() {
               exp={selectedExperience}
               onChoose={() => {
                 if (!selectedExperience?.id) return
+                beginRouteTransition()
                 router.push("/reservar/fechas")
               }}
             />
@@ -268,6 +270,7 @@ export default function ListaPage() {
               className="cta-button"
               onClick={() => {
                 if (!selectedExperience?.id) return
+                beginRouteTransition()
                 router.push("/reservar/fechas")
               }}
             >
