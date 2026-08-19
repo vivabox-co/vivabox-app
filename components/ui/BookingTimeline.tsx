@@ -18,15 +18,26 @@ const steps = [
   { key: "done", label: "Todo listo", description: "Ya puedes disfrutar." },
 ]
 
-// Position de chaque statut sur la ligne de progression. "alternative_proposed"
-// n'a pas d'étape dédiée (c'est un aparté, pas une progression) mais le lugar
-// a bien répondu à la demande, donc ça reste au niveau de "waiting_provider" —
-// pas de raison de faire retomber les étapes déjà atteintes à zéro.
+// "alternative_proposed" a besoin de son propre jeu d'étapes : le lugar a
+// déjà répondu (donc "Confirmando con el lugar" serait faux), et l'étape en
+// cours attend une action du bénéficiaire plutôt qu'une simple confirmation —
+// d'où le cercle "current" distinct du check "done" (voir `isCurrent` plus bas).
+const ALTERNATIVE_STEPS = [
+  { key: "requested", label: "Solicitud recibida", description: "Tu elección llegó correctamente." },
+  { key: "responded", label: "El lugar respondió", description: "Encontraron una nueva fecha para ti." },
+  { key: "awaiting_response", label: "Esperando tu respuesta", description: "Dinos si esta fecha te funciona." },
+  { key: "confirmed", label: "Fecha confirmada", description: "Te avisaremos cuando esté lista." },
+  { key: "done", label: "Todo listo", description: "Ya puedes disfrutar." },
+]
+const ALTERNATIVE_CURRENT_INDEX = 2
+
+// Position de chaque statut sur la ligne de progression (jeu d'étapes par
+// défaut ci-dessus — "alternative_proposed" utilise ALTERNATIVE_STEPS et
+// ALTERNATIVE_CURRENT_INDEX à la place, voir plus bas).
 // "rejected" retombe à -1 : rien n'est acquis (cf. encadré rouge au-dessus).
-const PROGRESS_INDEX: Record<BookingStatus, number> = {
+const PROGRESS_INDEX: Record<Exclude<BookingStatus, "alternative_proposed">, number> = {
   requested: 0,
   waiting_provider: 1,
-  alternative_proposed: 1,
   confirmed: 2,
   rejected: -1,
   done: 3,
@@ -41,7 +52,9 @@ type Props = {
 
 export default function BookingTimeline({ status, category, onNext, onPrev }: Props) {
   const color = categoryColors[category] || "#111"
-  const currentIndex = PROGRESS_INDEX[status]
+  const isAlternative = status === "alternative_proposed"
+  const activeSteps = isAlternative ? ALTERNATIVE_STEPS : steps
+  const currentIndex = isAlternative ? ALTERNATIVE_CURRENT_INDEX : PROGRESS_INDEX[status]
   const CIRCLE_SIZE = 22
 
   return (
@@ -81,16 +94,15 @@ export default function BookingTimeline({ status, category, onNext, onPrev }: Pr
         </div>
       )}
 
-      {status === "alternative_proposed" && (
-        <div style={infoBox}>
-          El lugar no tenía disponible tu fecha, pero propuso una alternativa. Revisa los detalles abajo.
-        </div>
-      )}
-
       <div>
-        {steps.map((step, i) => {
+        {activeSteps.map((step, i) => {
           const reached = i <= currentIndex
-          const isLast = i === steps.length - 1
+          // Seule la timeline "alternative_proposed" distingue une étape en
+          // cours (point plein, on attend une action du bénéficiaire) d'une
+          // étape acquise (check) — les autres statuts gardent le check dès
+          // que l'étape est atteinte, comme avant.
+          const isCurrent = isAlternative && i === currentIndex
+          const isLast = i === activeSteps.length - 1
           // Le connecteur sous ce cercle est rempli seulement si l'étape
           // suivante est elle aussi atteinte — pas de pourcentage intermédiaire,
           // ça reste net avec `flex: 1` quelle que soit la hauteur réelle de la
@@ -124,7 +136,10 @@ export default function BookingTimeline({ status, category, onNext, onPrev }: Pr
                     flexShrink: 0,
                   }}
                 >
-                  {reached && <Check size={13} color="#FFF" />}
+                  {reached && !isCurrent && <Check size={13} color="#FFF" />}
+                  {isCurrent && (
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#FFF" }} />
+                  )}
                 </div>
 
                 {!isLast && (
@@ -191,14 +206,4 @@ const errorBox: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
-}
-
-const infoBox: React.CSSProperties = {
-  padding: "10px 14px",
-  background: "#FFF3E0",
-  color: "#8A5300",
-  borderRadius: 12,
-  marginBottom: 18,
-  fontSize: 14,
-  lineHeight: 1.4,
 }

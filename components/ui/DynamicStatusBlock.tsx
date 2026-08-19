@@ -1,7 +1,6 @@
 "use client"
 
 import { BookingStatus } from "./BookingTimeline"
-import { formatLocalDate } from "@/lib/utils/formatLocalDate"
 
 // "accept_alternative"/"choose_new_experience" répondent à une date
 // alternative proposée par le lugar (status "alternative_proposed") ;
@@ -14,18 +13,10 @@ type Props = {
   status: BookingStatus
   onAction: (action: StatusAction) => void
   reviewed?: boolean
-  proposedDate?: string | null
-  proposedMoment?: string | null
-  proposedHour?: string | null
   actionPending?: boolean
 }
 
-export default function DynamicStatusBlock({ status, onAction, reviewed, proposedDate, proposedMoment, proposedHour, actionPending }: Props) {
-  const proposedDateLabel = proposedDate ? formatLocalDate(proposedDate, { dateStyle: "long" }) : null
-  const proposedWhen = [proposedDateLabel, proposedMoment ? (proposedHour ? `${proposedMoment} (~${proposedHour})` : proposedMoment) : null]
-    .filter(Boolean)
-    .join(" · ")
-
+export default function DynamicStatusBlock({ status, onAction, reviewed, actionPending }: Props) {
   const content: Record<
     BookingStatus,
     { title: string; text: string; actions?: { key: StatusAction; label: string }[] }
@@ -41,13 +32,11 @@ export default function DynamicStatusBlock({ status, onAction, reviewed, propose
     },
 
     alternative_proposed: {
-      title: "Te proponemos otra fecha",
-      text: proposedWhen
-        ? `El lugar no tenía disponible tu fecha original, pero puede recibirte el ${proposedWhen}.`
-        : "El lugar no tenía disponible tu fecha original, pero propuso otra opción.",
+      title: "¿Te funciona?",
+      text: "Cuéntanos si esta nueva fecha te sirve, o si prefieres elegir otra experiencia.",
       actions: [
         { key: "accept_alternative", label: "Aceptar esta fecha" },
-        { key: "choose_new_experience", label: "Prefiero otra experiencia" },
+        { key: "choose_new_experience", label: "Elegir otra experiencia" },
       ],
     },
 

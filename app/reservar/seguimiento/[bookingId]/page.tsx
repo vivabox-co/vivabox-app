@@ -11,6 +11,7 @@ import ExperienceSummaryCard from "@/components/list/ExperienceSummaryCard"
 import { useUI, usePageReady } from "@/components/ui/UIContext"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
 import { buildCalendarLink } from "@/lib/utils/calendarLink"
+import { formatLocalDate } from "@/lib/utils/formatLocalDate"
 import { Booking } from "@/lib/data/types/booking"
 import { Experience } from "@/lib/data/types"
 
@@ -26,10 +27,28 @@ const CONFIRMING_HEADER = {
 const HEADER_COPY: Record<BookingStatus, { title: string; subtitle: string }> = {
   requested: CONFIRMING_HEADER,
   waiting_provider: CONFIRMING_HEADER,
-  alternative_proposed: { title: "Te proponemos una nueva fecha", subtitle: "El lugar no pudo con la fecha original, pero tiene otra opción." },
+  alternative_proposed: { title: "Tu fecha no estaba disponible", subtitle: "El lugar encontró una nueva fecha para ti." },
   confirmed: { title: "¡Tu experiencia está confirmada!", subtitle: "Ya tienes fecha y hora." },
   rejected: { title: "Busquemos otra fecha juntos", subtitle: "No pudimos confirmar esta opción." },
   done: { title: "Esperamos que la hayas disfrutado", subtitle: "Gracias por vivir esta experiencia con nosotros." },
+}
+
+// Point focal de l'écran "alternative_proposed" : la nouvelle date en un
+// coup d'œil, séparée de la carte expérience (qui n'affiche plus l'ancienne
+// date, voir plus bas) pour qu'il n'y ait jamais deux dates à l'écran en
+// même temps.
+function ProposedDateCard({ date, moment, hour }: { date: string | null; moment: string | null; hour: string | null }) {
+  if (!date) return null
+  const dateLabel = formatLocalDate(date, { weekday: "long", day: "numeric", month: "long" })
+  const whenLabel = [moment, hour ? `~${hour}` : null].filter(Boolean).join(" · ")
+
+  return (
+    <div style={proposedCard}>
+      <div style={proposedLabel}>Nueva fecha</div>
+      <div style={proposedDate}>{dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}</div>
+      {whenLabel && <div style={proposedWhen}>{whenLabel}</div>}
+    </div>
+  )
 }
 
 export default function SeguimientoPage() {
@@ -221,9 +240,13 @@ export default function SeguimientoPage() {
           title={exp.title}
           location={exp.zone}
           image={exp.image}
-          date={booking.date}
+          // La date/heure originale n'est plus affichée ici pour ce statut :
+          // avec la nouvelle carte "Nueva fecha" juste en dessous, montrer
+          // aussi l'ancienne date sur cette carte créerait deux dates à
+          // l'écran en même temps — la source de confusion qu'on corrige.
+          date={status === "alternative_proposed" ? undefined : booking.date}
           format={realExperience?.format}
-          time={booking.time}
+          time={status === "alternative_proposed" ? undefined : booking.time}
           category={exp.category}
           badge={badgeMap[status]}
           onClick={() => {
@@ -235,28 +258,51 @@ export default function SeguimientoPage() {
         />
       </div>
 
-      <BookingTimeline
-        status={status}
-        category={exp.category}
-        // Les contrôles de dev ne sont plus nécessaires car les statuts viennent du backend
-        onNext={undefined}
-        onPrev={undefined}
-      />
+      {status === "alternative_proposed" ? (
+        <>
+          <ProposedDateCard
+            date={booking.proposedDate}
+            moment={booking.proposedMoment}
+            hour={booking.proposedHour}
+          />
 
-      <div style={{ marginTop: 28 }}>
-        <DynamicStatusBlock
-          status={status}
-          onAction={handleAction}
-          reviewed={reviewed}
-          proposedDate={booking.proposedDate}
-          proposedMoment={booking.proposedMoment}
-          proposedHour={booking.proposedHour}
-          actionPending={actionPending}
-        />
-        {actionError && (
-          <p style={{ marginTop: 10, fontSize: 13, color: "#B42318", textAlign: "center" }}>{actionError}</p>
-        )}
-      </div>
+          <div style={{ marginTop: 8 }}>
+            <DynamicStatusBlock
+              status={status}
+              onAction={handleAction}
+              reviewed={reviewed}
+              actionPending={actionPending}
+            />
+            {actionError && (
+              <p style={{ marginTop: 10, fontSize: 13, color: "#B42318", textAlign: "center" }}>{actionError}</p>
+            )}
+          </div>
+
+          <BookingTimeline status={status} category={exp.category} />
+        </>
+      ) : (
+        <>
+          <BookingTimeline
+            status={status}
+            category={exp.category}
+            // Les contrôles de dev ne sont plus nécessaires car les statuts viennent du backend
+            onNext={undefined}
+            onPrev={undefined}
+          />
+
+          <div style={{ marginTop: 28 }}>
+            <DynamicStatusBlock
+              status={status}
+              onAction={handleAction}
+              reviewed={reviewed}
+              actionPending={actionPending}
+            />
+            {actionError && (
+              <p style={{ marginTop: 10, fontSize: 13, color: "#B42318", textAlign: "center" }}>{actionError}</p>
+            )}
+          </div>
+        </>
+      )}
 
       {calendarLink && (
         <div style={{ marginTop: 28, textAlign: "center" }}>
@@ -309,6 +355,39 @@ export default function SeguimientoPage() {
       )}
     </div>
   )
+}
+
+/* ---------- STYLES : carte "Nueva fecha" (alternative_proposed) ---------- */
+
+const proposedCard: React.CSSProperties = {
+  marginBottom: 18,
+  padding: "20px 22px",
+  borderRadius: 24,
+  background: "#FFF6E9",
+  border: "1px solid #F2DFB8",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.04)",
+}
+
+const proposedLabel: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: 0.4,
+  textTransform: "uppercase",
+  color: "#8A5300",
+  marginBottom: 6,
+}
+
+const proposedDate: React.CSSProperties = {
+  fontSize: 21,
+  fontWeight: 650,
+  color: "#2E2212",
+  lineHeight: 1.3,
+}
+
+const proposedWhen: React.CSSProperties = {
+  marginTop: 4,
+  fontSize: 14,
+  color: "#8A5300",
 }
 
 /* ---------- STYLES (écran d'erreur, aligné sur app/error.tsx) ---------- */
