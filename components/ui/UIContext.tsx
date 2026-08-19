@@ -52,7 +52,30 @@ const UIContext = createContext<UIContextType | null>(null)
 export function UIProvider({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [activeExperience, setActiveExperience] = useState<SelectedExperience>(null)
-  const [selectedExperience, setSelectedExperience] = useState<SelectedExperience>(null)
+
+  // selectedExperience pilote /reservar/fechas : sans persistance, un refresh
+  // sur cette route perd l'expérience choisie et atterrit sur un écran vide
+  // (voir app/reservar/fechas/page.tsx). On la sauvegarde en sessionStorage
+  // (portée à l'onglet/session courant, pas un choix qui doit survivre
+  // indéfiniment comme les favoris). La restauration se fait dans
+  // l'initialiseur (lazy useState), pas dans un useEffect : FechasPage
+  // redirige vers /mapa dès son propre useEffect si selectedExperience est
+  // encore null, et les effects des enfants s'exécutent avant ceux du
+  // UIProvider (ancêtre) — un useEffect ici arriverait trop tard.
+  const [selectedExperience, setSelectedExperienceState] = useState<SelectedExperience>(() => {
+    if (typeof window === "undefined") return null
+    const saved = sessionStorage.getItem("vivabox_selected_experience")
+    return saved ? JSON.parse(saved) : null
+  })
+
+  function setSelectedExperience(exp: SelectedExperience) {
+    setSelectedExperienceState(exp)
+    if (exp) {
+      sessionStorage.setItem("vivabox_selected_experience", JSON.stringify(exp))
+    } else {
+      sessionStorage.removeItem("vivabox_selected_experience")
+    }
+  }
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string[] | null>(null)
