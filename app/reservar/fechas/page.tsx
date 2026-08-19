@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useUI } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
-import { Calendar, Clock, Users, Sunrise, Sun, Sunset, Check, Plus } from "lucide-react"
+import { Calendar, Clock, Users, Sunrise, Sun, Sunset, Check } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
 import PhotoGallery from "@/components/ui/PhotoGallery"
 import { formatLocalDate } from "@/lib/utils/formatLocalDate"
@@ -63,6 +63,12 @@ export default function FechasPage() {
 
   const isFormComplete = selectedDates.length > 0 && !!momentBlock
 
+  // Le premier choix est la fecha preferida, les suivants des alternativas —
+  // conservés explicitement pour que l'ordre de priorité soit sans ambiguïté
+  // jusqu'au payload envoyé à l'équipe de coordination.
+  const preferredDate = selectedDates[0] ?? null
+  const alternativeDates = selectedDates.slice(1)
+
   // La cantidad de base viene del producto (format), pas d'un choix libre —
   // seul le nombre de personnes EN PLUS (si l'expérience le permet) est
   // ajustable, sans plafond : chaque personne extra passe par validation du
@@ -107,8 +113,8 @@ export default function FechasPage() {
         },
         body: JSON.stringify({
           experienciaId: exp.id,
-          fechaDeseada: selectedDates[0], // date principale, utilisée pour la confirmation/complétion
-          fechasDeseadas: selectedDates, // jusqu'à 3 options, pour que l'équipe voie toutes les dates proposées
+          fechaDeseada: preferredDate, // date principale (preferida), utilisée pour la confirmation/complétion
+          fechasDeseadas: selectedDates, // preferida + alternativas, dans l'ordre de priorité
           cantidadPersonas: totalPeople,
           mensaje: preferredHour
             ? `Horario: ${MOMENT_LABEL[momentBlock]} (~${preferredHour})`
@@ -149,7 +155,7 @@ export default function FechasPage() {
         </div>
 
         <p style={subtitle}>
-          Elige fechas. <strong>Nosotros coordinamos.</strong>
+          Elige hasta 3 fechas. <strong>Nosotros coordinamos.</strong>
         </p>
 
         <Card
@@ -158,36 +164,25 @@ export default function FechasPage() {
           right={selectedDates.length > 0 ? `${selectedDates.length}/${MAX_DATES}` : undefined}
         >
           <p style={cardHint}>
-            Elige hasta {MAX_DATES} días. Mientras más opciones nos des, más rápido confirmamos con el lugar.
+            Danos hasta {MAX_DATES} fechas que te funcionen. Así podemos encontrar una opción más rápido.
           </p>
-          <div style={dateSlotsCol}>
-            {Array.from({ length: MAX_DATES }, (_, i) => i).map(i => {
-              const d = selectedDates[i]
-              if (d) {
-                return (
-                  <button key={i} onClick={() => setOpenCalendar(true)} style={dateSlotFilled}>
-                    <span style={dateSlotLabel}>Opción {i + 1}</span>
-                    <span style={dateSlotValue}>
-                      {formatLocalDate(d, { day: "numeric", month: "short" })}
-                    </span>
-                  </button>
-                )
-              }
-              if (i === selectedDates.length) {
-                return (
-                  <button key={i} onClick={() => setOpenCalendar(true)} style={dateSlotEmpty}>
-                    <Plus size={14} />
-                    {i === 0 ? "Elegir días" : `Opción ${i + 1} (opcional)`}
-                  </button>
-                )
-              }
-              return null
-            })}
-          </div>
+
+          {selectedDates.length > 0 && (
+            <div style={dateSummaryCol}>
+              <DateRoleGroup label="Preferida" dates={[preferredDate!]} strong />
+              {alternativeDates.length > 0 && (
+                <DateRoleGroup label="Alternativas" dates={alternativeDates} />
+              )}
+            </div>
+          )}
+
+          <button onClick={() => setOpenCalendar(true)} style={dateSlotEmpty}>
+            + Elegir fechas
+          </button>
         </Card>
 
         <Card icon={<Clock size={20} />} title="Horario">
-          <p style={cardHint}>Elige un momento del día. El lugar te confirma la hora exacta.</p>
+          <p style={cardHint}>Elige cuándo te gustaría hacerlo. El lugar nos confirma la hora.</p>
           <div style={chipsRow}>
             <MomentChip icon={<Sunrise size={16} />} label="Mañana" value="morning" momentBlock={momentBlock} setMomentBlock={selectMoment} />
             <MomentChip icon={<Sun size={16} />} label="Tarde" value="afternoon" momentBlock={momentBlock} setMomentBlock={selectMoment} />
@@ -196,7 +191,7 @@ export default function FechasPage() {
 
           {momentBlock && (
             <div style={hourSection}>
-              <span style={cardHint}>¿Hora exacta? (opcional)</span>
+              <span style={cardHint}>¿Tienes una hora preferida? · Opcional</span>
               <div style={chipsRow}>
                 {HOUR_RANGES[momentBlock].map(h => (
                   <button
@@ -294,6 +289,21 @@ function MomentChip({ icon, label, value, momentBlock, setMomentBlock }: any) {
   )
 }
 
+function DateRoleGroup({ label, dates, strong }: { label: string; dates: string[]; strong?: boolean }) {
+  return (
+    <div>
+      <div style={dateRoleLabel}>{label}</div>
+      <div style={chipsRow}>
+        {dates.map(d => (
+          <span key={d} style={strong ? dateRoleChipStrong : dateRoleChip}>
+            {formatLocalDate(d, { day: "numeric", month: "short" })}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /* ---------- STYLES ---------- */
 
 const pageWrap: React.CSSProperties = { paddingBottom: 120 }
@@ -377,23 +387,27 @@ const hourChipStyle = (active: boolean): React.CSSProperties => ({
   fontSize: 13,
 })
 
-const dateSlotsCol: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 8 }
+const dateSummaryCol: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 12, marginBottom: 12 }
 
-const dateSlotFilled: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#111",
-  color: "#fff",
-  border: "none",
-  cursor: "pointer",
-  width: "100%",
+const dateRoleLabel: React.CSSProperties = { fontSize: 11, color: "#999", marginBottom: 6 }
+
+const dateRoleChip: React.CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: 999,
+  background: "#fff",
+  border: "1px solid #E5E2DB",
+  color: "#111",
+  fontSize: 13,
+  fontWeight: 500,
 }
 
-const dateSlotLabel: React.CSSProperties = { fontSize: 11, opacity: 0.6 }
-const dateSlotValue: React.CSSProperties = { fontSize: 14, fontWeight: 600 }
+const dateRoleChipStrong: React.CSSProperties = {
+  ...dateRoleChip,
+  background: "#111",
+  border: "1px solid #111",
+  color: "#fff",
+  fontWeight: 600,
+}
 
 const dateSlotEmpty: React.CSSProperties = {
   display: "flex",
