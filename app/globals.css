@@ -526,8 +526,32 @@ button, a { -webkit-tap-highlight-color: transparent; }
   to   { transform: scale(1);    opacity: 1; }
 }
 
+/* Micro-pulso + halo sutil, joué juste après le tracé du check (voir
+   vb-activation-checkmark-draw ci-dessous) : scale 1 → 1.04 → 1 avec un
+   léger halo vert qui s'estompe aussitôt. */
+@keyframes vb-activation-check-pulse {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(30, 122, 59, 0); }
+  50%  { transform: scale(1.04); box-shadow: 0 0 0 10px rgba(30, 122, 59, 0.16); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 18px rgba(30, 122, 59, 0); }
+}
+
 .vb-activation-check {
-  animation: vb-activation-check-in 600ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+  animation:
+    vb-activation-check-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both,
+    vb-activation-check-pulse 160ms ease-out 340ms both;
+}
+
+/* Tracé progressif du check (stroke-dash / pathLength) : joué après
+   l'apparition du cercle, juste avant le micro-pulso ci-dessus. */
+@keyframes vb-activation-checkmark-draw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.vb-activation-checkmark path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: vb-activation-checkmark-draw 220ms ease-out 120ms both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -539,5 +563,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
     animation: none;
     opacity: 1;
     transform: none;
+  }
+  .vb-activation-checkmark path {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
