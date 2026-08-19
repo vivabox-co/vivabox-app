@@ -16,12 +16,16 @@ import { useUI } from "./UIContext"
 // ready yet, it keeps looping through the animation until it is.
 
 // Waiting for `pathname` to actually change is too late for a click that
-// triggers a heavier navigation (e.g. choosing an experience from the map
-// bottom sheet): the App Router only updates the pathname once the
-// destination route has finished loading, so nothing would mask that
-// loading gap. `navToken` (bumped by useUI().beginRouteTransition, read
-// below) lets a click force this overlay to remount and reappear
-// immediately, before the pathname itself has moved.
+// triggers a heavier navigation (e.g. choosing an experience from a bottom
+// sheet): the App Router only updates the pathname once the destination
+// route has finished loading, so nothing would mask that loading gap.
+// `pendingTransition` (set by useUI().beginRouteTransition, read below)
+// forces this overlay to stay visible from the click onward, independently
+// of the per-page reveal/done cycle below — it's cleared the moment the
+// pathname actually changes, handing off to that normal cycle. Deliberately
+// NOT part of Overlay's remount key: forcing a remount here raced against
+// the reveal timer instead of just holding the same DOM open, which is what
+// caused the loader to flash and drop back to the old page mid-navigation.
 
 // Le parcours d'activation (formulaire -> écran "activé") est une seule
 // démarche pour la personne, pas une suite d'écrans distincts : on
@@ -35,8 +39,13 @@ function isInActivationFlow(pathname: string) {
 
 export default function RouteLoaderOverlay() {
   const pathname = usePathname()
-  const { navToken } = useUI()
+  const { pendingTransition, setPendingTransition } = useUI()
   const prevPathnameRef = useRef<string | null>(null)
+  // Mirrors pendingTransition so the pathname-change effect below always
+  // reads the latest value without needing it in its dependency array (which
+  // would make the effect re-run on every toggle, not just on navigation).
+  const pendingRef = useRef(pendingTransition)
+  pendingRef.current = pendingTransition
 
   const isInternalActivationHop =
     prevPathnameRef.current !== null &&
@@ -49,22 +58,26 @@ export default function RouteLoaderOverlay() {
   // let each extra call see a different prevPathname, causing exactly the kind
   // of server/client divergence that trips a hydration mismatch.
   useEffect(() => {
+    if (prevPathnameRef.current !== null && prevPathnameRef.current !== pathname && pendingRef.current) {
+      setPendingTransition(false)
+    }
     prevPathnameRef.current = pathname
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname])
 
   if (isInternalActivationHop) return null
 
-  // Remounted on every route change, and on every manually-triggered
-  // navigation (navToken), so its internal reveal check restarts fresh.
-  return <Overlay key={`${pathname}::${navToken}`} />
+  // Remounted on every route change so its internal reveal check restarts
+  // fresh for the new page.
+  return <Overlay key={pathname} />
 }
 
 function Overlay() {
-  const { pageReady } = useUI()
+  const { pageReady, pendingTransition } = useUI()
   const containerRef = useRef<HTMLDivElement>(null)
   const done = useLoaderReveal(pageReady, containerRef)
 
-  if (done) return null
+  if (done && !pendingTransition) return null
 
   return (
     <div

@@ -36,12 +36,14 @@ type UIContextType = {
   pageReady: boolean
   setPageReady: (v: boolean) => void
 
-  // À appeler juste avant un router.push() qui doit afficher le loader
-  // plein écran dès le clic, sans attendre que la nouvelle route ait fini
-  // de charger (voir RouteLoaderOverlay : sans ça, l'overlay ne se
-  // redéclenche qu'une fois le pathname effectivement changé, ce qui laisse
-  // un blanc pendant le chargement de la route de destination).
-  navToken: number
+  // Vrai entre l'appel à beginRouteTransition() (au clic, avant router.push)
+  // et le moment où la route de destination a effectivement atterri (voir
+  // RouteLoaderOverlay, qui le repasse à false dès que le pathname change).
+  // Sans ça, l'overlay ne se redéclenche qu'une fois le pathname changé —
+  // trop tard, puisque l'App Router ne le change qu'une fois la nouvelle
+  // route déjà chargée — ce qui laisse un blanc pendant le chargement.
+  pendingTransition: boolean
+  setPendingTransition: (v: boolean) => void
   beginRouteTransition: () => void
 }
 
@@ -58,11 +60,11 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [hideNav, setHideNav] = useState(false)
 
   const [pageReady, setPageReady] = useState(true)
-  const [navToken, setNavToken] = useState(0)
+  const [pendingTransition, setPendingTransition] = useState(false)
 
   function beginRouteTransition() {
     setPageReady(false)
-    setNavToken(t => t + 1)
+    setPendingTransition(true)
   }
 
   // ⭐ FAVORIS PERSISTANTS
@@ -118,7 +120,8 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         pageReady,
         setPageReady,
 
-        navToken,
+        pendingTransition,
+        setPendingTransition,
         beginRouteTransition,
       }}
     >
