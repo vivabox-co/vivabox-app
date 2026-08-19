@@ -22,7 +22,7 @@ type Props = {
 
 export default function DetailScreen({ experience, onBack }: Props) {
   const router = useRouter()
-  const { isFavorite, toggleFavorite, setSelectedExperience } = useUI()
+  const { isFavorite, toggleFavorite, setSelectedExperience, beginRouteTransition } = useUI()
 
   if (!experience) return null
 
@@ -122,6 +122,7 @@ export default function DetailScreen({ experience, onBack }: Props) {
         <button
           onClick={() => {
             setSelectedExperience(experience)
+            beginRouteTransition()
             router.push('/reservar/fechas')
           }}
           style={cta}

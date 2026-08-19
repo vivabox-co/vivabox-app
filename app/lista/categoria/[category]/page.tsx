@@ -18,7 +18,13 @@ export default function CategoryPage() {
   const category = categoryParam as Category
 
   const router = useRouter()
-  const { selectedExperience, setSelectedExperience, drawerOpen, setDrawerOpen } = useUI()
+  const {
+    selectedExperience,
+    setSelectedExperience,
+    drawerOpen,
+    setDrawerOpen,
+    beginRouteTransition,
+  } = useUI()
 
   const [experiences, setExperiences] = useState<Experience[]>([])
   const [loading, setLoading] = useState(true)
@@ -116,6 +122,7 @@ export default function CategoryPage() {
       <ExperienceExploreMeta
         exp={selectedExperience}
         onChoose={() => {
+          beginRouteTransition()
           router.push("/reservar/fechas")
         }}
       />
