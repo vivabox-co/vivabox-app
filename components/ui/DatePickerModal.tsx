@@ -143,20 +143,17 @@ export default function DatePickerModal({
             ) : (
               <div style={summaryRow}>
                 {selectedDates.map((d, i) => (
-                  <div key={d} style={summaryItem}>
-                    <div style={summaryItemLabel}>{i === 0 ? "Preferida" : "Alternativa"}</div>
-                    <div style={summaryChipRow}>
-                      <span style={i === 0 ? summaryChipStrong(categoryColor) : summaryChip(categoryColor)}>
-                        {formatLocalDate(d, { day: "numeric", month: "short" })}
-                      </span>
-                      <button
-                        onClick={() => removeDate(d)}
-                        style={i === 0 ? chipRemoveBtnStrong : chipRemoveBtn}
-                        aria-label="Quitar fecha"
-                      >
-                        <X size={11} />
-                      </button>
-                    </div>
+                  <div key={d} style={summaryChipRow}>
+                    <span style={i === 0 ? summaryChipStrong(categoryColor) : summaryChip}>
+                      {formatLocalDate(d, { day: "numeric", month: "short" })}
+                    </span>
+                    <button
+                      onClick={() => removeDate(d)}
+                      style={i === 0 ? chipRemoveBtnStrong : chipRemoveBtn}
+                      aria-label="Quitar fecha"
+                    >
+                      <X size={11} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -198,9 +195,9 @@ function dayCellRoleStyle(isPreferred: boolean, isAlternative: boolean, category
   }
   if (isAlternative) {
     return {
-      background: "#fff",
+      background: "#F3F1EC",
       color: "#111",
-      border: `1px solid ${categoryColor}`,
+      border: "none",
       boxShadow: "none",
     }
   }
@@ -212,23 +209,21 @@ function dayCellRoleStyle(isPreferred: boolean, isAlternative: boolean, category
   }
 }
 
-const summaryChip = (color: string): React.CSSProperties => ({
+const summaryChip: React.CSSProperties = {
   display: "inline-block",
   padding: "6px 10px",
   borderRadius: 999,
-  background: "#fff",
-  border: `1px solid ${color}`,
-  color: "#111",
+  background: "#F3F1EC",
+  color: "#444",
   fontSize: 13,
   fontWeight: 500,
   whiteSpace: "nowrap",
   animation: "fadeIn .2s ease",
-})
+}
 
 const summaryChipStrong = (color: string): React.CSSProperties => ({
-  ...summaryChip(color),
+  ...summaryChip,
   background: "#111",
-  border: "none",
   boxShadow: `0 0 0 2px ${color}`,
   color: "#fff",
   fontWeight: 600,
@@ -254,20 +249,20 @@ const modal = {
   padding: "22px 20px 24px",
 }
 
-const sheetTitleWrap = { marginBottom: 14 }
+const sheetTitleWrap = { marginBottom: 12 }
 const sheetTitle = { fontSize: 17, fontWeight: 700, color: "#111" }
 const sheetSubtitle = { fontSize: 13, color: "#888", marginTop: 3, lineHeight: 1.35 }
 
-const header = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }
+const header = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }
 const navBtn = { background: "#F3F3F3", border: "none", width: 34, height: 34, borderRadius: 12, fontSize: 20, cursor: "pointer" }
 const monthLabel = { fontSize: 16, fontWeight: 600, textTransform: "capitalize" as const }
-const weekRow = { display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: 8 }
+const weekRow = { display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: 6 }
 const weekDay = { textAlign: "center" as const, fontSize: 12, opacity: .5 }
-const grid = { display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8 }
+const grid = { display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }
 const dayCell = { height: 44, borderRadius: 14, border: "none", fontSize: 14, fontWeight: 500 }
 
 const stableZone = {
-  marginTop: 16,
+  marginTop: 14,
   padding: 12,
   borderRadius: 16,
   background: "#F7F5F2",
@@ -279,9 +274,7 @@ const stableZone = {
 const stableTitle = { fontSize: 12, fontWeight: 600, opacity: 0.7 }
 const stableEmptyHint = { fontSize: 12, opacity: 0.5 }
 
-const summaryRow = { display: "flex", flexWrap: "wrap" as const, gap: 14 }
-const summaryItem = { display: "flex", flexDirection: "column" as const, gap: 4, minWidth: 0 }
-const summaryItemLabel = { fontSize: 10, color: "#999", textTransform: "uppercase" as const, letterSpacing: 0.3 }
+const summaryRow = { display: "flex", flexWrap: "wrap" as const, gap: 8 }
 const summaryChipRow = { display: "flex", alignItems: "center", gap: 4 }
 
 const chipRemoveBtn = {
@@ -300,7 +293,7 @@ const chipRemoveBtnStrong = {
   color: "rgba(255,255,255,0.7)",
 }
 
-const footerRow = { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 18, gap: 12 }
+const footerRow = { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 16, gap: 12 }
 
 const cancelBtn = {
   background: "transparent",

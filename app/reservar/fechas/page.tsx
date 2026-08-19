@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useUI } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
-import { Calendar, Clock, Users, Sunrise, Sun, Sunset, Check, Pencil } from "lucide-react"
+import { Calendar, Clock, Users, Sunrise, Sun, Sunset, Check } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
 import PhotoGallery from "@/components/ui/PhotoGallery"
 import { formatLocalDate } from "@/lib/utils/formatLocalDate"
@@ -64,12 +64,13 @@ export default function FechasPage() {
   const categoryColor = categoryColors[exp.category] || "#111"
 
   const isFormComplete = selectedDates.length > 0 && !!momentBlock
+  const datesMaxed = selectedDates.length >= MAX_DATES
 
-  // Le premier choix est la fecha preferida, les suivants des alternativas —
-  // conservés explicitement pour que l'ordre de priorité soit sans ambiguïté
-  // jusqu'au payload envoyé à l'équipe de coordination.
+  // Le premier choix est la fecha preferida (les suivants sont les
+  // alternativas, implicites dans l'ordre de selectedDates) — conservé
+  // explicitement pour que la priorité soit sans ambiguïté jusqu'au payload
+  // envoyé à l'équipe de coordination.
   const preferredDate = selectedDates[0] ?? null
-  const alternativeDates = selectedDates.slice(1)
 
   // La cantidad de base viene del producto (format), pas d'un choix libre —
   // seul le nombre de personnes EN PLUS (si l'expérience le permet) est
@@ -156,80 +157,97 @@ export default function FechasPage() {
           </PhotoGallery>
         </div>
 
-        <p style={subtitle}>
-          Elige hasta 3 fechas. <strong>Nosotros coordinamos.</strong>
+        <p style={intro}>
+          Elige hasta 3 fechas. <strong style={introStrong}>Nosotros coordinamos.</strong>
         </p>
 
-        <Card
-          icon={<Calendar size={20} />}
-          title="Fechas posibles"
-          right={`${selectedDates.length}/${MAX_DATES}`}
-          rightColor={selectedDates.length > 0 ? categoryColor : undefined}
-        >
-          <p style={cardHint}>
+        {/* ---------- FECHAS ---------- */}
+        <section style={section}>
+          <div style={sectionHeaderRow}>
+            <h2 style={sectionTitle}>
+              <Calendar size={17} style={sectionTitleIcon} />
+              Fechas posibles
+            </h2>
+            <div style={sectionHeaderRight}>
+              <span style={{ ...counterBadge, color: selectedDates.length > 0 ? categoryColor : "#999" }}>
+                {selectedDates.length}/{MAX_DATES}
+              </span>
+              {datesMaxed && (
+                <button onClick={() => setOpenCalendar(true)} style={inlineTextLink}>
+                  Editar fechas →
+                </button>
+              )}
+            </div>
+          </div>
+
+          <p style={sectionDescription}>
             Danos hasta {MAX_DATES} fechas que te funcionen. Así podemos encontrar una opción más rápido.
           </p>
 
           {selectedDates.length > 0 && (
-            <div style={dateSummaryRow}>
+            <div style={dateChipsRow}>
               {selectedDates.map((d, i) => (
-                <div key={d} style={dateSummaryItem}>
-                  <div style={dateSummaryItemLabel}>{i === 0 ? "Preferida" : "Alternativa"}</div>
-                  <span style={i === 0 ? dateSummaryChipStrong(categoryColor) : dateSummaryChip(categoryColor)}>
-                    {formatLocalDate(d, { day: "numeric", month: "short" })}
-                  </span>
-                </div>
+                <span key={d} style={i === 0 ? dateChipPreferred(categoryColor) : dateChipAlt}>
+                  {formatLocalDate(d, { day: "numeric", month: "short" })}
+                </span>
               ))}
             </div>
           )}
 
-          {selectedDates.length < MAX_DATES ? (
-            <button onClick={() => setOpenCalendar(true)} style={dateSlotEmpty}>
+          {!datesMaxed && (
+            <button onClick={() => setOpenCalendar(true)} style={inlineTextLink}>
               {selectedDates.length === 0 ? "+ Elegir fechas" : "+ Elegir otra fecha"}
             </button>
-          ) : (
-            <button onClick={() => setOpenCalendar(true)} style={dateEditBtn}>
-              <Pencil size={13} />
-              Editar
-            </button>
           )}
-        </Card>
+        </section>
 
-        <Card icon={<Clock size={20} />} title="Horario">
-          <p style={cardHint}>Elige cuándo te gustaría hacerlo. El lugar nos confirma la hora.</p>
+        {/* ---------- MOMENTO DEL DÍA ---------- */}
+        <section style={section}>
+          <h2 style={sectionTitle}>
+            <Clock size={17} style={sectionTitleIcon} />
+            Momento del día
+          </h2>
+          <p style={sectionDescription}>Elige cuándo te gustaría hacerlo. El lugar nos confirma la hora.</p>
+
           <div style={chipsRow}>
-            <MomentChip icon={<Sunrise size={16} />} label="Mañana" value="morning" momentBlock={momentBlock} setMomentBlock={selectMoment} color={categoryColor} />
-            <MomentChip icon={<Sun size={16} />} label="Tarde" value="afternoon" momentBlock={momentBlock} setMomentBlock={selectMoment} color={categoryColor} />
-            <MomentChip icon={<Sunset size={16} />} label="Noche" value="night" momentBlock={momentBlock} setMomentBlock={selectMoment} color={categoryColor} />
+            <MomentChip icon={<Sunrise size={15} />} label="Mañana" value="morning" momentBlock={momentBlock} setMomentBlock={selectMoment} color={categoryColor} />
+            <MomentChip icon={<Sun size={15} />} label="Tarde" value="afternoon" momentBlock={momentBlock} setMomentBlock={selectMoment} color={categoryColor} />
+            <MomentChip icon={<Sunset size={15} />} label="Noche" value="night" momentBlock={momentBlock} setMomentBlock={selectMoment} color={categoryColor} />
           </div>
 
           {momentBlock && (
             <div style={hourSection}>
-              <span style={cardHint}>¿Tienes una hora preferida? · Opcional</span>
+              <span style={hourHint}>¿Tienes una hora preferida? · Opcional</span>
               <div style={chipsRow}>
                 {HOUR_RANGES[momentBlock].map(h => (
-                  <button
+                  <HourChip
                     key={h}
+                    label={h}
+                    active={preferredHour === h}
+                    color={categoryColor}
                     onClick={() => setPreferredHour(p => (p === h ? null : h))}
-                    style={hourChipStyle(preferredHour === h, categoryColor)}
-                  >
-                    {h}
-                  </button>
+                  />
                 ))}
               </div>
             </div>
           )}
-        </Card>
+        </section>
 
-        <Card icon={<Users size={20} />} title="Personas">
-          <div style={personasRow}>
-            <div>
-              <div style={personasMain}>
-                Para {totalPeople} {totalPeople === 1 ? "persona" : "personas"}
-              </div>
-              <div style={personasSub}>Incluido en tu regalo</div>
-            </div>
-            <Check size={18} color="#1E7A3B" />
+        {/* ---------- PERSONAS ---------- */}
+        <section style={section}>
+          <h2 style={sectionTitle}>
+            <Users size={17} style={sectionTitleIcon} />
+            Personas
+          </h2>
+
+          <div style={personasMainRow}>
+            <span style={personasCount}>
+              {totalPeople} {totalPeople === 1 ? "persona" : "personas"}
+            </span>
+            <span style={personasIncluded}>
+              <Check size={13} color="#1E7A3B" />
+              Incluido en tu regalo
+            </span>
           </div>
 
           {extraAllowed && (
@@ -249,20 +267,20 @@ export default function FechasPage() {
                   +
                 </button>
               </div>
-              <div style={personasNote}>
-                Sujeto a validación del lugar y a un costo adicional por persona.
+              <p style={personasNote}>
+                Las personas adicionales están sujetas a disponibilidad y costo adicional.
                 {exp.extraPeopleOption?.note ? ` ${exp.extraPeopleOption.note}` : ""}
-              </div>
+              </p>
             </>
           )}
-        </Card>
+        </section>
 
         <button onClick={handleSubmit} disabled={loading || !isFormComplete} style={{
           ...cta,
           opacity: loading ? 0.6 : isFormComplete ? 1 : 0.4,
           cursor: loading || !isFormComplete ? "not-allowed" : "pointer"
         }}>
-          {loading ? "Creando reserva..." : "Continuar"}
+          {loading ? "Creando reserva..." : "Continuar →"}
         </button>
       </div>
 
@@ -283,23 +301,21 @@ export default function FechasPage() {
 
 /* ---------- UI ---------- */
 
-function Card({ icon, title, right, rightColor, children }: any) {
-  return (
-    <div style={card}>
-      <div style={cardHeader}>
-        <div style={cardHeaderLeft}>{icon}<span>{title}</span></div>
-        {right && <span style={{ ...cardHeaderRight, color: rightColor || "#888" }}>{right}</span>}
-      </div>
-      {children}
-    </div>
-  )
-}
-
 function MomentChip({ icon, label, value, momentBlock, setMomentBlock, color }: any) {
   const active = momentBlock === value
   return (
-    <button onClick={() => setMomentBlock(value)} style={{ ...chipStyle(active, color), display: "flex", gap: 6, alignItems: "center" }}>
+    <button onClick={() => setMomentBlock(value)} style={momentChipStyle(active)}>
+      {active && <span style={accentDot(color)} />}
       {icon}{label}
+    </button>
+  )
+}
+
+function HourChip({ label, active, color, onClick }: { label: string; active: boolean; color: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} style={hourChipStyle(active)}>
+      {active && <span style={accentDot(color)} />}
+      {label}
     </button>
   )
 }
@@ -359,130 +375,151 @@ const heroTitle: React.CSSProperties = {
   lineHeight: 1.2,
 }
 
-const subtitle: React.CSSProperties = { padding: 18, color: "#666" }
-
-const card: React.CSSProperties = {
-  margin: "0 18px 18px 18px",
-  padding: 18,
-  borderRadius: 18,
-  background: "#F7F5F2",
+const intro: React.CSSProperties = {
+  padding: "22px 20px 8px",
+  fontSize: 19,
+  lineHeight: 1.4,
+  color: "#666",
+  letterSpacing: -0.1,
 }
 
-const cardHeader: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }
-const cardHeaderLeft: React.CSSProperties = { display: "flex", gap: 8, alignItems: "center", fontWeight: 600 }
-const cardHeaderRight: React.CSSProperties = { fontSize: 12, color: "#888" }
+const introStrong: React.CSSProperties = { color: "#111", fontWeight: 700 }
 
-const cardHint: React.CSSProperties = { fontSize: 12, color: "#888", marginBottom: 12, lineHeight: 1.4 }
+const section: React.CSSProperties = { padding: "0 20px", marginTop: 30 }
+
+const sectionHeaderRow: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }
+
+const sectionTitle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  fontSize: 19,
+  fontWeight: 700,
+  color: "#111",
+  letterSpacing: -0.2,
+  margin: 0,
+}
+
+const sectionTitleIcon: React.CSSProperties = { color: "#999", flexShrink: 0 }
+
+const sectionHeaderRight: React.CSSProperties = { display: "flex", alignItems: "baseline", gap: 12, flexShrink: 0 }
+
+const counterBadge: React.CSSProperties = { fontSize: 13, fontWeight: 600 }
+
+const sectionDescription: React.CSSProperties = { fontSize: 13, color: "#8f8f8f", lineHeight: 1.45, marginTop: 6, marginBottom: 14 }
+
+const inlineTextLink: React.CSSProperties = {
+  background: "transparent",
+  border: "none",
+  padding: "6px 0",
+  color: "#111",
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: "pointer",
+}
 
 const chipsRow: React.CSSProperties = { display: "flex", gap: 8, flexWrap: "wrap" }
 
-const hourSection: React.CSSProperties = { marginTop: 14 }
+const dateChipsRow: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }
 
-const hourChipStyle = (active: boolean, color: string): React.CSSProperties => ({
-  padding: "8px 12px",
+const dateChipPreferred = (color: string): React.CSSProperties => ({
+  padding: "9px 15px",
   borderRadius: 999,
-  border: active ? `2px solid ${color}` : "1px solid #ddd",
-  background: "#fff",
-  color: active ? color : "#333",
-  fontWeight: active ? 600 : 400,
+  background: "#111",
+  color: "#fff",
   fontSize: 13,
-})
-
-const dateSummaryRow: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: 14, marginBottom: 12 }
-const dateSummaryItem: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }
-const dateSummaryItemLabel: React.CSSProperties = { fontSize: 10, color: "#999", textTransform: "uppercase", letterSpacing: 0.3 }
-
-const dateSummaryChip = (color: string): React.CSSProperties => ({
-  display: "inline-block",
-  padding: "6px 10px",
-  borderRadius: 999,
-  background: "#fff",
-  border: `1px solid ${color}`,
-  color: "#111",
-  fontSize: 13,
-  fontWeight: 500,
+  fontWeight: 600,
+  boxShadow: `0 0 0 2px ${color}`,
   whiteSpace: "nowrap",
 })
 
-const dateSummaryChipStrong = (color: string): React.CSSProperties => ({
-  ...dateSummaryChip(color),
-  background: "#111",
-  border: "none",
-  boxShadow: `0 0 0 2px ${color}`,
-  color: "#fff",
-  fontWeight: 600,
-})
-
-const dateSlotEmpty: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 6,
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#fff",
-  border: "1px dashed #bbb",
+const dateChipAlt: React.CSSProperties = {
+  padding: "9px 15px",
+  borderRadius: 999,
+  background: "#F7F5F2",
   color: "#666",
   fontSize: 13,
-  cursor: "pointer",
-  width: "100%",
-}
-
-const dateEditBtn: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-  padding: "8px 14px",
-  borderRadius: 999,
-  background: "#fff",
-  border: "1px solid #ddd",
-  color: "#333",
-  fontSize: 13,
   fontWeight: 500,
-  cursor: "pointer",
+  whiteSpace: "nowrap",
 }
 
-const personasRow: React.CSSProperties = {
+const hourSection: React.CSSProperties = { marginTop: 16 }
+
+const hourHint: React.CSSProperties = { fontSize: 12, color: "#8f8f8f", display: "block", marginBottom: 10 }
+
+const accentDot = (color: string): React.CSSProperties => ({
+  width: 6,
+  height: 6,
+  borderRadius: "50%",
+  background: color,
+  display: "inline-block",
+  flexShrink: 0,
+})
+
+const momentChipStyle = (active: boolean): React.CSSProperties => ({
+  padding: "10px 14px",
+  borderRadius: 999,
+  border: active ? "1.5px solid #111" : "1px solid #E5E2DB",
+  background: active ? "#111" : "#fff",
+  color: active ? "#fff" : "#444",
+  fontWeight: active ? 600 : 400,
+  fontSize: 14,
+  display: "flex",
+  gap: 6,
+  alignItems: "center",
+})
+
+const hourChipStyle = (active: boolean): React.CSSProperties => ({
+  padding: "8px 12px",
+  borderRadius: 999,
+  border: active ? "1.5px solid #111" : "1px solid #E5E2DB",
+  background: active ? "#111" : "#fff",
+  color: active ? "#fff" : "#555",
+  fontWeight: active ? 600 : 400,
+  fontSize: 13,
+  display: "flex",
+  gap: 6,
+  alignItems: "center",
+})
+
+const personasMainRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "baseline",
+  justifyContent: "space-between",
+  flexWrap: "wrap",
+  gap: 6,
+}
+
+const personasCount: React.CSSProperties = { fontSize: 16, fontWeight: 600, color: "#111" }
+
+const personasIncluded: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
-  background: "#fff",
-  borderRadius: 14,
-  padding: "12px 14px",
+  gap: 5,
+  fontSize: 12,
+  color: "#666",
 }
 
-const personasMain: React.CSSProperties = { fontSize: 15, fontWeight: 600 }
-const personasSub: React.CSSProperties = { fontSize: 12, color: "#888", marginTop: 2 }
-
-const extraRow: React.CSSProperties = { marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }
+const extraRow: React.CSSProperties = { marginTop: 18, display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }
 
 const extraBtn: React.CSSProperties = {
-  width: 36,
-  height: 36,
+  width: 34,
+  height: 34,
   borderRadius: "50%",
-  border: "1px solid #ddd",
+  border: "1px solid #E5E2DB",
   background: "#fff",
-  fontSize: 18,
+  fontSize: 17,
   fontWeight: 600,
   cursor: "pointer",
 }
 
-const extraCount: React.CSSProperties = { fontSize: 13, fontWeight: 500, minWidth: 130, textAlign: "center" }
+const extraCount: React.CSSProperties = { fontSize: 13, fontWeight: 500, minWidth: 130, textAlign: "center", color: "#444" }
 
-const personasNote: React.CSSProperties = { marginTop: 10, fontSize: 11, color: "#999", textAlign: "center", minHeight: 14 }
-
-const chipStyle = (active: boolean, color: string): React.CSSProperties => ({
-  padding: "10px 14px",
-  borderRadius: 999,
-  border: active ? `2px solid ${color}` : "1px solid #ddd",
-  background: "#fff",
-  color: active ? color : "#333",
-  fontWeight: active ? 600 : 400,
-})
+const personasNote: React.CSSProperties = { marginTop: 10, fontSize: 11, color: "#999", textAlign: "center", lineHeight: 1.4 }
 
 const cta: React.CSSProperties = {
-  margin: "24px 18px 0 18px",
-  width: "calc(100% - 36px)",
+  margin: "34px 20px 0 20px",
+  width: "calc(100% - 40px)",
   padding: 16,
   borderRadius: 14,
   background: "#111",
