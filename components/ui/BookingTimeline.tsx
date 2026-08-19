@@ -21,11 +21,14 @@ const steps = [
 // "alternative_proposed" a besoin de son propre jeu d'étapes : le lugar a
 // déjà répondu (donc "Confirmando con el lugar" serait faux), et l'étape en
 // cours attend une action du bénéficiaire plutôt qu'une simple confirmation —
-// d'où le cercle "current" distinct du check "done" (voir `isCurrent` plus bas).
+// d'où le cercle "current" distinct du check "done" (voir `isCurrent` plus bas)
+// et le slot `activeContent` (voir Props) qui ouvre cette étape pour y
+// intégrer la proposition et la décision, plutôt que de les dupliquer dans
+// un bloc séparé.
 const ALTERNATIVE_STEPS = [
   { key: "requested", label: "Solicitud recibida", description: "Tu elección llegó correctamente." },
-  { key: "responded", label: "El lugar respondió", description: "Encontraron una nueva fecha para ti." },
-  { key: "awaiting_response", label: "Esperando tu respuesta", description: "Dinos si esta fecha te funciona." },
+  { key: "unavailable", label: "Fecha solicitada no disponible", description: "El lugar no puede recibirte en la fecha que elegiste." },
+  { key: "proposed", label: "Nueva fecha propuesta", description: "El lugar sí tiene disponibilidad para esta fecha:" },
   { key: "confirmed", label: "Fecha confirmada", description: "Te avisaremos cuando esté lista." },
   { key: "done", label: "Todo listo", description: "Ya puedes disfrutar." },
 ]
@@ -48,9 +51,16 @@ type Props = {
   category: string
   onNext?: () => void
   onPrev?: () => void
+  // Contenu additionnel rendu à l'intérieur de l'étape en cours (sous sa
+  // description), pour les statuts qui ont besoin d'ouvrir cette étape au
+  // lieu d'un bloc séparé — aujourd'hui seul "alternative_proposed" l'utilise
+  // (voir seguimiento/[bookingId]/page.tsx). Générique : accepte n'importe
+  // quel ReactNode, donc afficher plusieurs propositions plus tard ne demande
+  // aucun changement ici, seulement dans ce que le parent construit.
+  activeContent?: React.ReactNode
 }
 
-export default function BookingTimeline({ status, category, onNext, onPrev }: Props) {
+export default function BookingTimeline({ status, category, onNext, onPrev, activeContent }: Props) {
   const color = categoryColors[category] || "#111"
   const isAlternative = status === "alternative_proposed"
   const activeSteps = isAlternative ? ALTERNATIVE_STEPS : steps
@@ -173,6 +183,9 @@ export default function BookingTimeline({ status, category, onNext, onPrev }: Pr
                 }}>
                   {step.description}
                 </div>
+                {isCurrent && activeContent && (
+                  <div style={{ marginTop: 14 }}>{activeContent}</div>
+                )}
               </div>
             </div>
           )

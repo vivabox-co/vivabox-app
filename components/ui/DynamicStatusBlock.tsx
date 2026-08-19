@@ -17,10 +17,14 @@ type Props = {
 }
 
 export default function DynamicStatusBlock({ status, onAction, reviewed, actionPending }: Props) {
-  const content: Record<
+  // "alternative_proposed" n'a pas d'entrée ici : sa décision est intégrée
+  // dans l'étape active de BookingTimeline (voir activeContent dans
+  // seguimiento/[bookingId]/page.tsx) plutôt que dupliquée dans ce bloc —
+  // d'où le Partial et le garde `if (!block) return null` juste après.
+  const content: Partial<Record<
     BookingStatus,
     { title: string; text: string; actions?: { key: StatusAction; label: string }[] }
-  > = {
+  >> = {
     requested: {
       title: "¿Qué sigue?",
       text: "No necesitas hacer nada por ahora. Nosotros nos encargamos de la confirmación.",
@@ -29,15 +33,6 @@ export default function DynamicStatusBlock({ status, onAction, reviewed, actionP
     waiting_provider: {
       title: "¿Qué sigue?",
       text: "No necesitas hacer nada por ahora. Nosotros nos encargamos de la confirmación.",
-    },
-
-    alternative_proposed: {
-      title: "¿Te funciona?",
-      text: "Cuéntanos si esta nueva fecha te sirve, o si prefieres elegir otra experiencia.",
-      actions: [
-        { key: "accept_alternative", label: "Aceptar esta fecha" },
-        { key: "choose_new_experience", label: "Elegir otra experiencia" },
-      ],
     },
 
     confirmed: {

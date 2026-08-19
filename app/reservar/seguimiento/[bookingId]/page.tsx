@@ -33,20 +33,52 @@ const HEADER_COPY: Record<BookingStatus, { title: string; subtitle: string }> = 
   done: { title: "Esperamos que la hayas disfrutado", subtitle: "Gracias por vivir esta experiencia con nosotros." },
 }
 
-// Point focal de l'écran "alternative_proposed" : la nouvelle date en un
-// coup d'œil, séparée de la carte expérience (qui n'affiche plus l'ancienne
-// date, voir plus bas) pour qu'il n'y ait jamais deux dates à l'écran en
-// même temps.
-function ProposedDateCard({ date, moment, hour }: { date: string | null; moment: string | null; hour: string | null }) {
-  if (!date) return null
-  const dateLabel = formatLocalDate(date, { weekday: "long", day: "numeric", month: "long" })
-  const whenLabel = [moment, hour ? `~${hour}` : null].filter(Boolean).join(" · ")
+// Contenu de l'étape active "Nueva fecha propuesta" de BookingTimeline
+// (passé via `activeContent`, voir plus bas) : la proposition et la
+// décision vivent entièrement dans cette étape plutôt que dans un bloc à
+// part, pour que la timeline reste la seule source d'information sur l'état
+// de la réservation. Prend un seul `proposal` aujourd'hui ; passer un
+// tableau de plusieurs propositions plus tard n'impose aucun changement à
+// BookingTimeline, seulement à ce composant.
+function AlternativeProposalStep({
+  proposal,
+  onAccept,
+  onDecline,
+  pending,
+  error,
+}: {
+  proposal: { date: string | null; moment: string | null; hour: string | null }
+  onAccept: () => void
+  onDecline: () => void
+  pending: boolean
+  error: string | null
+}) {
+  if (!proposal.date) return null
+  const dateLabel = formatLocalDate(proposal.date, { weekday: "long", day: "numeric", month: "long" })
+  const whenLabel = [proposal.moment, proposal.hour ? `~${proposal.hour}` : null].filter(Boolean).join(" · ")
 
   return (
-    <div style={proposedCard}>
-      <div style={proposedLabel}>Nueva fecha</div>
-      <div style={proposedDate}>{dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}</div>
-      {whenLabel && <div style={proposedWhen}>{whenLabel}</div>}
+    <div>
+      <div style={proposedCard}>
+        <div style={proposedLabel}>Nueva fecha</div>
+        <div style={proposedDate}>{dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}</div>
+        {whenLabel && <div style={proposedWhen}>{whenLabel}</div>}
+      </div>
+
+      <p style={stepQuestion}>¿Te funciona?</p>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <button onClick={onAccept} disabled={pending} style={stepPrimaryBtn(pending)}>
+          Aceptar esta fecha
+        </button>
+        <button onClick={onDecline} disabled={pending} style={stepSecondaryBtn(pending)}>
+          No puedo ese día
+        </button>
+      </div>
+
+      {error && (
+        <p style={{ marginTop: 10, fontSize: 13, color: "#B42318" }}>{error}</p>
+      )}
     </div>
   )
 }
@@ -258,50 +290,42 @@ export default function SeguimientoPage() {
         />
       </div>
 
-      {status === "alternative_proposed" ? (
-        <>
-          <ProposedDateCard
-            date={booking.proposedDate}
-            moment={booking.proposedMoment}
-            hour={booking.proposedHour}
-          />
-
-          <div style={{ marginTop: 8 }}>
-            <DynamicStatusBlock
-              status={status}
-              onAction={handleAction}
-              reviewed={reviewed}
-              actionPending={actionPending}
+      {/* La timeline suit toujours directement la carte expérience, pour
+          tous les statuts — c'est elle qui porte l'état de la réservation.
+          Pour "alternative_proposed", la proposition et la décision sont
+          intégrées dans son étape active via `activeContent` au lieu d'un
+          bloc séparé (voir AlternativeProposalStep plus haut). */}
+      <BookingTimeline
+        status={status}
+        category={exp.category}
+        // Les contrôles de dev ne sont plus nécessaires car les statuts viennent du backend
+        onNext={undefined}
+        onPrev={undefined}
+        activeContent={
+          status === "alternative_proposed" ? (
+            <AlternativeProposalStep
+              proposal={{ date: booking.proposedDate, moment: booking.proposedMoment, hour: booking.proposedHour }}
+              onAccept={() => handleAction("accept_alternative")}
+              onDecline={() => handleAction("choose_new_experience")}
+              pending={actionPending}
+              error={actionError}
             />
-            {actionError && (
-              <p style={{ marginTop: 10, fontSize: 13, color: "#B42318", textAlign: "center" }}>{actionError}</p>
-            )}
-          </div>
+          ) : undefined
+        }
+      />
 
-          <BookingTimeline status={status} category={exp.category} />
-        </>
-      ) : (
-        <>
-          <BookingTimeline
+      {status !== "alternative_proposed" && (
+        <div style={{ marginTop: 28 }}>
+          <DynamicStatusBlock
             status={status}
-            category={exp.category}
-            // Les contrôles de dev ne sont plus nécessaires car les statuts viennent du backend
-            onNext={undefined}
-            onPrev={undefined}
+            onAction={handleAction}
+            reviewed={reviewed}
+            actionPending={actionPending}
           />
-
-          <div style={{ marginTop: 28 }}>
-            <DynamicStatusBlock
-              status={status}
-              onAction={handleAction}
-              reviewed={reviewed}
-              actionPending={actionPending}
-            />
-            {actionError && (
-              <p style={{ marginTop: 10, fontSize: 13, color: "#B42318", textAlign: "center" }}>{actionError}</p>
-            )}
-          </div>
-        </>
+          {actionError && (
+            <p style={{ marginTop: 10, fontSize: 13, color: "#B42318", textAlign: "center" }}>{actionError}</p>
+          )}
+        </div>
       )}
 
       {calendarLink && (
@@ -388,6 +412,44 @@ const proposedWhen: React.CSSProperties = {
   marginTop: 4,
   fontSize: 14,
   color: "#8A5300",
+}
+
+const stepQuestion: React.CSSProperties = {
+  margin: "0 0 10px",
+  fontSize: 15,
+  fontWeight: 600,
+  color: "#111",
+}
+
+// Mêmes styles que les boutons de DynamicStatusBlock (primaire plein/foncé,
+// secondaire bordé/transparent) pour rester cohérent avec le reste de
+// l'écran même si la décision vit maintenant dans l'étape active.
+function stepPrimaryBtn(pending: boolean): React.CSSProperties {
+  return {
+    padding: "9px 16px",
+    borderRadius: 999,
+    border: "none",
+    background: "#222",
+    color: "white",
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: pending ? "default" : "pointer",
+    opacity: pending ? 0.6 : 1,
+  }
+}
+
+function stepSecondaryBtn(pending: boolean): React.CSSProperties {
+  return {
+    padding: "9px 16px",
+    borderRadius: 999,
+    border: "1px solid #D8D2C7",
+    background: "transparent",
+    color: "#333",
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: pending ? "default" : "pointer",
+    opacity: pending ? 0.6 : 1,
+  }
 }
 
 /* ---------- STYLES (écran d'erreur, aligné sur app/error.tsx) ---------- */
