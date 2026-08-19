@@ -162,7 +162,7 @@ export default function FechasPage() {
         </p>
 
         {/* ---------- FECHAS ---------- */}
-        <section style={section}>
+        <section style={sectionPrimary}>
           <div style={sectionHeaderRow}>
             <h2 style={sectionTitle}>
               <Calendar size={17} style={sectionTitleIcon} />
@@ -385,7 +385,19 @@ const intro: React.CSSProperties = {
 
 const introStrong: React.CSSProperties = { color: "#111", fontWeight: 700 }
 
-const section: React.CSSProperties = { padding: "0 20px", marginTop: 30 }
+const section: React.CSSProperties = {
+  margin: "16px 20px 0 20px",
+  padding: 20,
+  borderRadius: 20,
+  border: "1px solid #ECEAE5",
+  background: "#fff",
+}
+
+const sectionPrimary: React.CSSProperties = {
+  ...section,
+  marginTop: 20,
+  border: "1px solid #D8D5CE",
+}
 
 const sectionHeaderRow: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }
 
@@ -406,7 +418,7 @@ const sectionHeaderRight: React.CSSProperties = { display: "flex", alignItems: "
 
 const counterBadge: React.CSSProperties = { fontSize: 13, fontWeight: 600 }
 
-const sectionDescription: React.CSSProperties = { fontSize: 13, color: "#8f8f8f", lineHeight: 1.45, marginTop: 6, marginBottom: 14 }
+const sectionDescription: React.CSSProperties = { fontSize: 13, color: "#8f8f8f", lineHeight: 1.45, marginTop: 6, marginBottom: 12 }
 
 const inlineTextLink: React.CSSProperties = {
   background: "transparent",
@@ -443,7 +455,7 @@ const dateChipAlt: React.CSSProperties = {
   whiteSpace: "nowrap",
 }
 
-const hourSection: React.CSSProperties = { marginTop: 16 }
+const hourSection: React.CSSProperties = { marginTop: 14 }
 
 const hourHint: React.CSSProperties = { fontSize: 12, color: "#8f8f8f", display: "block", marginBottom: 10 }
 
@@ -500,7 +512,7 @@ const personasIncluded: React.CSSProperties = {
   color: "#666",
 }
 
-const extraRow: React.CSSProperties = { marginTop: 18, display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }
+const extraRow: React.CSSProperties = { marginTop: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }
 
 const extraBtn: React.CSSProperties = {
   width: 34,
@@ -518,7 +530,7 @@ const extraCount: React.CSSProperties = { fontSize: 13, fontWeight: 500, minWidt
 const personasNote: React.CSSProperties = { marginTop: 10, fontSize: 11, color: "#999", textAlign: "center", lineHeight: 1.4 }
 
 const cta: React.CSSProperties = {
-  margin: "34px 20px 0 20px",
+  margin: "28px 20px 0 20px",
   width: "calc(100% - 40px)",
   padding: 16,
   borderRadius: 14,
