@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react"
 import { useUI } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
-import { Calendar, Clock, Users, Sunrise, Sun, Sunset, Check } from "lucide-react"
+import { Calendar, Clock, Users, Sunrise, Sun, Sunset, Check, Pencil } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
 import PhotoGallery from "@/components/ui/PhotoGallery"
 import { formatLocalDate } from "@/lib/utils/formatLocalDate"
+import { categoryColors } from "@/lib/map/categoryColors"
 
 type Moment = "morning" | "afternoon" | "night" | null
 
@@ -60,6 +61,7 @@ export default function FechasPage() {
     )
   }
   const exp = selectedExperience
+  const categoryColor = categoryColors[exp.category] || "#111"
 
   const isFormComplete = selectedDates.length > 0 && !!momentBlock
 
@@ -161,32 +163,44 @@ export default function FechasPage() {
         <Card
           icon={<Calendar size={20} />}
           title="Fechas posibles"
-          right={selectedDates.length > 0 ? `${selectedDates.length}/${MAX_DATES}` : undefined}
+          right={`${selectedDates.length}/${MAX_DATES}`}
+          rightColor={selectedDates.length > 0 ? categoryColor : undefined}
         >
           <p style={cardHint}>
             Danos hasta {MAX_DATES} fechas que te funcionen. Así podemos encontrar una opción más rápido.
           </p>
 
           {selectedDates.length > 0 && (
-            <div style={dateSummaryCol}>
-              <DateRoleGroup label="Preferida" dates={[preferredDate!]} strong />
-              {alternativeDates.length > 0 && (
-                <DateRoleGroup label="Alternativas" dates={alternativeDates} />
-              )}
+            <div style={dateSummaryRow}>
+              {selectedDates.map((d, i) => (
+                <div key={d} style={dateSummaryItem}>
+                  <div style={dateSummaryItemLabel}>{i === 0 ? "Preferida" : "Alternativa"}</div>
+                  <span style={i === 0 ? dateSummaryChipStrong(categoryColor) : dateSummaryChip(categoryColor)}>
+                    {formatLocalDate(d, { day: "numeric", month: "short" })}
+                  </span>
+                </div>
+              ))}
             </div>
           )}
 
-          <button onClick={() => setOpenCalendar(true)} style={dateSlotEmpty}>
-            + Elegir fechas
-          </button>
+          {selectedDates.length < MAX_DATES ? (
+            <button onClick={() => setOpenCalendar(true)} style={dateSlotEmpty}>
+              {selectedDates.length === 0 ? "+ Elegir fechas" : "+ Elegir otra fecha"}
+            </button>
+          ) : (
+            <button onClick={() => setOpenCalendar(true)} style={dateEditBtn}>
+              <Pencil size={13} />
+              Editar
+            </button>
+          )}
         </Card>
 
         <Card icon={<Clock size={20} />} title="Horario">
           <p style={cardHint}>Elige cuándo te gustaría hacerlo. El lugar nos confirma la hora.</p>
           <div style={chipsRow}>
-            <MomentChip icon={<Sunrise size={16} />} label="Mañana" value="morning" momentBlock={momentBlock} setMomentBlock={selectMoment} />
-            <MomentChip icon={<Sun size={16} />} label="Tarde" value="afternoon" momentBlock={momentBlock} setMomentBlock={selectMoment} />
-            <MomentChip icon={<Sunset size={16} />} label="Noche" value="night" momentBlock={momentBlock} setMomentBlock={selectMoment} />
+            <MomentChip icon={<Sunrise size={16} />} label="Mañana" value="morning" momentBlock={momentBlock} setMomentBlock={selectMoment} color={categoryColor} />
+            <MomentChip icon={<Sun size={16} />} label="Tarde" value="afternoon" momentBlock={momentBlock} setMomentBlock={selectMoment} color={categoryColor} />
+            <MomentChip icon={<Sunset size={16} />} label="Noche" value="night" momentBlock={momentBlock} setMomentBlock={selectMoment} color={categoryColor} />
           </div>
 
           {momentBlock && (
@@ -197,7 +211,7 @@ export default function FechasPage() {
                   <button
                     key={h}
                     onClick={() => setPreferredHour(p => (p === h ? null : h))}
-                    style={hourChipStyle(preferredHour === h)}
+                    style={hourChipStyle(preferredHour === h, categoryColor)}
                   >
                     {h}
                   </button>
@@ -255,6 +269,7 @@ export default function FechasPage() {
       {openCalendar && (
         <DatePickerModal
           initialDates={selectedDates}
+          categoryColor={categoryColor}
           onClose={() => setOpenCalendar(false)}
           onSelect={(payload) => {
             setSelectedDates(payload.dates)
@@ -268,39 +283,24 @@ export default function FechasPage() {
 
 /* ---------- UI ---------- */
 
-function Card({ icon, title, right, children }: any) {
+function Card({ icon, title, right, rightColor, children }: any) {
   return (
     <div style={card}>
       <div style={cardHeader}>
         <div style={cardHeaderLeft}>{icon}<span>{title}</span></div>
-        {right && <span style={cardHeaderRight}>{right}</span>}
+        {right && <span style={{ ...cardHeaderRight, color: rightColor || "#888" }}>{right}</span>}
       </div>
       {children}
     </div>
   )
 }
 
-function MomentChip({ icon, label, value, momentBlock, setMomentBlock }: any) {
+function MomentChip({ icon, label, value, momentBlock, setMomentBlock, color }: any) {
   const active = momentBlock === value
   return (
-    <button onClick={() => setMomentBlock(value)} style={{ ...chipStyle(active), display: "flex", gap: 6, alignItems: "center" }}>
+    <button onClick={() => setMomentBlock(value)} style={{ ...chipStyle(active, color), display: "flex", gap: 6, alignItems: "center" }}>
       {icon}{label}
     </button>
-  )
-}
-
-function DateRoleGroup({ label, dates, strong }: { label: string; dates: string[]; strong?: boolean }) {
-  return (
-    <div>
-      <div style={dateRoleLabel}>{label}</div>
-      <div style={chipsRow}>
-        {dates.map(d => (
-          <span key={d} style={strong ? dateRoleChipStrong : dateRoleChip}>
-            {formatLocalDate(d, { day: "numeric", month: "short" })}
-          </span>
-        ))}
-      </div>
-    </div>
   )
 }
 
@@ -378,36 +378,40 @@ const chipsRow: React.CSSProperties = { display: "flex", gap: 8, flexWrap: "wrap
 
 const hourSection: React.CSSProperties = { marginTop: 14 }
 
-const hourChipStyle = (active: boolean): React.CSSProperties => ({
+const hourChipStyle = (active: boolean, color: string): React.CSSProperties => ({
   padding: "8px 12px",
   borderRadius: 999,
-  border: active ? "2px solid #111" : "1px solid #ddd",
-  background: active ? "#111" : "#fff",
-  color: active ? "#fff" : "#333",
+  border: active ? `2px solid ${color}` : "1px solid #ddd",
+  background: "#fff",
+  color: active ? color : "#333",
+  fontWeight: active ? 600 : 400,
   fontSize: 13,
 })
 
-const dateSummaryCol: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 12, marginBottom: 12 }
+const dateSummaryRow: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: 14, marginBottom: 12 }
+const dateSummaryItem: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }
+const dateSummaryItemLabel: React.CSSProperties = { fontSize: 10, color: "#999", textTransform: "uppercase", letterSpacing: 0.3 }
 
-const dateRoleLabel: React.CSSProperties = { fontSize: 11, color: "#999", marginBottom: 6 }
-
-const dateRoleChip: React.CSSProperties = {
-  padding: "8px 12px",
+const dateSummaryChip = (color: string): React.CSSProperties => ({
+  display: "inline-block",
+  padding: "6px 10px",
   borderRadius: 999,
   background: "#fff",
-  border: "1px solid #E5E2DB",
+  border: `1px solid ${color}`,
   color: "#111",
   fontSize: 13,
   fontWeight: 500,
-}
+  whiteSpace: "nowrap",
+})
 
-const dateRoleChipStrong: React.CSSProperties = {
-  ...dateRoleChip,
+const dateSummaryChipStrong = (color: string): React.CSSProperties => ({
+  ...dateSummaryChip(color),
   background: "#111",
-  border: "1px solid #111",
+  border: "none",
+  boxShadow: `0 0 0 2px ${color}`,
   color: "#fff",
   fontWeight: 600,
-}
+})
 
 const dateSlotEmpty: React.CSSProperties = {
   display: "flex",
@@ -422,6 +426,20 @@ const dateSlotEmpty: React.CSSProperties = {
   fontSize: 13,
   cursor: "pointer",
   width: "100%",
+}
+
+const dateEditBtn: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  padding: "8px 14px",
+  borderRadius: 999,
+  background: "#fff",
+  border: "1px solid #ddd",
+  color: "#333",
+  fontSize: 13,
+  fontWeight: 500,
+  cursor: "pointer",
 }
 
 const personasRow: React.CSSProperties = {
@@ -453,12 +471,13 @@ const extraCount: React.CSSProperties = { fontSize: 13, fontWeight: 500, minWidt
 
 const personasNote: React.CSSProperties = { marginTop: 10, fontSize: 11, color: "#999", textAlign: "center", minHeight: 14 }
 
-const chipStyle = (active: boolean): React.CSSProperties => ({
+const chipStyle = (active: boolean, color: string): React.CSSProperties => ({
   padding: "10px 14px",
   borderRadius: 999,
-  border: active ? "2px solid #111" : "1px solid #ddd",
-  background: active ? "#111" : "#fff",
-  color: active ? "#fff" : "#333",
+  border: active ? `2px solid ${color}` : "1px solid #ddd",
+  background: "#fff",
+  color: active ? color : "#333",
+  fontWeight: active ? 600 : 400,
 })
 
 const cta: React.CSSProperties = {
