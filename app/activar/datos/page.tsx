@@ -364,7 +364,7 @@ const cardSoft: React.CSSProperties = {
   margin: "0 auto",
   background: "rgba(255,255,255,0.75)",
   backdropFilter: "blur(14px)",
-  padding: "32px 24px",
+  padding: "16px 24px",
   borderRadius: 26,
   boxShadow: "0 30px 80px rgba(0,0,0,0.12)",
   textAlign: "center",
@@ -373,42 +373,42 @@ const cardSoft: React.CSSProperties = {
 const h1 = {
   fontSize: 26,
   fontWeight: 650,
-  marginBottom: 20,
+  marginBottom: 12,
 }
 
 const section = {
-  marginBottom: 20,
+  marginBottom: 10,
 }
 
 const label = {
   fontSize: 14,
   opacity: 0.7,
-  marginBottom: 8,
+  marginBottom: 6,
 }
 
 const labelStrong = {
   fontSize: 15,
   fontWeight: 600,
-  marginBottom: 10,
+  marginBottom: 8,
 }
 
 const helper = {
   fontSize: 12,
   opacity: 0.6,
-  marginTop: 6,
+  marginTop: 4,
 }
 
 const included = {
   fontSize: 14,
   color: "#1f7a3a",
-  marginBottom: 16,
+  marginBottom: 10,
   fontWeight: 500,
 }
 
 const input: React.CSSProperties = {
   width: "100%",
-  padding: "14px",
-  marginBottom: 12,
+  padding: "10px 14px",
+  marginBottom: 8,
   borderRadius: 12,
   border: "1px solid #ddd",
   fontSize: 15,

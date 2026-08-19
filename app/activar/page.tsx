@@ -165,7 +165,7 @@ const cardSoft: React.CSSProperties = {
   margin: "0 auto",
   background: "rgba(255,255,255,0.75)",
   backdropFilter: "blur(14px)",
-  padding: "32px 24px 24px",
+  padding: "78px 24px 70px",
   borderRadius: 26,
   boxShadow: "0 30px 80px rgba(0,0,0,0.12)",
   textAlign: "center",
@@ -174,21 +174,21 @@ const cardSoft: React.CSSProperties = {
 const h1: React.CSSProperties = {
   fontSize: 28,
   fontWeight: 650,
-  marginBottom: 18,
+  marginBottom: 30,
   lineHeight: 1.2,
 }
 
 const pMain: React.CSSProperties = {
   fontSize: 16,
   opacity: 0.85,
-  marginBottom: 18,
+  marginBottom: 32,
   lineHeight: 1.5,
 }
 
 const pSub: React.CSSProperties = {
   fontSize: 14,
   opacity: 0.6,
-  marginBottom: 28,
+  marginBottom: 52,
 }
 
 const btnStyle: React.CSSProperties = {

@@ -485,13 +485,20 @@ button, a { -webkit-tap-highlight-color: transparent; }
    Le contenu interne de chaque carte ne bouge jamais par rapport à sa
    carte : c'est tout le bloc (DatosCardBody, ActivatedCard, etc.) qui se
    déplace comme un seul élément rigide.
+
+   Les 3 cartes ont été volontairement rapprochées en hauteur (padding /
+   marges de chaque écran, voir leurs fichiers respectifs) pour qu'aucune
+   ne dépasse sensiblement la hauteur du viewport pendant la transition.
+   Note : overflow-x/overflow-y séparés (hidden/visible) ne marchent PAS
+   ici — la spec CSS force alors overflow-y à se recalculer en "auto" dès
+   que overflow-x n'est pas "visible", ce qui coupait la carte entrante
+   plus haute que la sortante. D'où le simple `overflow: hidden`.
 ================================ */
 
 .vb-activation-viewport {
   position: relative;
   width: 100%;
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: hidden;
 }
 
 .vb-activation-card-current {
