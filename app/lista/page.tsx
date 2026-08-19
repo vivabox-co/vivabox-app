@@ -257,7 +257,6 @@ export default function ListaPage() {
               exp={selectedExperience}
               onChoose={() => {
                 if (!selectedExperience?.id) return
-                setDrawerOpen(false)
                 router.push("/reservar/fechas")
               }}
             />
@@ -269,7 +268,6 @@ export default function ListaPage() {
               className="cta-button"
               onClick={() => {
                 if (!selectedExperience?.id) return
-                setDrawerOpen(false)
                 router.push("/reservar/fechas")
               }}
             >

@@ -116,7 +116,6 @@ export default function CategoryPage() {
       <ExperienceExploreMeta
         exp={selectedExperience}
         onChoose={() => {
-          setDrawerOpen(false)
           router.push("/reservar/fechas")
         }}
       />

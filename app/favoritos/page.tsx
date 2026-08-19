@@ -89,7 +89,6 @@ export default function FavoritosPage() {
       <ExperienceExploreMeta
         exp={selectedExperience}
         onChoose={() => {
-          setDrawerOpen(false)
           router.push("/reservar/fechas")
         }}
       />
@@ -100,7 +99,6 @@ export default function FavoritosPage() {
       <button
         className="cta-button"
         onClick={() => {
-          setDrawerOpen(false)
           router.push("/reservar/fechas")
         }}
       >
