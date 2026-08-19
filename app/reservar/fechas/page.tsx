@@ -163,7 +163,7 @@ export default function FechasPage() {
 
         {/* ---------- FECHAS ---------- */}
         <section
-          style={{ ...sectionPrimary, cursor: "pointer" }}
+          style={{ ...sectionPrimary, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
           onClick={() => setOpenCalendar(true)}
         >
           <div style={sectionHeaderRow}>
