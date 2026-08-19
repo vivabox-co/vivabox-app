@@ -162,7 +162,10 @@ export default function FechasPage() {
         </p>
 
         {/* ---------- FECHAS ---------- */}
-        <section style={sectionPrimary}>
+        <section
+          style={{ ...sectionPrimary, cursor: "pointer" }}
+          onClick={() => setOpenCalendar(true)}
+        >
           <div style={sectionHeaderRow}>
             <h2 style={sectionTitle}>
               <Calendar size={17} style={sectionTitleIcon} />
