@@ -131,10 +131,17 @@ console.log("activateData.error:", activateData?.error)
 
       {/* CONTENT */}
       <div style={centerWrap}>
+        {/* L'écran suivant ("Tu regalo está activo", app/activacion-completa/page.tsx)
+            n'a pas de logo au-dessus de sa carte — celui-ci est déjà présent à
+            l'intérieur (icône "Elegís"). On le fait donc disparaître en fondu, en
+            même temps que glisse la carte, pour qu'il ait déjà totalement disparu
+            (opacité + espace) au moment où la navigation vers cette page suivante
+            se produit. Sans ça, il reste affiché jusqu'au bout puis disparaît d'un
+            coup au changement de page, ce qui fait "sauter" la carte vers le haut. */}
         <img
           src="/logo/LogoVivaboxSVG.svg"
           alt="Vivabox"
-          style={logo}
+          style={{ ...logo, ...(leaving ? logoLeaving : {}) }}
         />
 
         <div
@@ -349,6 +356,21 @@ const logo: React.CSSProperties = {
   width: 100,
   height: "auto",
   display: "block",
+  maxHeight: 90,
+  marginBottom: 24,
+  opacity: 1,
+  overflow: "hidden",
+  transition: `opacity ${CARD_TRANSITION_MS}ms ease, max-height ${CARD_TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1), margin-bottom ${CARD_TRANSITION_MS}ms ease`,
+}
+
+// Voir commentaire au-dessus de la balise <img> : fondu + réduction de
+// l'espace occupé, synchronisés avec la durée du slide de carte, pour que
+// le logo ait totalement disparu (visuellement et en place) avant la
+// navigation vers l'écran suivant (qui n'a pas ce logo).
+const logoLeaving: React.CSSProperties = {
+  opacity: 0,
+  maxHeight: 0,
+  marginBottom: 0,
 }
 
 const centerWrap: React.CSSProperties = {
@@ -359,7 +381,7 @@ const centerWrap: React.CSSProperties = {
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  gap: "24px",
+  gap: 0,
   padding: "32px 24px",
   paddingBottom: "12vh",
   boxSizing: "border-box",
