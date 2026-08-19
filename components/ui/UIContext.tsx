@@ -35,6 +35,13 @@ type UIContextType = {
   // masquer le loader plein écran.
   pageReady: boolean
   setPageReady: (v: boolean) => void
+
+  // Permet de forcer l'affichage immédiat du RouteLoaderOverlay dès un clic
+  // qui va déclencher un router.push, sans attendre que usePathname() ait
+  // constaté le changement d'URL (voir RouteLoaderOverlay).
+  navigating: boolean
+  setNavigating: (v: boolean) => void
+  beginNavigation: () => void
 }
 
 const UIContext = createContext<UIContextType | null>(null)
@@ -50,6 +57,12 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [hideNav, setHideNav] = useState(false)
 
   const [pageReady, setPageReady] = useState(true)
+  const [navigating, setNavigating] = useState(false)
+
+  function beginNavigation() {
+    setPageReady(false)
+    setNavigating(true)
+  }
 
   // ⭐ FAVORIS PERSISTANTS
   const [favorites, setFavorites] = useState<string[]>([])
@@ -103,6 +116,10 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
 
         pageReady,
         setPageReady,
+
+        navigating,
+        setNavigating,
+        beginNavigation,
       }}
     >
       {children}

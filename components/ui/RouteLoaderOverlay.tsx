@@ -27,6 +27,7 @@ function isInActivationFlow(pathname: string) {
 
 export default function RouteLoaderOverlay() {
   const pathname = usePathname()
+  const { navigating, setNavigating } = useUI()
   const prevPathnameRef = useRef<string | null>(null)
 
   const isInternalActivationHop =
@@ -40,14 +41,24 @@ export default function RouteLoaderOverlay() {
   // let each extra call see a different prevPathname, causing exactly the kind
   // of server/client divergence that trips a hydration mismatch.
   useEffect(() => {
+    // Once the URL has actually changed, the manual "navigating" kick (see
+    // beginNavigation) has done its job of covering the pre-navigation gap —
+    // hand back off to the normal per-pathname remount below.
+    if (prevPathnameRef.current !== null && prevPathnameRef.current !== pathname) {
+      setNavigating(false)
+    }
     prevPathnameRef.current = pathname
-  }, [pathname])
+  }, [pathname, setNavigating])
 
   if (isInternalActivationHop) return null
 
-  // Remounted on every route change so its internal reveal check restarts
-  // fresh for the new page.
-  return <Overlay key={pathname} />
+  // While `navigating` is true (a CTA called beginNavigation right before
+  // router.push), keep the same overlay instance mounted under a stable key
+  // so it covers the gap between the click and usePathname() catching up —
+  // otherwise the sheet-close and the URL change leave a blank moment.
+  // Once the pathname changes, remount is keyed on it as before so its
+  // internal reveal check restarts fresh for the new page.
+  return <Overlay key={navigating ? "navigating" : pathname} />
 }
 
 function Overlay() {

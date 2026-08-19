@@ -45,6 +45,7 @@ export default function ListaPage() {
     setDrawerOpen,
     toggleFavorite,
     isFavorite,
+    beginNavigation,
   } = useUI()
 
   const [recoOpen, setRecoOpen] = useState(false)
@@ -258,6 +259,7 @@ export default function ListaPage() {
               onChoose={() => {
                 if (!selectedExperience?.id) return
                 setDrawerOpen(false)
+                beginNavigation()
                 router.push("/reservar/fechas")
               }}
             />
@@ -270,6 +272,7 @@ export default function ListaPage() {
               onClick={() => {
                 if (!selectedExperience?.id) return
                 setDrawerOpen(false)
+                beginNavigation()
                 router.push("/reservar/fechas")
               }}
             >

@@ -38,7 +38,7 @@ const ALL_CATEGORIES: Category[] = [
 
 export default function MapaPage() {
   const router = useRouter()
-  const { selectedExperience, setSelectedExperience, drawerOpen, setDrawerOpen } =
+  const { selectedExperience, setSelectedExperience, drawerOpen, setDrawerOpen, beginNavigation } =
     useUI()
 
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -286,6 +286,7 @@ export default function MapaPage() {
               exp={selectedExperience}
               onChoose={() => {
                 setDrawerOpen(false)
+                beginNavigation()
                 router.push("/reservar/fechas")
               }}
             />
@@ -298,6 +299,7 @@ export default function MapaPage() {
               onClick={() => {
                 if (!selectedExperience?.id) return
                 setDrawerOpen(false)
+                beginNavigation()
                 router.push("/reservar/fechas")
               }}
             >
