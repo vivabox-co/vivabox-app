@@ -38,8 +38,13 @@ const ALL_CATEGORIES: Category[] = [
 
 export default function MapaPage() {
   const router = useRouter()
-  const { selectedExperience, setSelectedExperience, drawerOpen, setDrawerOpen } =
-    useUI()
+  const {
+    selectedExperience,
+    setSelectedExperience,
+    drawerOpen,
+    setDrawerOpen,
+    beginRouteTransition,
+  } = useUI()
 
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [recoOpen, setRecoOpen] = useState(false)
@@ -285,6 +290,7 @@ export default function MapaPage() {
             <ExperienceExploreMeta
               exp={selectedExperience}
               onChoose={() => {
+                beginRouteTransition()
                 setDrawerOpen(false)
                 router.push("/reservar/fechas")
               }}
@@ -297,6 +303,7 @@ export default function MapaPage() {
               className="cta-button"
               onClick={() => {
                 if (!selectedExperience?.id) return
+                beginRouteTransition()
                 setDrawerOpen(false)
                 router.push("/reservar/fechas")
               }}

@@ -15,6 +15,14 @@ import { useUI } from "./UIContext"
 // computed opacity, not a guessed delay — see useLoaderReveal). If not
 // ready yet, it keeps looping through the animation until it is.
 
+// Waiting for `pathname` to actually change is too late for a click that
+// triggers a heavier navigation (e.g. choosing an experience from the map
+// bottom sheet): the App Router only updates the pathname once the
+// destination route has finished loading, so nothing would mask that
+// loading gap. `navToken` (bumped by useUI().beginRouteTransition, read
+// below) lets a click force this overlay to remount and reappear
+// immediately, before the pathname itself has moved.
+
 // Le parcours d'activation (formulaire -> écran "activé") est une seule
 // démarche pour la personne, pas une suite d'écrans distincts : on
 // n'anime qu'à l'arrivée sur ce groupe (depuis l'extérieur, ou premier
@@ -27,6 +35,7 @@ function isInActivationFlow(pathname: string) {
 
 export default function RouteLoaderOverlay() {
   const pathname = usePathname()
+  const { navToken } = useUI()
   const prevPathnameRef = useRef<string | null>(null)
 
   const isInternalActivationHop =
@@ -45,9 +54,9 @@ export default function RouteLoaderOverlay() {
 
   if (isInternalActivationHop) return null
 
-  // Remounted on every route change so its internal reveal check restarts
-  // fresh for the new page.
-  return <Overlay key={pathname} />
+  // Remounted on every route change, and on every manually-triggered
+  // navigation (navToken), so its internal reveal check restarts fresh.
+  return <Overlay key={`${pathname}::${navToken}`} />
 }
 
 function Overlay() {
