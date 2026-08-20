@@ -25,14 +25,21 @@ import { useUI } from "./UIContext"
 // the reveal timer instead of just holding the same DOM open, which is what
 // caused the loader to flash and drop back to the old page mid-navigation.
 
-// Le parcours d'activation (formulaire -> écran "activé") est une seule
-// démarche pour la personne, pas une suite d'écrans distincts : on
-// n'anime qu'à l'arrivée sur ce groupe (depuis l'extérieur, ou premier
-// chargement) et à la sortie vers /mapa — jamais entre ses propres étapes.
-const ACTIVATION_FLOW_PATHS = ["/activar", "/activacion-completa"]
+// Seules ces deux transitions ont déjà leur propre animation de glissement
+// de carte, codée directement dans la page de départ (voir handleContinue
+// dans app/activar/page.tsx et goToActivacionCompleta dans
+// app/activar/datos/page.tsx) : le loader générique y serait redondant.
+// Toute AUTRE arrivée sur une page de ce parcours — premier chargement,
+// retour depuis /mapa ou ailleurs, retour en arrière en cours de route —
+// n'a pas cette animation dédiée et doit donc avoir son tour complet du
+// loader générique, comme n'importe quelle autre page.
+const SUPPRESSED_ACTIVATION_HOPS: [string, string][] = [
+  ["/activar", "/activar/datos"],
+  ["/activar/datos", "/activacion-completa"],
+]
 
-function isInActivationFlow(pathname: string) {
-  return ACTIVATION_FLOW_PATHS.some(p => pathname === p || pathname.startsWith(p + "/"))
+function isSuppressedActivationHop(prevPathname: string, pathname: string) {
+  return SUPPRESSED_ACTIVATION_HOPS.some(([from, to]) => prevPathname === from && pathname === to)
 }
 
 export default function RouteLoaderOverlay() {
@@ -47,8 +54,7 @@ export default function RouteLoaderOverlay() {
 
   const isInternalActivationHop =
     prevPathnameRef.current !== null &&
-    isInActivationFlow(prevPathnameRef.current) &&
-    isInActivationFlow(pathname)
+    isSuppressedActivationHop(prevPathnameRef.current, pathname)
 
   // Writing the ref here (not during render, above) keeps the render function
   // pure — React/Next can invoke it more than once for the same logical pass
