@@ -72,6 +72,11 @@ export async function POST(req: NextRequest) {
     // puisse renvoyer estado="Rechazada" plutôt que de faire comme si aucune
     // réservation n'avait jamais existé — sinon /reservar/seguimiento devenait
     // inaccessible pile quand la personne a le plus besoin d'y lire pourquoi.
+    // "cancelled_seen" (même booking, une fois écarté via "Elegir otra
+    // experiencia" — voir respond-alternative) est volontairement absent de
+    // cette liste : sans ça, le bénéficiaire retombait sur cette même
+    // réservation refusée à chaque chargement de l'app, sans jamais pouvoir
+    // en sortir tant qu'il n'en avait pas commencé une nouvelle.
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
       .select("id, status")

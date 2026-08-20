@@ -187,20 +187,16 @@ export default function SeguimientoPage() {
       return
     }
 
-    // "choose_new_experience" est déclenché depuis deux écrans différents :
-    // - "rejected" (booking déjà status "cancelled", cf. STATUS_MAP) : rien à
-    //   annuler côté API, il suffit de repartir vers /mapa. Appeler
-    //   respond-alternative ici échouerait de toute façon (elle exige
-    //   status="alternative_proposed", voir cette route) et laissait le
-    //   bénéficiaire bloqué sans issue — la nav du flow réservation n'a pas
-    //   de lien vers /mapa/lista (voir BottomNav.tsx).
+    // "choose_new_experience" est déclenché depuis deux écrans différents,
+    // mais appelle l'API dans les deux cas (voir respond-alternative) :
     // - "alternative_proposed" (refus d'une nouvelle date) : la réservation
-    //   est encore active, donc on l'annule réellement via l'API ci-dessous.
-    if (action === "choose_new_experience") {
-      if (booking?.status !== "alternative_proposed") {
-        router.push("/mapa")
-        return
-      }
+    //   est encore active, on l'annule réellement — d'où la confirmation.
+    // - "rejected" (booking déjà status "cancelled") : rien à annuler, mais
+    //   on doit quand même la marquer "vue" côté API (→ "cancelled_seen")
+    //   pour qu'elle arrête de réapparaître à chaque chargement de l'app
+    //   (voir /api/codigo/context, dont la requête ignore "cancelled_seen").
+    //   Pas de confirmation ici : il n'y a plus rien à perdre.
+    if (action === "choose_new_experience" && booking?.status === "alternative_proposed") {
       if (!window.confirm("¿Elegir otra experiencia? Esta reserva se cancelará.")) return
     }
 

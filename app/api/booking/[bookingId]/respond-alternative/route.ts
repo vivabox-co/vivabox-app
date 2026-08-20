@@ -9,6 +9,16 @@ import { MOMENT_LABEL } from "@/lib/utils/moment"
 // réservation en confirmed sur la date proposée ; "decline" l'annule pour
 // libérer le code d'activation, afin que le bénéficiaire puisse demander
 // une autre expérience depuis /mapa ou /lista.
+//
+// "decline" sert aussi à écarter une réservation déjà refusée (status
+// "cancelled", écran "rejected" — voir seguimiento/[bookingId]/page.tsx) :
+// dans ce cas on passe à "cancelled_seen" plutôt que de re-écrire
+// "cancelled". La distinction compte pour /api/codigo/context, dont la
+// requête ne liste QUE "cancelled" (pas "cancelled_seen") parmi les statuts
+// pris en compte pour déterminer la réservation active — un booking
+// "cancelled_seen" devient donc invisible pour elle, et le bénéficiaire
+// retombe sur estado "Activada" (→ /mapa) au lieu de revoir cet écran en
+// boucle à chaque chargement de l'app.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ bookingId: string }> }
@@ -59,6 +69,22 @@ export async function POST(
 
     if (!booking || booking.activation_code_id !== session.activation_code_id) {
       return NextResponse.json({ success: false, error: "BOOKING_NOT_FOUND" });
+    }
+
+    if (action === "decline" && booking.status === "cancelled") {
+      const { data: updated, error: updateError } = await supabase
+        .from("bookings")
+        .update({ status: "cancelled_seen" })
+        .eq("id", bookingId)
+        .select("id, status")
+        .maybeSingle()
+
+      if (updateError) {
+        console.error("BOOKING RESPOND-ALTERNATIVE DISMISS ERROR:", updateError)
+        return NextResponse.json({ success: false, error: "SERVER_ERROR" });
+      }
+
+      return NextResponse.json({ success: true, data: updated });
     }
 
     if (booking.status !== "alternative_proposed") {

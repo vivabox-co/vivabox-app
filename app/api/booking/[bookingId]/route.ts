@@ -13,6 +13,12 @@ const STATUS_MAP: Record<string, string> = {
   confirmed: "confirmed",
   completed: "done",
   cancelled: "rejected",
+  // "cancelled_seen" (booking déjà refusé, écarté par le bénéficiaire — voir
+  // respond-alternative) n'est normalement plus accessible : le middleware
+  // redirige loin de /reservar/seguimiento dès que estado repasse à
+  // "Activada". Mappé au même rendu que "cancelled" par prudence seulement,
+  // au cas où cette page serait encore montée pendant la redirection.
+  cancelled_seen: "rejected",
 }
 
 export async function GET(
