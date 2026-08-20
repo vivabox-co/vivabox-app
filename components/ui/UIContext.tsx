@@ -45,6 +45,7 @@ type UIContextType = {
   pendingTransition: boolean
   setPendingTransition: (v: boolean) => void
   beginRouteTransition: () => void
+  transitionId: number
 }
 
 const UIContext = createContext<UIContextType | null>(null)
@@ -85,9 +86,18 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [pageReady, setPageReady] = useState(true)
   const [pendingTransition, setPendingTransition] = useState(false)
 
+  // Bumped on every beginRouteTransition() call. RouteLoaderOverlay folds
+  // this into the loader's remount key (alongside pathname) so re-showing it
+  // for a click always forces a genuinely fresh mount — a fresh useState/
+  // useEffect/CSS-animation cycle — instead of toggling the same instance's
+  // visibility on and off, which left its internal "done" state and rAF loop
+  // stuck at whatever they'd already resolved to from a previous cycle.
+  const [transitionId, setTransitionId] = useState(0)
+
   function beginRouteTransition() {
     setPageReady(false)
     setPendingTransition(true)
+    setTransitionId(id => id + 1)
   }
 
   // ⭐ FAVORIS PERSISTANTS
@@ -146,6 +156,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         pendingTransition,
         setPendingTransition,
         beginRouteTransition,
+        transitionId,
       }}
     >
       {children}

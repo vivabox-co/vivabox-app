@@ -39,7 +39,7 @@ function isInActivationFlow(pathname: string) {
 
 export default function RouteLoaderOverlay() {
   const pathname = usePathname()
-  const { pendingTransition, setPendingTransition } = useUI()
+  const { pendingTransition, setPendingTransition, transitionId } = useUI()
   const prevPathnameRef = useRef<string | null>(null)
   // Mirrors pendingTransition so the pathname-change effect below always
   // reads the latest value without needing it in its dependency array (which
@@ -67,9 +67,14 @@ export default function RouteLoaderOverlay() {
 
   if (isInternalActivationHop) return null
 
-  // Remounted on every route change so its internal reveal check restarts
-  // fresh for the new page.
-  return <Overlay key={pathname} />
+  // Remounted on every route change (pathname) AND on every
+  // beginRouteTransition() call (transitionId) — a click can re-show this
+  // same page's already-resolved overlay before the pathname has actually
+  // moved (see the pendingTransition comment above), and without
+  // transitionId in the key that would just toggle the SAME instance's
+  // visibility, leaving its already-resolved reveal state (done, rAF loop)
+  // stuck instead of restarting a fresh minimum-lap-plus-colors cycle.
+  return <Overlay key={`${pathname}-${transitionId}`} />
 }
 
 function Overlay() {
