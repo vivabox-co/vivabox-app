@@ -10,10 +10,8 @@ import { useUI } from "./UIContext"
 // clears in a few ms — too fast to ever see the brand loader complete, and
 // it has no visibility into client-side data fetches at all. This overlay
 // re-shows on every route change and only hides once the destination page
-// has reported itself ready via usePageReady AND the loader's own animation
-// is actually showing all 4 brand colors at once (checked against real
-// computed opacity, not a guessed delay — see useLoaderReveal). If not
-// ready yet, it keeps looping through the animation until it is.
+// has reported itself ready via usePageReady AND at least one full lap of
+// the brand animation has played (see useLoaderReveal).
 
 // Waiting for `pathname` to actually change is too late for a click that
 // triggers a heavier navigation (e.g. choosing an experience from a bottom
@@ -39,7 +37,7 @@ function isInActivationFlow(pathname: string) {
 
 export default function RouteLoaderOverlay() {
   const pathname = usePathname()
-  const { pendingTransition, setPendingTransition, transitionId } = useUI()
+  const { pendingTransition, setPendingTransition } = useUI()
   const prevPathnameRef = useRef<string | null>(null)
   // Mirrors pendingTransition so the pathname-change effect below always
   // reads the latest value without needing it in its dependency array (which
@@ -67,26 +65,19 @@ export default function RouteLoaderOverlay() {
 
   if (isInternalActivationHop) return null
 
-  // Remounted on every route change (pathname) AND on every
-  // beginRouteTransition() call (transitionId) — a click can re-show this
-  // same page's already-resolved overlay before the pathname has actually
-  // moved (see the pendingTransition comment above), and without
-  // transitionId in the key that would just toggle the SAME instance's
-  // visibility, leaving its already-resolved reveal state (done, rAF loop)
-  // stuck instead of restarting a fresh minimum-lap-plus-colors cycle.
-  return <Overlay key={`${pathname}-${transitionId}`} />
+  // Remounted on every route change so its internal reveal check restarts
+  // fresh for the new page.
+  return <Overlay key={pathname} />
 }
 
 function Overlay() {
   const { pageReady, pendingTransition } = useUI()
-  const containerRef = useRef<HTMLDivElement>(null)
-  const done = useLoaderReveal(pageReady, containerRef)
+  const done = useLoaderReveal(pageReady)
 
   if (done && !pendingTransition) return null
 
   return (
     <div
-      ref={containerRef}
       style={{
         position: "fixed",
         inset: 0,
