@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { Map, List, Heart, Clock, MessageCircle, LogOut } from "lucide-react";
 import { getCurrentBookingId } from "@/lib/data/getCurrentBookingId";
+import { useUI } from "@/components/ui/UIContext";
 
 /* 🔥 Recale la nav sur le viewport visuel réel : Safari iOS ne repositionne
    pas toujours les éléments `position: fixed` quand sa barre d'outils du
@@ -50,7 +51,7 @@ type Item = {
   href?: string;
   label: string;
   Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
-  action?: (router: any) => void;
+  action?: (router: any, beginRouteTransition: () => void) => void;
 };
 
 /* 🔹 NAV EXPLORATION */
@@ -65,9 +66,10 @@ const bookingItems: Item[] = [
   {
     label: "Seguimiento",
     Icon: Clock,
-    action: async (router) => {
+    action: async (router, beginRouteTransition) => {
       const bookingId = await getCurrentBookingId();
       if (!bookingId) return;
+      beginRouteTransition();
       router.push(`/reservar/seguimiento/${bookingId}`);
     },
   },
@@ -97,6 +99,7 @@ async function handleLogout() {
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { beginRouteTransition } = useUI();
   const navRef = useRef<HTMLElement>(null);
   useSafariToolbarFix(navRef);
 
@@ -133,7 +136,7 @@ export default function BottomNav() {
           return (
             <div
               key={index}
-              onClick={() => item.action!(router)}
+              onClick={() => item.action!(router, beginRouteTransition)}
               className={`bottom-nav-item ${active ? "active" : ""}`}
             >
               <Icon size={22} strokeWidth={active ? 2.4 : 1.8} />
@@ -146,6 +149,14 @@ export default function BottomNav() {
           <Link
             key={item.href}
             href={item.href!}
+            // L'App Router ne met à jour le pathname qu'une fois la route de
+            // destination chargée (voir le commentaire dans UIContext) : sans
+            // ce déclenchement au clic, RouteLoaderOverlay ne se réaffiche
+            // qu'une fois cette navigation déjà terminée, laissant l'ancienne
+            // page affichée sans rien pendant tout le chargement.
+            onClick={() => {
+              if (!active) beginRouteTransition();
+            }}
             className={`bottom-nav-item ${active ? "active" : ""}`}
           >
             <Icon size={22} strokeWidth={active ? 2.4 : 1.8} />
