@@ -81,7 +81,11 @@ function Overlay() {
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 100,
+        // Above every other layered UI element in the app (topbars, bottom
+        // nav, drawers, modals — RecoOverlay was the previous highest at
+        // 3000): this overlay is meant to cover the ENTIRE screen while a
+        // route loads, so it must outrank all of them, not just some.
+        zIndex: 9999,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
