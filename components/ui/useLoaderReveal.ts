@@ -26,6 +26,25 @@ const MIN_DISPLAY_MS = 1300
 
 export function useLoaderReveal(ready: boolean, containerRef: React.RefObject<HTMLElement | null>) {
   const [done, setDone] = useState(false)
+
+  // RouteLoaderOverlay can re-show this SAME Overlay instance (same
+  // pathname/key) via pendingTransition instead of remounting it — e.g. a
+  // bottom-nav click re-reveals the current page's already-`done` overlay
+  // the instant it's clicked, before the destination pathname has landed.
+  // `ready` going true -> false is the signal that a fresh loading cycle is
+  // starting on this same instance; bumping `cycle` below re-runs the main
+  // effect so `done` and its rAF loop restart cleanly instead of staying
+  // stuck at their previous, already-resolved values.
+  const [cycle, setCycle] = useState(0)
+  const [prevReady, setPrevReady] = useState(ready)
+  if (ready !== prevReady) {
+    setPrevReady(ready)
+    if (prevReady && !ready) {
+      setDone(false)
+      setCycle(c => c + 1)
+    }
+  }
+
   const readyRef = useRef(ready)
   readyRef.current = ready
 
@@ -65,7 +84,7 @@ export function useLoaderReveal(ready: boolean, containerRef: React.RefObject<HT
       cancelAnimationFrame(rafId)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [containerRef])
+  }, [containerRef, cycle])
 
   return done
 }
