@@ -371,6 +371,7 @@ const heroGradient: React.CSSProperties = {
   right: 0,
   height: "55%",
   background: "linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0))",
+  pointerEvents: "none",
 }
 
 const heroTitle: React.CSSProperties = {
@@ -382,6 +383,7 @@ const heroTitle: React.CSSProperties = {
   fontSize: 22,
   fontWeight: 700,
   lineHeight: 1.2,
+  pointerEvents: "none",
 }
 
 const intro: React.CSSProperties = {
