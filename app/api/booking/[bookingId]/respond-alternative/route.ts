@@ -71,6 +71,14 @@ export async function POST(
       return NextResponse.json({ success: false, error: "BOOKING_NOT_FOUND" });
     }
 
+    // Idempotent : déjà "cancelled_seen" (ex. bouton recliqué après un
+    // retour arrière du navigateur) → on renvoie succès sans réécrire, pour
+    // que la navigation vers /mapa se fasse quand même côté front au lieu
+    // d'afficher une erreur sur une action déjà effectuée.
+    if (action === "decline" && booking.status === "cancelled_seen") {
+      return NextResponse.json({ success: true, data: { id: booking.id, status: booking.status } });
+    }
+
     if (action === "decline" && booking.status === "cancelled") {
       const { data: updated, error: updateError } = await supabase
         .from("bookings")

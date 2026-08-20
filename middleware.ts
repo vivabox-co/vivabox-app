@@ -121,7 +121,14 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    if (context.estado === 'Reservada' || context.estado === 'Confirmada' || context.estado === 'Rechazada') {
+    // Seule une réservation encore en cours (Reservada/Confirmada) justifie
+    // de forcer /reservar/seguimiento depuis ici — "Rechazada" (annulée)
+    // retombe avec "Activada" vers /mapa : sinon quiconque a une réservation
+    // annulée revoit cet écran à chaque fois qu'il ouvre l'app, sans jamais
+    // pouvoir en sortir depuis la racine. L'écran de refus reste atteignable
+    // manuellement (nav "Seguimiento", lien direct) — voir la branche
+    // "Rechazada" plus bas, qui ne bloque pas cet accès.
+    if (context.estado === 'Reservada' || context.estado === 'Confirmada') {
       const redirect = NextResponse.redirect(new URL(`/reservar/seguimiento/${context.booking_id}`, request.url));
       return withRenewedCookie(redirect, sessionToken, context);
     }
