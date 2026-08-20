@@ -248,13 +248,11 @@ export function DatosCardBody({
         </div>
 
         {/* DATOS */}
-        <div style={section}>
-          <p style={labelStrong}>Para coordinar tu experiencia</p>
-
+        <div style={sectionTight}>
           <input
             value={nombre}
             onChange={(e) => onNombreChange(e.target.value)}
-            placeholder="Tu nombre"
+            placeholder="Ej. Juan Pérez"
             style={input}
           />
 
@@ -265,8 +263,6 @@ export function DatosCardBody({
             type="email"
             style={input}
           />
-
-          <p style={helper}>Solo para enviarte los detalles</p>
         </div>
 
         {/* REASSURANCE */}
@@ -278,7 +274,7 @@ export function DatosCardBody({
           type="submit"
           className="vb-btn-primary"
           style={btnStyle}
-          disabled={loading || disabled}
+          disabled={loading || disabled || !isFormComplete(codigo, nombre, email)}
         >
           {loading ? (
             <>
@@ -314,6 +310,18 @@ function formatCode(value: string) {
   const parts = rest.match(/.{1,4}/g) || []
 
   return parts.length ? "VIVA-" + parts.join("-") : "VIVA"
+}
+
+// Habilita el CTA solo cuando los 3 campos obligatorios están completos.
+// El nombre solo exige un largo mínimo razonable (ideal "Nombre Apellido"),
+// sin bloquear nombres reales atípicos (compuestos, mononimos, etc.).
+function isFormComplete(codigo: string, nombre: string, email: string) {
+  const codeChars = codigo.replace(/[^A-Z0-9]/g, "")
+  const codeComplete = codeChars.length >= 12 // "VIVA" + 8 caracteres
+  const nameComplete = nombre.trim().length >= 3
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+
+  return codeComplete && nameComplete && emailValid
 }
 
 function mapError(code: string) {
@@ -426,16 +434,17 @@ const section = {
   marginBottom: 10,
 }
 
+// Bloc nombre + email : pas de label au-dessus (placeholders explicites),
+// donc un peu moins d'espace après que la section du code (qui, elle, a
+// un label + un microtexte sous le champ).
+const sectionTight = {
+  marginBottom: 6,
+}
+
 const label = {
   fontSize: 14,
   opacity: 0.7,
   marginBottom: 6,
-}
-
-const labelStrong = {
-  fontSize: 15,
-  fontWeight: 600,
-  marginBottom: 8,
 }
 
 const helper = {
