@@ -415,25 +415,30 @@ button, a { -webkit-tap-highlight-color: transparent; }
   to { opacity: 1; }
 }
 
+/* Chaque couleur apparaît en cascade rapprochée puis TOUTES restent
+   pleinement visibles ensemble jusqu'à 80% du lap (~530ms sur les 1.3s) avant
+   de disparaître en même temps — contre ~240ms dans une version précédente où
+   l'apparition en cascade grignotait presque tout le lap, ne laissant les 4
+   couleurs visibles ensemble qu'un bref instant juste avant le fondu final. */
 @keyframes vb-loader-orange-cycle {
-  0%, 13.3%  { opacity: 0; transform: scale(0.94); }
-  28%, 86.7% { opacity: 1; transform: scale(1); }
-  100%       { opacity: 0; transform: scale(0.94); }
+  0%, 5%    { opacity: 0; transform: scale(0.94); }
+  15%, 80%  { opacity: 1; transform: scale(1); }
+  100%      { opacity: 0; transform: scale(0.94); }
 }
 @keyframes vb-loader-red-cycle {
-  0%, 26.7%  { opacity: 0; transform: scale(0.94); }
-  41.3%, 86.7% { opacity: 1; transform: scale(1); }
-  100%       { opacity: 0; transform: scale(0.94); }
+  0%, 13%   { opacity: 0; transform: scale(0.94); }
+  23%, 80%  { opacity: 1; transform: scale(1); }
+  100%      { opacity: 0; transform: scale(0.94); }
 }
 @keyframes vb-loader-blue-cycle {
-  0%, 40%    { opacity: 0; transform: scale(0.94); }
-  54.7%, 86.7% { opacity: 1; transform: scale(1); }
-  100%       { opacity: 0; transform: scale(0.94); }
+  0%, 21%   { opacity: 0; transform: scale(0.94); }
+  31%, 80%  { opacity: 1; transform: scale(1); }
+  100%      { opacity: 0; transform: scale(0.94); }
 }
 @keyframes vb-loader-green-cycle {
-  0%, 53.3%  { opacity: 0; transform: scale(0.94); }
-  68%, 86.7% { opacity: 1; transform: scale(1); }
-  100%       { opacity: 0; transform: scale(0.94); }
+  0%, 29%   { opacity: 0; transform: scale(0.94); }
+  39%, 80%  { opacity: 1; transform: scale(1); }
+  100%      { opacity: 0; transform: scale(0.94); }
 }
 
 .vb-loader-ink {
