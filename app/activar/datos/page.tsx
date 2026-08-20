@@ -274,8 +274,20 @@ export function DatosCardBody({
 
         {error && <p style={errorText}>{error}</p>}
 
-        <button type="submit" style={btnStyle} disabled={loading || disabled}>
-          {loading ? "Activando..." : "Activar mi regalo"}
+        <button
+          type="submit"
+          className="vb-btn-primary"
+          style={btnStyle}
+          disabled={loading || disabled}
+        >
+          {loading ? (
+            <>
+              <span className="vb-spinner-light" />
+              Activando...
+            </>
+          ) : (
+            "Activar mi regalo"
+          )}
         </button>
 
       </form>
@@ -470,4 +482,8 @@ const btnStyle: React.CSSProperties = {
   fontSize: 16,
   fontWeight: 600,
   width: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 10,
 }

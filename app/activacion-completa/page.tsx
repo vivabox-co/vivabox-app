@@ -95,6 +95,19 @@ export function ActivatedCard({
   onFinish: () => void
   instant?: boolean
 }) {
+  // La navigation déclenchée par onFinish (window.location.href, voir
+  // handleContinue plus haut) est une vraie navigation dure : elle prend
+  // un instant à démarrer, sans rien à afficher tant qu'elle ne le fait
+  // pas. Sans ce state, les beta users cliquaient plusieurs fois faute de
+  // retour visuel pendant ce délai.
+  const [loading, setLoading] = useState(false)
+
+  const handleClick = () => {
+    if (loading) return
+    setLoading(true)
+    onFinish()
+  }
+
   return (
     <div style={cardWide}>
       <div style={checkCircle} className={instant ? undefined : "vb-activation-check"}>
@@ -113,8 +126,20 @@ export function ActivatedCard({
         <BigArrow />
         <IconStep icon={<CalendarDays size={40} />} label="Reservás" sub="Y coordinamos" />
       </div>
-      <button onClick={onFinish} style={btnStyle}>
-        Ver experiencias
+      <button
+        onClick={handleClick}
+        className="vb-btn-primary"
+        style={btnStyle}
+        disabled={loading}
+      >
+        {loading ? (
+          <>
+            <span className="vb-spinner-light" />
+            Cargando...
+          </>
+        ) : (
+          "Ver experiencias"
+        )}
       </button>
     </div>
   )
@@ -301,4 +326,8 @@ const btnStyle = {
   fontWeight: 600,
   width: "100%",
   cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 10,
 }

@@ -25,6 +25,51 @@
   to { transform: rotate(360deg); }
 }
 
+/* Variante claire du spinner ci-dessus, pour les boutons à fond sombre
+   (ex: CTA "Activar mi regalo" / "Ver experiencias"). */
+.vb-spinner-light {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: vb-spin 0.7s linear infinite;
+}
+
+/* ================================
+   BOUTON PRINCIPAL — impulsion tactile au clic
+   Feedback immédiat au pointerdown (scale), indépendant du délai réseau
+   qui suit — c'est ce qui manquait et faisait cliquer plusieurs fois les
+   beta users sur les CTA avec un temps de réponse perceptible.
+================================ */
+
+.vb-btn-primary {
+  transition: transform 80ms ease-out;
+  cursor: pointer;
+}
+
+.vb-btn-primary:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.vb-btn-primary:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vb-btn-primary {
+    transition: none;
+  }
+  .vb-btn-primary:active:not(:disabled) {
+    transform: none;
+  }
+  .vb-spinner-light {
+    animation: none;
+  }
+}
+
 /* ================================
    USER LOCATION DOT (carte /mapa)
 ================================ */
