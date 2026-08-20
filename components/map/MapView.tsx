@@ -35,6 +35,8 @@ type MapViewProps = {
   activeAmbiances?: string[]
   indoorState?: "indoor" | "outdoor" | "any"
   activeActivities?: ActivityKey[]
+  /** Called once the initially visible tile batch has finished loading. */
+  onFirstTilesLoaded?: () => void
 }
 
 /* 🔁 SAFE resize fix */
@@ -117,6 +119,7 @@ export default function MapView({
   activeAmbiances = [],
   indoorState = "any",
   activeActivities = [],
+  onFirstTilesLoaded,
 }: MapViewProps) {
   const [experiences, setExperiences] = useState<Experience[]>([])
   const [mapReady, setMapReady] = useState(false)
@@ -198,8 +201,19 @@ export default function MapView({
             eventHandlers={{
               // Une fois le lot visible chargé, on relève le buffer pour
               // précharger les tuiles voisines en arrière-plan (sans
-              // bloquer quoi que ce soit à l'écran).
-              load: () => setTileBuffer((b) => (b === 0 ? 2 : b)),
+              // bloquer quoi que ce soit à l'écran). C'est aussi le premier
+              // moment où la carte est réellement visible à l'écran, donc
+              // le signal qu'on remonte au loader plein écran de la route.
+              // Différé via setTimeout : quand les tuiles sont déjà en
+              // cache navigateur, Leaflet peut émettre "load" de façon
+              // synchrone pendant le rendu de ce composant, et appeler le
+              // setState du parent (onFirstTilesLoaded) à ce moment-là
+              // déclenche l'avertissement React "setState pendant le rendu
+              // d'un autre composant".
+              load: () => setTileBuffer((b) => {
+                if (b === 0) setTimeout(() => onFirstTilesLoaded?.(), 0)
+                return b === 0 ? 2 : b
+              }),
             }}
           />
         )}

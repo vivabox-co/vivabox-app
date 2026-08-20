@@ -78,6 +78,7 @@ export default function MapaPage() {
 
   const [experiences, setExperiences] = useState<Experience[]>([])
   const [loadingExperiences, setLoadingExperiences] = useState(true)
+  const [mapTilesReady, setMapTilesReady] = useState(false)
 
   const [activeActivities, setActiveActivities] = useState<ActivityKey[]>([])
   const [activeCategories, setActiveCategories] =
@@ -101,9 +102,11 @@ export default function MapaPage() {
   }, [])
 
   // Garde le loader Vivabox plein écran affiché jusqu'à ce que le catalogue
-  // soit chargé, pour ne jamais laisser apparaître le spinner générique de
-  // secours de MapView (voir son commentaire) pendant la transition de route.
-  usePageReady(!loadingExperiences)
+  // ET les tuiles de la carte initialement visibles soient chargés, pour ne
+  // jamais laisser apparaître le spinner générique de secours de MapView
+  // (voir son commentaire) ni une carte encore blanche pendant la transition
+  // de route.
+  usePageReady(!loadingExperiences && mapTilesReady)
 
   const availableCities = useMemo(() => {
     const set = new Set<string>()
@@ -277,6 +280,7 @@ export default function MapaPage() {
               setSelectedExperience(exp)
               setDrawerOpen(true)
             }}
+            onFirstTilesLoaded={() => setMapTilesReady(true)}
           />
         </div>
       </div>

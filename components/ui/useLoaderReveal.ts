@@ -18,6 +18,12 @@ import { useEffect, useRef, useState } from "react"
 // actually ready.
 const SAFETY_TIMEOUT_MS = 5000
 
+// One full lap of the CSS animation (see .vb-loader-fill in globals.css).
+// Enforced as a floor so the brand loader always plays out its whole
+// build-up-to-all-4-colors cycle, even when the page turns out to be ready
+// almost instantly — otherwise a fast load could reveal mid-animation.
+const MIN_DISPLAY_MS = 1300
+
 export function useLoaderReveal(ready: boolean, containerRef: React.RefObject<HTMLElement | null>) {
   const [done, setDone] = useState(false)
   const readyRef = useRef(ready)
@@ -40,11 +46,12 @@ export function useLoaderReveal(ready: boolean, containerRef: React.RefObject<HT
 
     function tick() {
       if (cancelled) return
-      if (!readyRef.current) {
+      const elapsed = performance.now() - startedAt
+      if (!readyRef.current || elapsed < MIN_DISPLAY_MS) {
         rafId = requestAnimationFrame(tick)
         return
       }
-      if (allColorsFullyVisible() || performance.now() - startedAt > SAFETY_TIMEOUT_MS) {
+      if (allColorsFullyVisible() || elapsed > SAFETY_TIMEOUT_MS) {
         setDone(true)
         return
       }
