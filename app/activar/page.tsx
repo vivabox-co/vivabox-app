@@ -112,8 +112,20 @@ function WelcomeCard({ onFinish, leaving }: { onFinish: () => void; leaving: boo
         Activá tu experiencia para empezar.
       </p>
 
-      <button onClick={onFinish} style={btnStyle} disabled={leaving}>
-        Comenzar
+      <button
+        onClick={onFinish}
+        className="vb-btn-primary"
+        style={btnStyle}
+        disabled={leaving}
+      >
+        {leaving ? (
+          <>
+            <span className="vb-spinner-light" />
+            Comenzando...
+          </>
+        ) : (
+          "Comenzar"
+        )}
       </button>
     </div>
   )
@@ -211,5 +223,8 @@ const btnStyle: React.CSSProperties = {
   width: "100%",
   cursor: "pointer",
   boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-  transition: "transform 0.1s ease",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 10,
 }
