@@ -448,7 +448,7 @@ const dateChipsRow: React.CSSProperties = { display: "flex", flexWrap: "wrap", g
 const dateChipPreferred = (color: string): React.CSSProperties => ({
   padding: "9px 15px",
   borderRadius: 999,
-  background: "#111",
+  background: "#152F40",
   color: "#fff",
   fontSize: 13,
   fontWeight: 600,
@@ -482,8 +482,8 @@ const accentDot = (color: string): React.CSSProperties => ({
 const momentChipStyle = (active: boolean): React.CSSProperties => ({
   padding: "10px 14px",
   borderRadius: 999,
-  border: active ? "1.5px solid #111" : "1px solid #E5E2DB",
-  background: active ? "#111" : "#fff",
+  border: active ? "1.5px solid #152F40" : "1px solid #E5E2DB",
+  background: active ? "#152F40" : "#fff",
   color: active ? "#fff" : "#444",
   fontWeight: active ? 600 : 400,
   fontSize: 14,
@@ -495,8 +495,8 @@ const momentChipStyle = (active: boolean): React.CSSProperties => ({
 const hourChipStyle = (active: boolean): React.CSSProperties => ({
   padding: "8px 12px",
   borderRadius: 999,
-  border: active ? "1.5px solid #111" : "1px solid #E5E2DB",
-  background: active ? "#111" : "#fff",
+  border: active ? "1.5px solid #152F40" : "1px solid #E5E2DB",
+  background: active ? "#152F40" : "#fff",
   color: active ? "#fff" : "#555",
   fontWeight: active ? 600 : 400,
   fontSize: 13,

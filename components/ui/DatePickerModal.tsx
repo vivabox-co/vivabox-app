@@ -187,7 +187,7 @@ export default function DatePickerModal({
 function dayCellRoleStyle(isPreferred: boolean, isAlternative: boolean, categoryColor: string): React.CSSProperties {
   if (isPreferred) {
     return {
-      background: "#111",
+      background: "#152F40",
       color: "#fff",
       border: "none",
       boxShadow: `0 0 0 2px ${categoryColor}`,
@@ -223,7 +223,7 @@ const summaryChip: React.CSSProperties = {
 
 const summaryChipStrong = (color: string): React.CSSProperties => ({
   ...summaryChip,
-  background: "#111",
+  background: "#152F40",
   boxShadow: `0 0 0 2px ${color}`,
   color: "#fff",
   fontWeight: 600,
