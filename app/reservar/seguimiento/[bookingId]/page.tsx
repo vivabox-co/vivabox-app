@@ -129,6 +129,12 @@ export default function SeguimientoPage() {
         if (data.success && data.data) {
           setBooking(data.data)
           setError(null)
+          // Miroir du statut dans localStorage : ClientLayout s'en sert pour
+          // savoir si le blocage "retour" (vers /mapa, /lista, /favoritos,
+          // /reservar/fechas) doit encore s'appliquer — il se lève dès que
+          // la réservation est "rejected", pour ne pas coincer indéfiniment
+          // un user qui veut repartir choisir une autre expérience.
+          localStorage.setItem("currentBooking", JSON.stringify({ id: bookingId, status: data.data.status }))
         } else {
           setError(data.error || "BOOKING_NOT_FOUND")
         }

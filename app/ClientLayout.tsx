@@ -32,7 +32,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     function handleBack() {
-      const hasBooking = !!localStorage.getItem("currentBooking")
+      const stored = localStorage.getItem("currentBooking")
+      if (!stored) return
+
+      // status vient du miroir écrit par /reservar/seguimiento (voir ce
+      // fichier) — absent juste après la création de la réservation
+      // (confirmacion n'écrit que l'id), donc jamais égal à "rejected" à ce
+      // stade : le blocage reste actif tant qu'on n'a pas confirmé que la
+      // réservation est refusée.
+      const booking = JSON.parse(stored)
+      if (booking.status === "rejected") return
 
       const inBookingFlow =
         pathname.startsWith("/reservar/seguimiento") ||
@@ -40,9 +49,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         pathname.startsWith("/ayuda") ||
         pathname === "/reservar/fechas/confirmacion"
 
-      if (hasBooking && inBookingFlow) {
-        const booking = JSON.parse(localStorage.getItem("currentBooking")!)
-        router.replace(`/reservar/seguimiento/${booking.id}`)
+      if (inBookingFlow) {
+        // router.push, pas replace : pousse une nouvelle entrée d'historique
+        // au lieu de renommer l'entrée courante. Avec replace, chaque retour
+        // grignotait une entrée jusqu'à finir par atteindre /mapa après assez
+        // d'appuis — push restaure la profondeur à chaque interception, donc
+        // le pointeur d'historique ne recule jamais sous ces pages, quel que
+        // soit le nombre de tentatives.
+        router.push(`/reservar/seguimiento/${booking.id}`)
       }
     }
 
