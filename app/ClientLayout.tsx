@@ -37,7 +37,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       const inBookingFlow =
         pathname.startsWith("/reservar/seguimiento") ||
         pathname.startsWith("/experiencia") ||
-        pathname.startsWith("/ayuda")
+        pathname.startsWith("/ayuda") ||
+        pathname === "/reservar/fechas/confirmacion"
 
       if (hasBooking && inBookingFlow) {
         const booking = JSON.parse(localStorage.getItem("currentBooking")!)

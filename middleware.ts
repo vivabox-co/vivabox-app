@@ -169,8 +169,19 @@ export async function middleware(request: NextRequest) {
   }
 
   if (estado === 'Reservada' || estado === 'Confirmada') {
-    // Si on essaie d'accéder à /mapa ou /lista → rediriger vers suivi
-    if (pathname === '/mapa' || pathname === '/lista' || pathname === '/') {
+    // Si on essaie d'accéder à /mapa, /lista, /favoritos ou de relancer une
+    // réservation via /reservar/fechas → rediriger vers suivi. Exact match sur
+    // '/reservar/fechas' (pas de startsWith) pour ne pas emporter avec lui
+    // '/reservar/fechas/confirmacion', qui doit rester atteignable juste après
+    // la création de la réservation (c'est justement elle qui fait passer
+    // l'estado à 'Reservada').
+    if (
+      pathname === '/mapa' ||
+      pathname === '/lista' ||
+      pathname === '/favoritos' ||
+      pathname === '/reservar/fechas' ||
+      pathname === '/'
+    ) {
       const redirect = NextResponse.redirect(new URL(`/reservar/seguimiento/${booking_id}`, request.url));
       return withRenewedCookie(redirect, sessionToken, context);
     }
