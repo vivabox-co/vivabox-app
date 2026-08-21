@@ -22,6 +22,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   )
 
   useEffect(() => {
+    // Safari iOS n'applique jamais les états CSS :active/:hover au tap tant
+    // qu'aucun listener tactile n'est enregistré quelque part sur la page —
+    // sans ça, l'effet de pression des boutons (.vb-btn-primary, etc.) ne se
+    // déclenchait jamais sur iPhone. Listener no-op, jamais retiré : c'est le
+    // correctif standard, censé vivre pour toute la durée de l'app.
+    document.addEventListener("touchstart", () => {}, { passive: true })
+  }, [])
+
+  useEffect(() => {
     function handleBack() {
       const hasBooking = !!localStorage.getItem("currentBooking")
 
