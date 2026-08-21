@@ -104,14 +104,17 @@ export default function ActivarFlowPage() {
 function WelcomeCard({ onFinish, leaving }: { onFinish: () => void; leaving: boolean }) {
   return (
     <div style={cardSoft}>
-      <h1 style={h1}>Te hicieron un regalo especial</h1>
+      <h1 style={headline}>
+        <span style={headlineIntro}>Te hicieron un regalo.</span>
+        <span style={headlineMain}>
+          Ahora <span style={headlineAccent}>vos elegís</span>
+          <br />
+          cómo vivirlo.
+        </span>
+      </h1>
 
       <p style={pMain}>
-        Podés elegir la experiencia que más te guste y vivir un gran momento.
-      </p>
-
-      <p style={pSub}>
-        Activá tu experiencia para empezar.
+        Podés elegir la experiencia que más te guste y disfrutarla a tu manera.
       </p>
 
       <button
@@ -126,7 +129,7 @@ function WelcomeCard({ onFinish, leaving }: { onFinish: () => void; leaving: boo
             Comenzando...
           </>
         ) : (
-          "Comenzar"
+          "Activar mi regalo"
         )}
       </button>
     </div>
@@ -193,31 +196,47 @@ const cardSoft: React.CSSProperties = {
   textAlign: "center",
 }
 
-const h1: React.CSSProperties = {
-  fontSize: 28,
-  fontWeight: 650,
-  marginBottom: 24,
-  lineHeight: 1.3,
+const headline: React.CSSProperties = {
+  marginBottom: 18,
+}
+
+const headlineIntro: React.CSSProperties = {
+  display: "block",
+  fontSize: "clamp(19px, 5.2vw, 22px)",
+  fontWeight: 600,
+  color: "#152F40",
+  lineHeight: 1.25,
+  marginBottom: 6,
+}
+
+const headlineMain: React.CSSProperties = {
+  display: "block",
+  fontSize: "clamp(24px, 7vw, 28px)",
+  fontWeight: 700,
+  color: "#152F40",
+  lineHeight: 1.08,
+}
+
+const headlineAccent: React.CSSProperties = {
+  color: "#FE842F",
 }
 
 const pMain: React.CSSProperties = {
-  fontSize: 16,
-  opacity: 0.85,
-  marginBottom: 26,
-  lineHeight: 1.7,
-}
-
-const pSub: React.CSSProperties = {
-  fontSize: 14,
-  opacity: 0.6,
-  marginBottom: 40,
-  lineHeight: 1.6,
+  fontSize: "clamp(16px, 4.5vw, 18px)",
+  fontWeight: 400,
+  color: "#152F40",
+  opacity: 0.72,
+  maxWidth: "88%",
+  marginLeft: "auto",
+  marginRight: "auto",
+  marginBottom: 30,
+  lineHeight: 1.55,
 }
 
 const btnStyle: React.CSSProperties = {
   height: 54,
   borderRadius: 16,
-  background: "#111",
+  background: "#152F40",
   color: "white",
   border: "none",
   fontSize: 16,
