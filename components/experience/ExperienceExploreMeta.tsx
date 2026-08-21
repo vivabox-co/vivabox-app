@@ -363,7 +363,7 @@ const sectionTitle: React.CSSProperties = {
   fontWeight: 600,
   fontSize: 15,
   marginBottom: 8,
-  color: "#111",
+  color: "#152F40",
 }
 
 const titleStyle: React.CSSProperties = {
@@ -371,7 +371,7 @@ const titleStyle: React.CSSProperties = {
   fontSize: 22,
   fontWeight: 700,
   lineHeight: 1.25,
-  color: "#111",
+  color: "#152F40",
 }
 
 const subtitleStyle: React.CSSProperties = {
@@ -430,7 +430,7 @@ const curatedLogo: React.CSSProperties = {
 const curatedTitle: React.CSSProperties = {
   fontSize: 12.5,
   fontWeight: 700,
-  color: "#111",
+  color: "#152F40",
   textTransform: "uppercase",
   letterSpacing: 0.4,
   marginBottom: 6,

@@ -418,7 +418,7 @@ const sectionTitle: React.CSSProperties = {
   gap: 8,
   fontSize: 19,
   fontWeight: 700,
-  color: "#111",
+  color: "#152F40",
   letterSpacing: -0.2,
   margin: 0,
 }

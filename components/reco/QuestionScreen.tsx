@@ -66,7 +66,7 @@ const questionStyleQ1: React.CSSProperties = {
   fontWeight: 600,
   lineHeight: 1.4,
   maxWidth: 320,
-  color: '#111',
+  color: '#152F40',
 }
 
 const questionStyle: React.CSSProperties = {
@@ -74,7 +74,7 @@ const questionStyle: React.CSSProperties = {
   fontWeight: 600,
   lineHeight: 1.4,
   maxWidth: 320,
-  color: '#111',
+  color: '#152F40',
 }
 
 /* --- Options grid --- */

@@ -424,7 +424,7 @@ const stepQuestion: React.CSSProperties = {
   margin: "0 0 10px",
   fontSize: 15,
   fontWeight: 600,
-  color: "#111",
+  color: "#152F40",
 }
 
 // Mêmes styles que les boutons de DynamicStatusBlock (primaire plein/foncé,

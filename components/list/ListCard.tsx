@@ -92,7 +92,7 @@ export default function ListCard({
             fontSize: 16,
             lineHeight: 1.3,
             marginBottom: 6,
-            color: "#1a1a1a",
+            color: "#152F40",
           }}
         >
           {exp.title}

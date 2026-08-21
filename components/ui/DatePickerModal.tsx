@@ -250,7 +250,7 @@ const modal = {
 }
 
 const sheetTitleWrap = { marginBottom: 12 }
-const sheetTitle = { fontSize: 17, fontWeight: 700, color: "#111" }
+const sheetTitle = { fontSize: 17, fontWeight: 700, color: "#152F40" }
 const sheetSubtitle = { fontSize: 13, color: "#888", marginTop: 3, lineHeight: 1.35 }
 
 const header = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }
