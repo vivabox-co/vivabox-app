@@ -11,6 +11,7 @@ function ConfirmacionContent() {
   const { setHideNav, selectedExperience } = useUI()
   const bookingId = searchParams.get("bookingId")
   const [bookedImage, setBookedImage] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     setHideNav(true)
@@ -66,10 +67,23 @@ function ConfirmacionContent() {
           </p>
 
           <button
-            onClick={() => router.push(`/reservar/seguimiento/${bookingId}`)}
+            onClick={() => {
+              if (loading) return
+              setLoading(true)
+              router.push(`/reservar/seguimiento/${bookingId}`)
+            }}
+            className="vb-btn-primary"
             style={btnStyle}
+            disabled={loading}
           >
-            Ver seguimiento
+            {loading ? (
+              <>
+                <span className="vb-spinner-light" />
+                Cargando...
+              </>
+            ) : (
+              "Ver seguimiento"
+            )}
           </button>
         </div>
       </div>
@@ -167,4 +181,8 @@ const btnStyle: React.CSSProperties = {
   fontWeight: 600,
   boxShadow: "0 8px 22px rgba(0,0,0,0.18)",
   cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 10,
 }

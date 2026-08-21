@@ -284,12 +284,24 @@ export default function FechasPage() {
           )}
         </section>
 
-        <button onClick={handleSubmit} disabled={loading || !isFormComplete} style={{
-          ...cta,
-          opacity: loading ? 0.6 : isFormComplete ? 1 : 0.4,
-          cursor: loading || !isFormComplete ? "not-allowed" : "pointer"
-        }}>
-          {loading ? "Creando reserva..." : "Continuar →"}
+        <button
+          onClick={handleSubmit}
+          disabled={loading || !isFormComplete}
+          className="vb-btn-primary"
+          style={{
+            ...cta,
+            opacity: loading ? 0.6 : isFormComplete ? 1 : 0.4,
+            cursor: loading || !isFormComplete ? "not-allowed" : "pointer"
+          }}
+        >
+          {loading ? (
+            <>
+              <span className="vb-spinner-light" />
+              Creando reserva...
+            </>
+          ) : (
+            "Continuar →"
+          )}
         </button>
       </div>
 
@@ -550,4 +562,8 @@ const cta: React.CSSProperties = {
   fontSize: 16,
   fontWeight: 600,
   border: "none",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 10,
 }
