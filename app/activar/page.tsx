@@ -9,6 +9,13 @@ import { DatosCardBody } from "@/app/activar/datos/page"
 
 const CARD_TRANSITION_MS = 500
 
+// Le spinner + "Comenzando..." doivent rester visibles, carte immobile,
+// avant que celle-ci commence à glisser — sinon ils apparaissent déjà en
+// train de sortir de l'écran en même temps que la carte et ne se voient
+// quasiment pas (contrairement au spinner de /activar/datos, visible
+// pendant tout un appel réseau, carte fixe).
+const LOADING_PAUSE_MS = 180
+
 // Aperçu statique (aucune interaction réelle) de la carte "Activemos tu
 // experiencia" : état initial, toujours identique quel que soit ce que
 // l'utilisateur tapera une fois sur la vraie page /activar/datos.
@@ -17,6 +24,7 @@ const NOOP = () => {}
 export default function ActivarFlowPage() {
   const router = useRouter()
   const { setHideNav } = useUI()
+  const [loading, setLoading] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const { ref: nextCardRef, minHeight: nextCardMinHeight } = useNextCardMinHeight(leaving)
 
@@ -26,15 +34,18 @@ export default function ActivarFlowPage() {
   }, [])
 
   const handleContinue = () => {
-    if (leaving) return
+    if (loading) return
 
     if (prefersReducedMotion()) {
       router.push("/activar/datos")
       return
     }
 
-    setLeaving(true)
-    setTimeout(() => router.push("/activar/datos"), CARD_TRANSITION_MS)
+    setLoading(true)
+    setTimeout(() => {
+      setLeaving(true)
+      setTimeout(() => router.push("/activar/datos"), CARD_TRANSITION_MS)
+    }, LOADING_PAUSE_MS)
   }
 
   return (
@@ -68,7 +79,7 @@ export default function ActivarFlowPage() {
               opacity: leaving ? 0.92 : 1,
             }}
           >
-            <WelcomeCard onFinish={handleContinue} leaving={leaving} />
+            <WelcomeCard onFinish={handleContinue} loading={loading} />
           </div>
 
           {/* Carte suivante : montée déjà entièrement construite (aperçu
@@ -101,7 +112,7 @@ export default function ActivarFlowPage() {
   )
 }
 
-function WelcomeCard({ onFinish, leaving }: { onFinish: () => void; leaving: boolean }) {
+function WelcomeCard({ onFinish, loading }: { onFinish: () => void; loading: boolean }) {
   return (
     <div style={cardSoft}>
       <h1 style={headline}>
@@ -121,9 +132,9 @@ function WelcomeCard({ onFinish, leaving }: { onFinish: () => void; leaving: boo
         onClick={onFinish}
         className="vb-btn-primary"
         style={btnStyle}
-        disabled={leaving}
+        disabled={loading}
       >
-        {leaving ? (
+        {loading ? (
           <>
             <span className="vb-spinner-light" />
             Comenzando...
