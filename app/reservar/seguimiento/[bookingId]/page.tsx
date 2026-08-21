@@ -29,7 +29,7 @@ const HEADER_COPY: Record<BookingStatus, { title: string; subtitle: string }> = 
   waiting_provider: CONFIRMING_HEADER,
   alternative_proposed: { title: "Tu fecha no estaba disponible", subtitle: "El lugar encontró una nueva fecha para ti." },
   confirmed: { title: "¡Tu experiencia está confirmada!", subtitle: "Ya tienes fecha y hora." },
-  rejected: { title: "Busquemos otra fecha juntos", subtitle: "No pudimos confirmar esta opción." },
+  rejected: { title: "Tu reserva fue cancelada", subtitle: "No pudimos coordinar esta experiencia con el lugar." },
   done: { title: "Esperamos que la hayas disfrutado", subtitle: "Gracias por vivir esta experiencia con nosotros." },
 }
 

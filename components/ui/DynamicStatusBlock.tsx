@@ -42,7 +42,7 @@ export default function DynamicStatusBlock({ status, onAction, reviewed, actionP
 
     rejected: {
       title: "¿Qué sigue?",
-      text: "No pudimos coordinar esta experiencia. Puedes esperar a que te contactemos o elegir otra ahora mismo.",
+      text: "Tu reserva fue cancelada. Puedes esperar a que te contactemos o elegir otra experiencia ahora mismo.",
       actions: [{ key: "choose_new_experience", label: "Elegir otra experiencia" }],
     },
 
