@@ -96,8 +96,12 @@ export default function DynamicStatusBlock({ status, onAction, reviewed, actionP
       {block.actions && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {block.actions.map((action) => {
-            const secondary = action.key === "choose_new_experience"
             return (
+              // Toujours le CTA principal : chaque statut de `content`
+              // ci-dessus n'expose au plus qu'une seule action ici (les cas
+              // à choix multiples, comme "alternative_proposed", vivent dans
+              // l'étape active de BookingTimeline, pas dans ce bloc) — donc
+              // jamais de variante secondaire à distinguer visuellement.
               <button
                 key={action.key}
                 onClick={() => onAction(action.key)}
@@ -105,9 +109,9 @@ export default function DynamicStatusBlock({ status, onAction, reviewed, actionP
                 style={{
                   padding: "9px 16px",
                   borderRadius: 999,
-                  border: secondary ? "1px solid #D8D2C7" : "none",
-                  background: secondary ? "transparent" : "#222",
-                  color: secondary ? "#333" : "white",
+                  border: "none",
+                  background: "#152F40",
+                  color: "white",
                   fontSize: 13,
                   fontWeight: 500,
                   cursor: actionPending ? "default" : "pointer",
