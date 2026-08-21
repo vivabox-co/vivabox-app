@@ -152,7 +152,7 @@ export default function ListaPage() {
               padding: "10px 12px",
               borderRadius: 20,
               border: "none",
-              background: "#111",
+              background: "#152F40",
               color: "#fff",
               fontWeight: 600,
             }}

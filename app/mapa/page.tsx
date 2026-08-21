@@ -187,7 +187,7 @@ export default function MapaPage() {
               padding: "10px 16px",
               borderRadius: 22,
               border: "none",
-              background: "#111",
+              background: "#152F40",
               color: "#fff",
               fontSize: 14,
               fontWeight: 600,

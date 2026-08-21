@@ -98,7 +98,7 @@ export default function AyudaPage() {
             width: "100%",
             padding: 14,
             borderRadius: 16,
-            background: "#111",
+            background: "#152F40",
             color: "#fff",
             border: "none",
             fontSize: 15,

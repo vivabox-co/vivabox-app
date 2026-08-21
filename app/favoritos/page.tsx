@@ -164,7 +164,7 @@ export default function FavoritosPage() {
                   padding: 12,
                   borderRadius: 10,
                   border: "none",
-                  background: "#111",
+                  background: "#152F40",
                   color: "white",
                 }}
               >

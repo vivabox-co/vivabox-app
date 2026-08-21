@@ -298,7 +298,7 @@ export default function MapView({
                                 fontSize: 14,
                                 borderRadius: 10,
                                 border: "none",
-                                background: "#111",
+                                background: "#152F40",
                                 color: "white",
                                 fontWeight: 600,
                                 cursor: "pointer",

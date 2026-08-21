@@ -218,7 +218,7 @@ export default function RecoOverlay({ open, onClose }: Props) {
                 width: '100%',
                 padding: 16,
                 borderRadius: 14,
-                background: '#111',
+                background: '#152F40',
                 color: '#fff',
                 border: 'none',
                 fontWeight: 600,

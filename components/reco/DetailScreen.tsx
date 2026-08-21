@@ -176,7 +176,7 @@ const cta = {
   marginTop: 28,
   padding: '16px 18px',
   borderRadius: 14,
-  background: '#111',
+  background: '#152F40',
   color: 'white',
   border: 'none',
   fontSize: 16,

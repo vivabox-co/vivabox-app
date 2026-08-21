@@ -349,7 +349,7 @@ const emptyStateText: React.CSSProperties = { color: "#666", fontSize: 15 }
 const emptyStateBtn: React.CSSProperties = {
   padding: "14px 24px",
   borderRadius: 14,
-  background: "#111",
+  background: "#152F40",
   color: "#fff",
   fontSize: 15,
   fontWeight: 600,
@@ -545,7 +545,7 @@ const cta: React.CSSProperties = {
   width: "calc(100% - 40px)",
   padding: 16,
   borderRadius: 14,
-  background: "#111",
+  background: "#152F40",
   color: "#fff",
   fontSize: 16,
   fontWeight: 600,

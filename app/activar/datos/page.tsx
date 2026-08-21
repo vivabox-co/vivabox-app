@@ -629,10 +629,10 @@ const btnBase: React.CSSProperties = {
   transition: "background-color 200ms ease, color 200ms ease",
 }
 
-// État actif : identique au CTA noir existant.
+// État actif : identique au CTA navy Vivabox.
 const btnActive: React.CSSProperties = {
   ...btnBase,
-  background: "#111",
+  background: "#152F40",
   color: "#fff",
   opacity: 1,
 }

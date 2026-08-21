@@ -76,7 +76,7 @@ const button: React.CSSProperties = {
   height: 52,
   lineHeight: "52px",
   borderRadius: 14,
-  background: "#111",
+  background: "#152F40",
   color: "#fff",
   fontSize: 15,
   fontWeight: 600,

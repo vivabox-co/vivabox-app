@@ -308,7 +308,7 @@ const cancelBtn = {
 const useBtn = {
   padding: "13px 20px",
   borderRadius: 14,
-  background: "#111",
+  background: "#152F40",
   color: "#fff",
   fontWeight: 600,
   fontSize: 14,

@@ -160,7 +160,7 @@ const btnStyle: React.CSSProperties = {
   width: "100%",
   padding: "16px 20px",
   borderRadius: 14,
-  background: "#111",
+  background: "#152F40",
   color: "white",
   border: "none",
   fontSize: 17,

@@ -319,7 +319,7 @@ const arrow = {
 const btnStyle = {
   height: 54,
   borderRadius: 16,
-  background: "#111",
+  background: "#152F40",
   color: "white",
   border: "none",
   fontSize: 16,
