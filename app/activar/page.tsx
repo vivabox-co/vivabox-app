@@ -82,12 +82,14 @@ export default function ActivarFlowPage() {
               <DatosCardBody
                 codigo=""
                 nombre=""
+                apellido=""
                 email=""
                 error=""
                 loading={false}
                 disabled
                 onCodigoChange={NOOP}
                 onNombreChange={NOOP}
+                onApellidoChange={NOOP}
                 onEmailChange={NOOP}
                 onSubmit={(e) => e.preventDefault()}
               />

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useUI } from "@/components/ui/UIContext"
 import { prefersReducedMotion } from "@/lib/utils/prefersReducedMotion"
@@ -16,6 +16,7 @@ export default function DatosPage() {
   const { setHideNav } = useUI()
 
   const [nombre, setNombre] = useState("")
+  const [apellido, setApellido] = useState("")
   const [email, setEmail] = useState("")
   const [codigo, setCodigo] = useState("")
   const [error, setError] = useState("")
@@ -46,10 +47,12 @@ export default function DatosPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!codigo.trim() || !nombre.trim() || !email.trim()) {
+    if (!codigo.trim() || !nombre.trim() || !apellido.trim() || !email.trim()) {
       setError("Completa todos los datos")
       return
     }
+
+    const nombreCompleto = `${nombre.trim()} ${apellido.trim()}`.trim()
 
     setLoading(true)
     setError("")
@@ -59,7 +62,7 @@ export default function DatosPage() {
       const activateRes = await fetch("/api/activate_code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo, nombre, email }),
+        body: JSON.stringify({ codigo, nombre: nombreCompleto, email }),
       })
 
       let activateData: any = null
@@ -168,12 +171,14 @@ console.log("activateData.error:", activateData?.error)
             <DatosCardBody
               codigo={codigo}
               nombre={nombre}
+              apellido={apellido}
               email={email}
               error={error}
               loading={loading}
               disabled={leaving}
-              onCodigoChange={(value) => setCodigo(formatCode(value))}
+              onCodigoChange={setCodigo}
               onNombreChange={setNombre}
+              onApellidoChange={setApellido}
               onEmailChange={setEmail}
               onSubmit={handleSubmit}
             />
@@ -204,12 +209,14 @@ console.log("activateData.error:", activateData?.error)
 type DatosCardBodyProps = {
   codigo: string
   nombre: string
+  apellido: string
   email: string
   error: string
   loading: boolean
   disabled?: boolean
   onCodigoChange: (value: string) => void
   onNombreChange: (value: string) => void
+  onApellidoChange: (value: string) => void
   onEmailChange: (value: string) => void
   onSubmit: (e: React.FormEvent) => void
 }
@@ -217,15 +224,25 @@ type DatosCardBodyProps = {
 export function DatosCardBody({
   codigo,
   nombre,
+  apellido,
   email,
   error,
   loading,
   disabled,
   onCodigoChange,
   onNombreChange,
+  onApellidoChange,
   onEmailChange,
   onSubmit,
 }: DatosCardBodyProps) {
+  // Le CTA doit rester visuellement "mort" (fond gris clair, texte gris) tant
+  // que le formulaire n'est pas complet, pas juste légèrement assombri — les
+  // styles inline (btnActive/btnDisabled) portent chacun leur propre couleur
+  // et l'emportent sur .vb-btn-primary:disabled (opacity), qu'on neutralise
+  // donc explicitement dans les deux variantes ci-dessous.
+  const formComplete = isFormComplete(codigo, nombre, apellido, email)
+  const ctaEnabled = formComplete && !loading && !disabled
+
   return (
     <div style={cardSoft}>
 
@@ -237,33 +254,37 @@ export function DatosCardBody({
         <div style={section}>
           <p style={label}>Código Vivabox</p>
 
-          <input
-            value={codigo}
-            onChange={(e) => onCodigoChange(e.target.value)}
-            placeholder="VIVA-XXXX-XXXX"
-            style={inputCode}
-          />
+          <CodigoInput value={codigo} onChange={onCodigoChange} />
 
           <p style={helper}>Está dentro de tu cajita</p>
         </div>
 
-        {/* DATOS */}
-        <div style={sectionTight}>
+        {/* NOMBRE + APELLIDO — même ligne, ~50/50, comme demandé pour ne pas
+            reprendre l'ancien champ unique "Nombre y apellido". */}
+        <div style={nameRow}>
           <input
             value={nombre}
             onChange={(e) => onNombreChange(e.target.value)}
-            placeholder="Ej. Juan Pérez"
-            style={input}
+            placeholder="Nombre"
+            style={inputHalf}
           />
 
           <input
-            value={email}
-            onChange={(e) => onEmailChange(e.target.value)}
-            placeholder="Tu email"
-            type="email"
-            style={input}
+            value={apellido}
+            onChange={(e) => onApellidoChange(e.target.value)}
+            placeholder="Apellido"
+            style={inputHalf}
           />
         </div>
+
+        {/* EMAIL */}
+        <input
+          value={email}
+          onChange={(e) => onEmailChange(e.target.value)}
+          placeholder="Tu email"
+          type="email"
+          style={input}
+        />
 
         {/* REASSURANCE */}
         <p style={included}>Tu experiencia ya está incluida</p>
@@ -273,8 +294,8 @@ export function DatosCardBody({
         <button
           type="submit"
           className="vb-btn-primary"
-          style={btnStyle}
-          disabled={loading || disabled || !isFormComplete(codigo, nombre, email)}
+          style={ctaEnabled ? btnActive : btnDisabled}
+          disabled={!ctaEnabled}
         >
           {loading ? (
             <>
@@ -296,32 +317,133 @@ export function DatosCardBody({
 /* HELPERS */
 /* ============================= */
 
+const CODE_PREFIX = "VIVA-"
+
 // Format réel généré au checkout (site vitrine, generateActivationCode.ts) :
 // "VIVA" + 8 caractères — affiché ici en "VIVA-XXXX-XXXX" (juste pour la
 // lisibilité ; normalizeCode() enlève les tirets avant la comparaison).
+//
+// Reconstruit toujours la valeur depuis les seuls caractères alphanumériques
+// saisis, en retirant toute occurrence du préfixe "VIVA" en tête (même
+// répétée). Ça rend la fonction idempotente et évite toute duplication du
+// préfixe, quelle que soit la façon dont le champ a été modifié (backspace,
+// sélection, collage d'un code avec ou sans préfixe, etc.).
 function formatCode(value: string) {
-  let cleaned = value.toUpperCase().replace(/[^A-Z0-9]/g, "")
+  const alnum = value.toUpperCase().replace(/[^A-Z0-9]/g, "")
+  if (!alnum) return ""
 
-  if (!cleaned.startsWith("VIVA")) {
-    cleaned = "VIVA" + cleaned.replace(/^VIVA/, "")
+  let suffix = alnum
+  while (suffix.startsWith("VIVA")) {
+    suffix = suffix.slice(4)
   }
+  suffix = suffix.slice(0, 8)
 
-  const rest = cleaned.slice(4, 12)
-  const parts = rest.match(/.{1,4}/g) || []
-
-  return parts.length ? "VIVA-" + parts.join("-") : "VIVA"
+  const parts = suffix.match(/.{1,4}/g) || []
+  return CODE_PREFIX + parts.join("-")
 }
 
-// Habilita el CTA solo cuando los 3 campos obligatorios están completos.
-// El nombre solo exige un largo mínimo razonable (ideal "Nombre Apellido"),
-// sin bloquear nombres reales atípicos (compuestos, mononimos, etc.).
-function isFormComplete(codigo: string, nombre: string, email: string) {
+// Champ "Código Vivabox" : le préfixe "VIVA-" est une partie fixe du champ,
+// jamais supprimable ni éditable — seule la partie qui suit l'est. On laisse
+// `formatCode` reconstruire la valeur à chaque frappe (cause racine du bug
+// de duplication), et on empêche en plus, au niveau du curseur, que
+// backspace/delete/sélection ne mordent sur le préfixe : ça évite l'aller-
+// retour "VIVA" <-> "VIVA-" et garde un comportement naturel au clavier
+// mobile (Android compris).
+function CodigoInput({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (value: string) => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  // Position à restaurer après le prochain re-render déclenché par un
+  // changement de `value` (voir useLayoutEffect ci-dessous) : quand React
+  // pose une valeur re-formatée sur le champ contrôlé, le navigateur ne
+  // replace pas forcément le curseur à la fin tout seul — sans ça, il peut
+  // rester "coincé" à l'intérieur du préfixe après la frappe suivante.
+  const pendingCaretRef = useRef<number | null>(null)
+
+  useLayoutEffect(() => {
+    if (pendingCaretRef.current === null) return
+    const pos = pendingCaretRef.current
+    pendingCaretRef.current = null
+    inputRef.current?.setSelectionRange(pos, pos)
+  }, [value])
+
+  const clampCursor = () => {
+    const el = inputRef.current
+    if (!el || !value) return
+
+    const min = CODE_PREFIX.length
+    const start = el.selectionStart ?? min
+    const end = el.selectionEnd ?? min
+
+    if (start < min || end < min) {
+      const pos = Math.max(min, end)
+      el.setSelectionRange(pos, pos)
+    }
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const next = formatCode(e.target.value)
+    pendingCaretRef.current = next.length
+    onChange(next)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!value || (e.key !== "Backspace" && e.key !== "Delete")) return
+
+    const el = e.currentTarget
+    const min = CODE_PREFIX.length
+    const start = el.selectionStart ?? 0
+    const end = el.selectionEnd ?? 0
+
+    if (start === end) {
+      // Curseur collé au bord du préfixe : rien à effacer de ce côté-là.
+      if (e.key === "Backspace" && start <= min) e.preventDefault()
+      if (e.key === "Delete" && start < min) e.preventDefault()
+      return
+    }
+
+    if (start < min) {
+      // La sélection empiète sur le préfixe (ex. sélection totale) : on
+      // efface uniquement la partie éditable plutôt que de laisser le
+      // navigateur toucher à "VIVA-".
+      e.preventDefault()
+      const next = formatCode(CODE_PREFIX)
+      pendingCaretRef.current = next.length
+      onChange(next)
+    }
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      value={value}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
+      onSelect={clampCursor}
+      onClick={clampCursor}
+      onFocus={clampCursor}
+      onKeyUp={clampCursor}
+      placeholder="VIVA-XXXX-XXXX"
+      style={inputCode}
+    />
+  )
+}
+
+// Habilita el CTA solo cuando los 4 campos obligatorios están completos.
+// Para nombre/apellido, alcanza con una valeur réelle (pas de longueur
+// minimale arbitraire) : la contrainte forte porte sur le code et l'email.
+function isFormComplete(codigo: string, nombre: string, apellido: string, email: string) {
   const codeChars = codigo.replace(/[^A-Z0-9]/g, "")
   const codeComplete = codeChars.length >= 12 // "VIVA" + 8 caracteres
-  const nameComplete = nombre.trim().length >= 3
+  const nombreComplete = nombre.trim().length > 0
+  const apellidoComplete = apellido.trim().length > 0
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
 
-  return codeComplete && nameComplete && emailValid
+  return codeComplete && nombreComplete && apellidoComplete && emailValid
 }
 
 function mapError(code: string) {
@@ -418,7 +540,7 @@ const cardSoft: React.CSSProperties = {
   margin: "0 auto",
   background: "rgba(255,255,255,0.75)",
   backdropFilter: "blur(14px)",
-  padding: "16px 24px",
+  padding: "24px 24px",
   borderRadius: 26,
   boxShadow: "0 30px 80px rgba(0,0,0,0.12)",
   textAlign: "center",
@@ -427,18 +549,11 @@ const cardSoft: React.CSSProperties = {
 const h1 = {
   fontSize: 26,
   fontWeight: 650,
-  marginBottom: 12,
+  marginBottom: 25,
 }
 
 const section = {
-  marginBottom: 10,
-}
-
-// Bloc nombre + email : pas de label au-dessus (placeholders explicites),
-// donc un peu moins d'espace après que la section du code (qui, elle, a
-// un label + un microtexte sous le champ).
-const sectionTight = {
-  marginBottom: 6,
+  marginBottom: 16,
 }
 
 const label = {
@@ -456,14 +571,15 @@ const helper = {
 const included = {
   fontSize: 14,
   color: "#1f7a3a",
-  marginBottom: 10,
+  marginTop: 6,
+  marginBottom: 26,
   fontWeight: 500,
 }
 
 const input: React.CSSProperties = {
   width: "100%",
-  padding: "10px 14px",
-  marginBottom: 8,
+  padding: "12px 14px",
+  marginBottom: 12,
   borderRadius: 12,
   border: "1px solid #ddd",
   fontSize: 15,
@@ -471,9 +587,26 @@ const input: React.CSSProperties = {
 
 const inputCode: React.CSSProperties = {
   ...input,
+  marginBottom: 0,
   textAlign: "center",
   letterSpacing: "2px",
   fontWeight: 600,
+}
+
+// Nombre + Apellido sur une même ligne, ~50/50 avec un petit gap — minWidth:0
+// empêche un input flex de forcer la ligne à déborder de la card.
+const nameRow: React.CSSProperties = {
+  display: "flex",
+  gap: 10,
+  marginBottom: 12,
+}
+
+const inputHalf: React.CSSProperties = {
+  ...input,
+  width: "auto",
+  flex: 1,
+  minWidth: 0,
+  marginBottom: 0,
 }
 
 const errorText = {
@@ -482,11 +615,9 @@ const errorText = {
   marginBottom: 12,
 }
 
-const btnStyle: React.CSSProperties = {
+const btnBase: React.CSSProperties = {
   height: 54,
   borderRadius: 16,
-  background: "#111",
-  color: "white",
   border: "none",
   fontSize: 16,
   fontWeight: 600,
@@ -495,4 +626,25 @@ const btnStyle: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   gap: 10,
+  transition: "background-color 200ms ease, color 200ms ease",
+}
+
+// État actif : identique au CTA noir existant.
+const btnActive: React.CSSProperties = {
+  ...btnBase,
+  background: "#111",
+  color: "#fff",
+  opacity: 1,
+}
+
+// État disabled : contraste nettement réduit, pas juste une opacité sur le
+// bouton noir — gris clair / texte gris moyen, sans ombre, pour qu'il se
+// lise immédiatement comme "pas encore cliquable".
+const btnDisabled: React.CSSProperties = {
+  ...btnBase,
+  background: "#e4e4e7",
+  color: "#9a9a9a",
+  opacity: 1,
+  cursor: "default",
+  boxShadow: "none",
 }
