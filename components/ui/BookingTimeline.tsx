@@ -6,6 +6,7 @@ import { categoryColors } from "@/lib/map/categoryColors"
 export type BookingStatus =
   | "requested"
   | "waiting_provider"
+  | "searching_alternative"
   | "alternative_proposed"
   | "confirmed"
   | "rejected"
@@ -14,9 +15,22 @@ export type BookingStatus =
 const steps = [
   { key: "requested", label: "Solicitud recibida", description: "Tu elección llegó correctamente." },
   { key: "waiting_provider", label: "Confirmando con el lugar", description: "Estamos verificando disponibilidad." },
-  { key: "confirmed", label: "Fecha confirmada", description: "Te avisaremos cuando esté lista." },
+  { key: "confirmed", label: "Fecha confirmada", description: "Te avisaremos apenas esté lista." },
   { key: "done", label: "Todo listo", description: "Ya puedes disfrutar." },
 ]
+
+// "searching_alternative" (aucune des préférences classées P1/P2/P3 n'était
+// disponible — dérivé côté API, voir /api/booking/[bookingId]) remplace
+// l'étape "Confirmando con el lugar" par une étape de recherche active, sans
+// jamais présenter ça comme un échec définitif : le dossier reste le même,
+// on continue juste à chercher une autre option.
+const SEARCHING_STEPS = [
+  { key: "requested", label: "Solicitud recibida", description: "Tu elección llegó correctamente." },
+  { key: "searching", label: "Buscando otra fecha", description: "La fecha que elegiste no estaba disponible. Estamos buscando otra opción para tu experiencia." },
+  { key: "confirmed", label: "Fecha confirmada", description: "Te avisaremos apenas esté lista." },
+  { key: "done", label: "Todo listo", description: "Ya puedes disfrutar." },
+]
+const SEARCHING_CURRENT_INDEX = 1
 
 // "alternative_proposed" a besoin de son propre jeu d'étapes : le lugar a
 // déjà répondu (donc "Confirmando con el lugar" serait faux), et l'étape en
@@ -29,16 +43,17 @@ const ALTERNATIVE_STEPS = [
   { key: "requested", label: "Solicitud recibida", description: "Tu elección llegó correctamente." },
   { key: "unavailable", label: "Fecha solicitada no disponible", description: "El lugar no puede recibirte en la fecha que elegiste." },
   { key: "proposed", label: "Nueva fecha propuesta", description: "El lugar sí tiene disponibilidad para esta fecha:" },
-  { key: "confirmed", label: "Fecha confirmada", description: "Te avisaremos cuando esté lista." },
+  { key: "confirmed", label: "Fecha confirmada", description: "Te avisaremos apenas esté lista." },
   { key: "done", label: "Todo listo", description: "Ya puedes disfrutar." },
 ]
 const ALTERNATIVE_CURRENT_INDEX = 2
 
 // Position de chaque statut sur la ligne de progression (jeu d'étapes par
-// défaut ci-dessus — "alternative_proposed" utilise ALTERNATIVE_STEPS et
-// ALTERNATIVE_CURRENT_INDEX à la place, voir plus bas).
+// défaut ci-dessus — "alternative_proposed" et "searching_alternative"
+// utilisent leur propre jeu d'étapes et leur propre index "current" à la
+// place, voir plus bas).
 // "rejected" retombe à -1 : rien n'est acquis (cf. encadré rouge au-dessus).
-const PROGRESS_INDEX: Record<Exclude<BookingStatus, "alternative_proposed">, number> = {
+const PROGRESS_INDEX: Record<Exclude<BookingStatus, "alternative_proposed" | "searching_alternative">, number> = {
   requested: 0,
   waiting_provider: 1,
   confirmed: 2,
@@ -63,8 +78,9 @@ type Props = {
 export default function BookingTimeline({ status, category, onNext, onPrev, activeContent }: Props) {
   const color = categoryColors[category] || "#111"
   const isAlternative = status === "alternative_proposed"
-  const activeSteps = isAlternative ? ALTERNATIVE_STEPS : steps
-  const currentIndex = isAlternative ? ALTERNATIVE_CURRENT_INDEX : PROGRESS_INDEX[status]
+  const isSearching = status === "searching_alternative"
+  const activeSteps = isAlternative ? ALTERNATIVE_STEPS : isSearching ? SEARCHING_STEPS : steps
+  const currentIndex = isAlternative ? ALTERNATIVE_CURRENT_INDEX : isSearching ? SEARCHING_CURRENT_INDEX : PROGRESS_INDEX[status]
   const CIRCLE_SIZE = 22
 
   return (
@@ -107,11 +123,13 @@ export default function BookingTimeline({ status, category, onNext, onPrev, acti
       <div>
         {activeSteps.map((step, i) => {
           const reached = i <= currentIndex
-          // Seule la timeline "alternative_proposed" distingue une étape en
-          // cours (point plein, on attend une action du bénéficiaire) d'une
-          // étape acquise (check) — les autres statuts gardent le check dès
-          // que l'étape est atteinte, comme avant.
-          const isCurrent = isAlternative && i === currentIndex
+          // Seules les timelines "alternative_proposed" et
+          // "searching_alternative" distinguent une étape en cours (point
+          // plein — on attend une action du bénéficiaire, ou Vivabox
+          // travaille encore dessus) d'une étape acquise (check) — les
+          // autres statuts gardent le check dès que l'étape est atteinte,
+          // comme avant.
+          const isCurrent = (isAlternative || isSearching) && i === currentIndex
           const isLast = i === activeSteps.length - 1
           // Le connecteur sous ce cercle est rempli seulement si l'étape
           // suivante est elle aussi atteinte — pas de pourcentage intermédiaire,

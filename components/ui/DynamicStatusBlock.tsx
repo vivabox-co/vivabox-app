@@ -2,12 +2,18 @@
 
 import { BookingStatus } from "./BookingTimeline"
 
-// "accept_alternative"/"choose_new_experience" répondent à une date
-// alternative proposée par le lugar (status "alternative_proposed") ;
-// "choose_new_experience" sert aussi de sortie pour un refus sec
-// (status "rejected"), pour ne pas laisser le bénéficiaire dans une
-// impasse — voir seguimiento/[bookingId]/page.tsx pour le handler.
-export type StatusAction = "leave_review" | "accept_alternative" | "choose_new_experience"
+// "accept_alternative"/"keep_searching"/"talk_to_vivabox" répondent à une
+// date alternative proposée par le lugar (status "alternative_proposed") :
+// accepter, ou refuser sans annuler (même dossier, nouvelle recherche) avec
+// un accès direct à l'aide humaine — voir seguimiento/[bookingId]/page.tsx.
+// "choose_new_experience" reste la sortie ultime (annulation réelle), aussi
+// utilisée pour écarter un refus déjà définitif (status "rejected").
+export type StatusAction =
+  | "leave_review"
+  | "accept_alternative"
+  | "keep_searching"
+  | "talk_to_vivabox"
+  | "choose_new_experience"
 
 type Props = {
   status: BookingStatus
@@ -33,6 +39,11 @@ export default function DynamicStatusBlock({ status, onAction, reviewed, actionP
     waiting_provider: {
       title: "¿Qué sigue?",
       text: "No necesitas hacer nada por ahora. Nosotros nos encargamos de la confirmación.",
+    },
+
+    searching_alternative: {
+      title: "¿Qué sigue?",
+      text: "No necesitas hacer nada por ahora. Seguimos buscando otra fecha para tu experiencia y te avisaremos apenas la tengamos.",
     },
 
     confirmed: {

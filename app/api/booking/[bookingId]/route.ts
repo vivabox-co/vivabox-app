@@ -5,8 +5,10 @@ import { MOMENT_LABEL } from "@/lib/utils/moment"
 import type { Experience } from "@/lib/data/types"
 
 // bookings.status (Supabase) → BookingStatus attendu par le front
-// (components/ui/BookingTimeline.tsx). "waiting_provider" n'a pas
-// d'équivalent dans le schéma Supabase actuel — jamais renvoyé pour l'instant.
+// (components/ui/BookingTimeline.tsx). "waiting_provider" et
+// "searching_alternative" n'ont pas d'équivalent dans le schéma Supabase
+// actuel — ce sont des états dérivés côté front/API (voir plus bas), jamais
+// écrits tels quels en base.
 const STATUS_MAP: Record<string, string> = {
   requested: "requested",
   alternative_proposed: "alternative_proposed",
@@ -53,7 +55,7 @@ export async function GET(
 
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
-      .select("id, activation_code_id, experience_code, requested_date, message, status, created_at, proposed_date, proposed_moment, proposed_hour")
+      .select("id, activation_code_id, experience_code, requested_date, requested_dates, message, status, created_at, proposed_date, proposed_moment, proposed_hour")
       .eq("id", bookingId)
       .maybeSingle()
 
@@ -107,6 +109,23 @@ export async function GET(
 
     const proposedMomentLabel = booking.proposed_moment ? (MOMENT_LABEL[booking.proposed_moment] ?? booking.proposed_moment) : null
 
+    // Une réservation reste "requested" en base tant que l'équipe n'a rien
+    // tranché — mais si TOUTES les préférences classées (P1/P2/P3) sont déjà
+    // passées sans confirmation, il ne s'agit plus d'une simple attente de
+    // réponse du lugar : on est en recherche d'une alternative. Dérivé ici
+    // (jamais écrit en base) pour ne pas dépendre d'un nouveau statut côté
+    // panneau admin (site vitrine, autre repo) — le dossier de réservation
+    // reste le même, seul l'affichage change (voir seguimiento/[bookingId]).
+    let derivedStatus = STATUS_MAP[booking.status] ?? booking.status
+    if (booking.status === "requested") {
+      const todayBogota = new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" })
+      const datesToCheck = (booking.requested_dates as string[] | null)?.length
+        ? (booking.requested_dates as string[])
+        : booking.requested_date ? [booking.requested_date] : []
+      const allPast = datesToCheck.length > 0 && datesToCheck.every((d) => d < todayBogota)
+      if (allPast) derivedStatus = "searching_alternative"
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -114,8 +133,9 @@ export async function GET(
         experienceId: booking.experience_code,
         date: booking.requested_date ?? "",
         time: timeMatch ? timeMatch[1].trim() : "",
-        status: STATUS_MAP[booking.status] ?? booking.status,
+        status: derivedStatus,
         createdAt: booking.created_at,
+        requestedDates: booking.requested_dates ?? null,
         proposedDate: booking.proposed_date ?? null,
         proposedMoment: proposedMomentLabel,
         proposedHour: booking.proposed_hour ?? null,

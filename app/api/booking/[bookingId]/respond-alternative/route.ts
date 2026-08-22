@@ -5,12 +5,19 @@ import { MOMENT_LABEL } from "@/lib/utils/moment"
 
 // Le bénéficiaire répond à une date alternative proposée par l'équipe
 // (status "alternative_proposed", saisie depuis /pedidos-.../reservas —
-// voir reservas/actions.ts côté site vitrine). "accept" bascule la
-// réservation en confirmed sur la date proposée ; "decline" l'annule pour
-// libérer le code d'activation, afin que le bénéficiaire puisse demander
-// une autre expérience depuis /mapa ou /lista.
+// voir reservas/actions.ts côté site vitrine). Trois réponses possibles :
+// - "accept" bascule la réservation en confirmed sur la date proposée.
+// - "keep_searching" : le bénéficiaire refuse cette date précise mais reste
+//   dans le MÊME dossier de réservation — pas d'annulation. On efface juste
+//   la proposition et on repasse en "requested" ; comme les dates classées
+//   (requested_dates) sont déjà toutes passées à ce stade, /api/booking/
+//   [bookingId] (GET) re-dérive automatiquement "searching_alternative" et
+//   l'équipe voit qu'il faut chercher une nouvelle option.
+// - "cancel" est la sortie ultime : annule réellement pour libérer le code
+//   d'activation, afin que le bénéficiaire puisse demander une autre
+//   expérience depuis /mapa ou /lista.
 //
-// "decline" sert aussi à écarter une réservation déjà refusée (status
+// "cancel" sert aussi à écarter une réservation déjà refusée (status
 // "cancelled", écran "rejected" — voir seguimiento/[bookingId]/page.tsx) :
 // dans ce cas on passe à "cancelled_seen" plutôt que de re-écrire
 // "cancelled". La distinction compte pour /api/codigo/context, dont la
@@ -33,7 +40,7 @@ export async function POST(
     }
 
     const body = await req.json().catch(() => ({}));
-    const action = body.action === "accept" || body.action === "decline" ? body.action : null
+    const action = ["accept", "keep_searching", "cancel"].includes(body.action) ? body.action : null
 
     if (!action) {
       return NextResponse.json({ success: false, error: "INVALID_INPUT" }, { status: 400 });
@@ -75,11 +82,11 @@ export async function POST(
     // retour arrière du navigateur) → on renvoie succès sans réécrire, pour
     // que la navigation vers /mapa se fasse quand même côté front au lieu
     // d'afficher une erreur sur une action déjà effectuée.
-    if (action === "decline" && booking.status === "cancelled_seen") {
+    if (action === "cancel" && booking.status === "cancelled_seen") {
       return NextResponse.json({ success: true, data: { id: booking.id, status: booking.status } });
     }
 
-    if (action === "decline" && booking.status === "cancelled") {
+    if (action === "cancel" && booking.status === "cancelled") {
       const { data: updated, error: updateError } = await supabase
         .from("bookings")
         .update({ status: "cancelled_seen" })
@@ -99,7 +106,7 @@ export async function POST(
       return NextResponse.json({ success: false, error: "INVALID_STATUS" });
     }
 
-    if (action === "decline") {
+    if (action === "cancel") {
       const { data: updated, error: updateError } = await supabase
         .from("bookings")
         .update({ status: "cancelled", proposed_date: null, proposed_moment: null, proposed_hour: null })
@@ -108,7 +115,27 @@ export async function POST(
         .maybeSingle()
 
       if (updateError) {
-        console.error("BOOKING RESPOND-ALTERNATIVE DECLINE ERROR:", updateError)
+        console.error("BOOKING RESPOND-ALTERNATIVE CANCEL ERROR:", updateError)
+        return NextResponse.json({ success: false, error: "SERVER_ERROR" });
+      }
+
+      return NextResponse.json({ success: true, data: updated });
+    }
+
+    if (action === "keep_searching") {
+      // Refus de cette proposition précise, mais même dossier : on efface la
+      // proposition et on repasse "requested" plutôt que "cancelled" — le
+      // code d'activation n'est jamais libéré, requested_dates n'est pas
+      // touché, donc l'équipe garde tout l'historique des préférences.
+      const { data: updated, error: updateError } = await supabase
+        .from("bookings")
+        .update({ status: "requested", proposed_date: null, proposed_moment: null, proposed_hour: null })
+        .eq("id", bookingId)
+        .select("id, status")
+        .maybeSingle()
+
+      if (updateError) {
+        console.error("BOOKING RESPOND-ALTERNATIVE KEEP_SEARCHING ERROR:", updateError)
         return NextResponse.json({ success: false, error: "SERVER_ERROR" });
       }
 

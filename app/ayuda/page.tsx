@@ -71,7 +71,10 @@ export default function AyudaPage() {
   // La reprogramación solo tiene sentido mientras la reserva sigue en
   // "requested" en base — una vez confirmada/rechazada/vivida, solo queda
   // escribir por WhatsApp (el backend rechazaría igual la solicitud).
-  const canReschedule = booking?.status === "requested"
+  // "searching_alternative" es el mismo estado en base ("requested"), solo
+  // que ya pasaron todas las fechas preferidas — ver /api/booking/[bookingId]
+  // (GET) — así que también debe permitir reprogramar.
+  const canReschedule = booking?.status === "requested" || booking?.status === "searching_alternative"
 
   return (
     <div

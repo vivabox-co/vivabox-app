@@ -12,6 +12,7 @@ import { useUI, usePageReady } from "@/components/ui/UIContext"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
 import { buildCalendarLink } from "@/lib/utils/calendarLink"
 import { formatLocalDate } from "@/lib/utils/formatLocalDate"
+import { getWhatsAppLink } from "@/lib/constants/contact"
 import { Booking } from "@/lib/data/types/booking"
 import { Experience } from "@/lib/data/types"
 
@@ -27,7 +28,14 @@ const CONFIRMING_HEADER = {
 const HEADER_COPY: Record<BookingStatus, { title: string; subtitle: string }> = {
   requested: CONFIRMING_HEADER,
   waiting_provider: CONFIRMING_HEADER,
-  alternative_proposed: { title: "Tu fecha no estaba disponible", subtitle: "El lugar encontró una nueva fecha para ti." },
+  // Ni "requested" ni un échec définitif : Vivabox continue à s'encargar de
+  // esta reserva, on ne présente jamais ça comme "tu fecha no estaba
+  // disponible" en gros titre.
+  searching_alternative: {
+    title: "Estamos buscando otra fecha para ti",
+    subtitle: "La fecha que elegiste no estaba disponible. Estamos buscando otra opción para tu experiencia.",
+  },
+  alternative_proposed: { title: "Tenemos una nueva fecha para ti", subtitle: "La fecha que elegiste no estaba disponible, pero encontramos otra opción con el lugar." },
   confirmed: { title: "¡Tu experiencia está confirmada!", subtitle: "Ya tienes fecha y hora." },
   rejected: { title: "Tu reserva fue cancelada", subtitle: "No pudimos coordinar esta experiencia con el lugar." },
   done: { title: "Esperamos que la hayas disfrutado", subtitle: "Gracias por vivir esta experiencia con nosotros." },
@@ -43,19 +51,21 @@ const HEADER_COPY: Record<BookingStatus, { title: string; subtitle: string }> = 
 function AlternativeProposalStep({
   proposal,
   onAccept,
-  onDecline,
+  onReject,
   pending,
   error,
 }: {
   proposal: { date: string | null; moment: string | null; hour: string | null }
   onAccept: () => void
-  onDecline: () => void
+  onReject: () => void
   pending: boolean
   error: string | null
 }) {
   if (!proposal.date) return null
   const dateLabel = formatLocalDate(proposal.date, { weekday: "long", day: "numeric", month: "long" })
-  const whenLabel = [proposal.moment, proposal.hour ? `~${proposal.hour}` : null].filter(Boolean).join(" · ")
+  // "alrededor de las" plutôt qu'un "~" technique : la disponibilité reste
+  // approximative, pas besoin de le déguiser en heure précise.
+  const whenLabel = [proposal.moment, proposal.hour ? `alrededor de las ${proposal.hour}` : null].filter(Boolean).join(" · ")
 
   return (
     <div>
@@ -65,16 +75,61 @@ function AlternativeProposalStep({
         {whenLabel && <div style={proposedWhen}>{whenLabel}</div>}
       </div>
 
-      <p style={stepQuestion}>¿Te funciona?</p>
+      <p style={stepQuestion}>¿Te funciona esta fecha?</p>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button onClick={onAccept} disabled={pending} style={stepPrimaryBtn(pending)}>
-          Aceptar esta fecha
+          Sí, me funciona
         </button>
-        <button onClick={onDecline} disabled={pending} style={stepSecondaryBtn(pending)}>
-          No puedo ese día
+        <button onClick={onReject} disabled={pending} style={stepSecondaryBtn(pending)}>
+          Prefiero otra fecha
         </button>
       </div>
+
+      {error && (
+        <p style={{ marginTop: 10, fontSize: 13, color: "#B42318" }}>{error}</p>
+      )}
+    </div>
+  )
+}
+
+// Écran affiché quand le bénéficiaire refuse la date proposée : reste dans
+// le MÊME dossier de réservation (pas d'annulation automatique). "Elegir
+// otra experiencia" est volontairement en retrait (lien discret, pas un
+// bouton) — c'est l'option ultime, pas le chemin normal.
+function RejectAlternativeStep({
+  onKeepSearching,
+  onTalkToVivabox,
+  onChooseNew,
+  pending,
+  error,
+}: {
+  onKeepSearching: () => void
+  onTalkToVivabox: () => void
+  onChooseNew: () => void
+  pending: boolean
+  error: string | null
+}) {
+  return (
+    <div>
+      <p style={stepQuestion}>Podemos seguir buscando para esta experiencia.</p>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <button onClick={onKeepSearching} disabled={pending} style={stepPrimaryBtn(pending)}>
+          Buscar otra fecha
+        </button>
+        <button onClick={onTalkToVivabox} disabled={pending} style={stepSecondaryBtn(pending)}>
+          Hablar con Vivabox
+        </button>
+      </div>
+
+      <button
+        onClick={onChooseNew}
+        disabled={pending}
+        style={{ ...stepLinkBtn(pending), marginTop: 12 }}
+      >
+        Elegir otra experiencia
+      </button>
 
       {error && (
         <p style={{ marginTop: 10, fontSize: 13, color: "#B42318" }}>{error}</p>
@@ -96,6 +151,12 @@ export default function SeguimientoPage() {
   const [showReview, setShowReview] = useState(false)
   const [actionPending, setActionPending] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  // Écran "Prefiero otra fecha" (voir RejectAlternativeStep) : affiché à la
+  // place de la proposition tant que le bénéficiaire n'a pas choisi une des
+  // trois options. Réinitialisé dès qu'on quitte "alternative_proposed"
+  // (effet plus bas) pour ne pas le retrouver affiché sur une prochaine
+  // proposition.
+  const [showRejectOptions, setShowRejectOptions] = useState(false)
   // Persisté par booking (voir l'effet plus bas) : lu ici de façon paresseuse
   // plutôt que dans un effet, pour ne pas rejouer un flash "requested" avant
   // que l'effet n'ait eu le temps de le corriger. Sûr côté hydratation : le
@@ -149,6 +210,10 @@ export default function SeguimientoPage() {
     fetchBooking().finally(() => setLoading(false))
   }, [fetchBooking])
 
+  useEffect(() => {
+    if (booking?.status !== "alternative_proposed") setShowRejectOptions(false)
+  }, [booking?.status])
+
   // Charger l'expérience complète à partir du snapshot ou de l'experienceId
   useEffect(() => {
     if (!booking?.experienceId) return
@@ -193,10 +258,21 @@ export default function SeguimientoPage() {
       return
     }
 
-    // "choose_new_experience" est déclenché depuis deux écrans différents,
-    // mais appelle l'API dans les deux cas (voir respond-alternative) :
-    // - "alternative_proposed" (refus d'une nouvelle date) : la réservation
-    //   est encore active, on l'annule réellement — d'où la confirmation.
+    // Concierge : ouvre WhatsApp directement, pas d'appel API — le dossier
+    // de réservation n'est pas touché, c'est juste un canal d'aide humaine.
+    if (action === "talk_to_vivabox") {
+      window.open(
+        getWhatsAppLink(`Hola, necesito ayuda con mi reserva (referencia ${bookingRef}).`),
+        "_blank"
+      )
+      return
+    }
+
+    // "choose_new_experience" est déclenché depuis plusieurs écrans, mais
+    // appelle l'API dans tous les cas (voir respond-alternative) :
+    // - "alternative_proposed" (refus définitif après avoir vu l'écran
+    //   "Podemos seguir buscando") : la réservation est encore active, on
+    //   l'annule réellement — d'où la confirmation.
     // - "rejected" (booking déjà status "cancelled") : rien à annuler, mais
     //   on doit quand même la marquer "vue" côté API (→ "cancelled_seen")
     //   pour qu'elle arrête de réapparaître à chaque chargement de l'app
@@ -209,10 +285,12 @@ export default function SeguimientoPage() {
     setActionError(null)
     setActionPending(true)
     try {
+      const apiAction =
+        action === "accept_alternative" ? "accept" : action === "keep_searching" ? "keep_searching" : "cancel"
       const res = await fetch(`/api/booking/${bookingId}/respond-alternative`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: action === "accept_alternative" ? "accept" : "decline" }),
+        body: JSON.stringify({ action: apiAction }),
       })
       const data = await res.json()
 
@@ -224,6 +302,7 @@ export default function SeguimientoPage() {
       if (action === "choose_new_experience") {
         router.push("/mapa")
       } else {
+        setShowRejectOptions(false)
         await fetchBooking()
       }
     } catch (err) {
@@ -261,6 +340,7 @@ export default function SeguimientoPage() {
   const badgeMap: Record<string, string | null> = {
     requested: "Confirmando",
     waiting_provider: "Confirmando",
+    searching_alternative: "Buscando otra fecha",
     alternative_proposed: "Nueva fecha propuesta",
     confirmed: "Reservado",
     rejected: null,
@@ -284,13 +364,15 @@ export default function SeguimientoPage() {
           title={exp.title}
           location={exp.zone}
           image={exp.image}
-          // La date/heure originale n'est plus affichée ici pour ce statut :
-          // avec la nouvelle carte "Nueva fecha" juste en dessous, montrer
-          // aussi l'ancienne date sur cette carte créerait deux dates à
-          // l'écran en même temps — la source de confusion qu'on corrige.
-          date={status === "alternative_proposed" ? undefined : booking.date}
+          // La date/heure originale n'est plus affichée ici pour ces statuts :
+          // pour "alternative_proposed", la nouvelle carte "Nueva fecha" juste
+          // en dessous rendrait deux dates visibles en même temps ; pour
+          // "searching_alternative", la date demandée est par définition déjà
+          // passée (c'est ce qui déclenche cet état) — l'afficher laisserait
+          // croire à une date encore valide.
+          date={status === "alternative_proposed" || status === "searching_alternative" ? undefined : booking.date}
           format={realExperience?.format}
-          time={status === "alternative_proposed" ? undefined : booking.time}
+          time={status === "alternative_proposed" || status === "searching_alternative" ? undefined : booking.time}
           category={exp.category}
           badge={badgeMap[status]}
           onClick={() => {
@@ -315,13 +397,23 @@ export default function SeguimientoPage() {
         onPrev={undefined}
         activeContent={
           status === "alternative_proposed" ? (
-            <AlternativeProposalStep
-              proposal={{ date: booking.proposedDate, moment: booking.proposedMoment, hour: booking.proposedHour }}
-              onAccept={() => handleAction("accept_alternative")}
-              onDecline={() => handleAction("choose_new_experience")}
-              pending={actionPending}
-              error={actionError}
-            />
+            showRejectOptions ? (
+              <RejectAlternativeStep
+                onKeepSearching={() => handleAction("keep_searching")}
+                onTalkToVivabox={() => handleAction("talk_to_vivabox")}
+                onChooseNew={() => handleAction("choose_new_experience")}
+                pending={actionPending}
+                error={actionError}
+              />
+            ) : (
+              <AlternativeProposalStep
+                proposal={{ date: booking.proposedDate, moment: booking.proposedMoment, hour: booking.proposedHour }}
+                onAccept={() => handleAction("accept_alternative")}
+                onReject={() => setShowRejectOptions(true)}
+                pending={actionPending}
+                error={actionError}
+              />
+            )
           ) : undefined
         }
       />
@@ -459,6 +551,24 @@ function stepSecondaryBtn(pending: boolean): React.CSSProperties {
     color: "#333",
     fontSize: 13,
     fontWeight: 500,
+    cursor: pending ? "default" : "pointer",
+    opacity: pending ? 0.6 : 1,
+  }
+}
+
+// Lien discret pour l'option ultime ("Elegir otra experiencia") : pas un
+// bouton plein, pour ne pas rivaliser visuellement avec "Buscar otra fecha"
+// / "Hablar con Vivabox", qui restent le chemin normal.
+function stepLinkBtn(pending: boolean): React.CSSProperties {
+  return {
+    display: "block",
+    padding: 0,
+    border: "none",
+    background: "none",
+    color: "#888",
+    fontSize: 13,
+    fontWeight: 500,
+    textDecoration: "underline",
     cursor: pending ? "default" : "pointer",
     opacity: pending ? 0.6 : 1,
   }

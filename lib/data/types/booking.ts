@@ -8,6 +8,11 @@ export type Booking = {
   status: BookingStatus
   createdAt: string
 
+  // Jusqu'à 3 dates préférées, classées par priorité (la première est celle
+  // utilisée comme `date` ci-dessus) — un seul dossier de réservation, pas
+  // trois réservations indépendantes.
+  requestedDates: string[] | null
+
   // Renseignés uniquement quand status === "alternative_proposed" — la date
   // et le créneau que le lugar a proposés à la place de la demande initiale.
   proposedDate: string | null
