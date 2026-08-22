@@ -12,6 +12,7 @@ import { useUI, usePageReady } from "@/components/ui/UIContext"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
 import { buildCalendarLink } from "@/lib/utils/calendarLink"
 import { formatLocalDate } from "@/lib/utils/formatLocalDate"
+import { formatApproxHour } from "@/lib/utils/formatApproxHour"
 import { getWhatsAppLink } from "@/lib/constants/contact"
 import { Booking } from "@/lib/data/types/booking"
 import { Experience } from "@/lib/data/types"
@@ -63,9 +64,11 @@ function AlternativeProposalStep({
 }) {
   if (!proposal.date) return null
   const dateLabel = formatLocalDate(proposal.date, { weekday: "long", day: "numeric", month: "long" })
-  // "alrededor de las" plutôt qu'un "~" technique : la disponibilité reste
-  // approximative, pas besoin de le déguiser en heure précise.
-  const whenLabel = [proposal.moment, proposal.hour ? `alrededor de las ${proposal.hour}` : null].filter(Boolean).join(" · ")
+  // "alrededor de las" plutôt qu'un "~" technique, et arrondi à l'heure
+  // pleine (voir formatApproxHour) : la disponibilité reste approximative,
+  // pas besoin de la déguiser en heure précise ("07:39").
+  const approxHour = proposal.hour ? formatApproxHour(proposal.hour) : null
+  const whenLabel = [proposal.moment, approxHour ? `alrededor de las ${approxHour}` : null].filter(Boolean).join(" · ")
 
   return (
     <div>
@@ -112,7 +115,10 @@ function RejectAlternativeStep({
 }) {
   return (
     <div>
-      <p style={stepQuestion}>Podemos seguir buscando para esta experiencia.</p>
+      <p style={stepQuestion}>Esta fecha no te funciona.</p>
+      <p style={{ margin: "-4px 0 14px", fontSize: 14, color: "#666", lineHeight: 1.4 }}>
+        Seguimos buscando otra opción para tu experiencia.
+      </p>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button onClick={onKeepSearching} disabled={pending} style={stepPrimaryBtn(pending)}>
@@ -349,6 +355,11 @@ export default function SeguimientoPage() {
 
   const header = HEADER_COPY[status]
   const calendarLink = status === "confirmed" ? buildCalendarLink(booking.date, booking.time, exp.title) : ""
+  // Affichage seulement : jamais l'ISO brut ("2026-08-26") dans la carte —
+  // buildCalendarLink ci-dessus continue de recevoir booking.date tel quel.
+  const displayDate = booking.date
+    ? formatLocalDate(booking.date, { day: "numeric", month: "long" }).replace(/^./, c => c.toUpperCase())
+    : booking.date
 
   return (
     <div style={{ padding: "16px 16px 120px", background: "#FAF8F5", minHeight: "100vh" }}>
@@ -370,7 +381,7 @@ export default function SeguimientoPage() {
           // "searching_alternative", la date demandée est par définition déjà
           // passée (c'est ce qui déclenche cet état) — l'afficher laisserait
           // croire à une date encore valide.
-          date={status === "alternative_proposed" || status === "searching_alternative" ? undefined : booking.date}
+          date={status === "alternative_proposed" || status === "searching_alternative" ? undefined : displayDate}
           format={realExperience?.format}
           time={status === "alternative_proposed" || status === "searching_alternative" ? undefined : booking.time}
           category={exp.category}

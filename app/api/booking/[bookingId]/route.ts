@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from "@/lib/services/supabase"
 import { hashSessionToken } from "@/lib/utils/sessionToken"
 import { MOMENT_LABEL } from "@/lib/utils/moment"
+import { formatApproxHour } from "@/lib/utils/formatApproxHour"
 import type { Experience } from "@/lib/data/types"
 
 // bookings.status (Supabase) → BookingStatus attendu par le front
@@ -104,8 +105,16 @@ export async function GET(
     }
 
     // Le créneau horaire est replié dans `message` à la création (pas de
-    // colonne dédiée dans le schéma partagé) — on l'en extrait ici.
+    // colonne dédiée dans le schéma partagé) — on l'en extrait ici. L'heure
+    // saisie par l'équipe y est en "(~HH:MM)" (voir /reservar/fechas) : jamais
+    // exacte, donc reformulée en "alrededor de las" + heure arrondie plutôt
+    // que montrée telle quelle (ex: "07:39").
     const timeMatch = booking.message?.match(/Horario:\s*([^·]+)/)
+    const rawTime = timeMatch ? timeMatch[1].trim() : ""
+    const rawHourMatch = rawTime.match(/\(~(\d{1,2}:\d{2})\)/)
+    const displayTime = rawHourMatch
+      ? `${rawTime.replace(/\s*\(~\d{1,2}:\d{2}\)/, "").trim()} · alrededor de las ${formatApproxHour(rawHourMatch[1])}`
+      : rawTime
 
     const proposedMomentLabel = booking.proposed_moment ? (MOMENT_LABEL[booking.proposed_moment] ?? booking.proposed_moment) : null
 
@@ -132,7 +141,7 @@ export async function GET(
         id: booking.id,
         experienceId: booking.experience_code,
         date: booking.requested_date ?? "",
-        time: timeMatch ? timeMatch[1].trim() : "",
+        time: displayTime,
         status: derivedStatus,
         createdAt: booking.created_at,
         requestedDates: booking.requested_dates ?? null,

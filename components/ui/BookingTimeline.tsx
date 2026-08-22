@@ -12,54 +12,44 @@ export type BookingStatus =
   | "rejected"
   | "done"
 
-const steps = [
+// 4 étapes FIXES représentant le parcours — jamais recréées ni renommées
+// selon les événements qui surviennent à l'intérieur de l'une d'elles (voir
+// AVAILABILITY_DESCRIPTION plus bas pour ce qui varie réellement).
+const STEPS = [
   { key: "requested", label: "Solicitud recibida", description: "Tu elección llegó correctamente." },
-  { key: "waiting_provider", label: "Confirmando con el lugar", description: "Estamos verificando disponibilidad." },
+  { key: "availability", label: "Disponibilidad con el lugar", description: "Estamos verificando disponibilidad." },
   { key: "confirmed", label: "Fecha confirmada", description: "Te avisaremos apenas esté lista." },
   { key: "done", label: "Todo listo", description: "Ya puedes disfrutar." },
 ]
 
-// "searching_alternative" (aucune des préférences classées P1/P2/P3 n'était
-// disponible — dérivé côté API, voir /api/booking/[bookingId]) remplace
-// l'étape "Confirmando con el lugar" par une étape de recherche active, sans
-// jamais présenter ça comme un échec définitif : le dossier reste le même,
-// on continue juste à chercher une autre option.
-const SEARCHING_STEPS = [
-  { key: "requested", label: "Solicitud recibida", description: "Tu elección llegó correctamente." },
-  { key: "searching", label: "Buscando otra fecha", description: "La fecha que elegiste no estaba disponible. Estamos buscando otra opción para tu experiencia." },
-  { key: "confirmed", label: "Fecha confirmada", description: "Te avisaremos apenas esté lista." },
-  { key: "done", label: "Todo listo", description: "Ya puedes disfrutar." },
-]
-const SEARCHING_CURRENT_INDEX = 1
+// L'étape "Disponibilidad con el lugar" couvre TOUTE la période où Vivabox
+// négocie avec le lugar — première date indisponible, recherche d'une
+// alternative, proposition, refus de cette proposition, nouvelle recherche...
+// Aucun de ces événements ne crée de nouvelle étape ni ne renomme celle-ci :
+// seul son contenu change, via cette table (description) et `activeContent`
+// (voir Props, pour la carte de proposition + décision côté page).
+const AVAILABILITY_DESCRIPTION: Partial<Record<BookingStatus, string>> = {
+  searching_alternative: "La fecha que elegiste no estaba disponible. Estamos buscando otra opción para tu experiencia.",
+  alternative_proposed: "La fecha que elegiste no estaba disponible. Encontramos otra opción para tu experiencia.",
+}
 
-// "alternative_proposed" a besoin de son propre jeu d'étapes : le lugar a
-// déjà répondu (donc "Confirmando con el lugar" serait faux), et l'étape en
-// cours attend une action du bénéficiaire plutôt qu'une simple confirmation —
-// d'où le cercle "current" distinct du check "done" (voir `isCurrent` plus bas)
-// et le slot `activeContent` (voir Props) qui ouvre cette étape pour y
-// intégrer la proposition et la décision, plutôt que de les dupliquer dans
-// un bloc séparé.
-const ALTERNATIVE_STEPS = [
-  { key: "requested", label: "Solicitud recibida", description: "Tu elección llegó correctamente." },
-  { key: "unavailable", label: "Fecha solicitada no disponible", description: "El lugar no puede recibirte en la fecha que elegiste." },
-  { key: "proposed", label: "Nueva fecha propuesta", description: "El lugar sí tiene disponibilidad para esta fecha:" },
-  { key: "confirmed", label: "Fecha confirmada", description: "Te avisaremos apenas esté lista." },
-  { key: "done", label: "Todo listo", description: "Ya puedes disfrutar." },
-]
-const ALTERNATIVE_CURRENT_INDEX = 2
-
-// Position de chaque statut sur la ligne de progression (jeu d'étapes par
-// défaut ci-dessus — "alternative_proposed" et "searching_alternative"
-// utilisent leur propre jeu d'étapes et leur propre index "current" à la
-// place, voir plus bas).
+// Position de chaque statut sur la ligne de progression — "searching_alternative"
+// et "alternative_proposed" restent tous deux sur l'étape "Disponibilidad con
+// el lugar" (index 1), jamais une étape à part.
 // "rejected" retombe à -1 : rien n'est acquis (cf. encadré rouge au-dessus).
-const PROGRESS_INDEX: Record<Exclude<BookingStatus, "alternative_proposed" | "searching_alternative">, number> = {
+const PROGRESS_INDEX: Record<Exclude<BookingStatus, "rejected">, number> = {
   requested: 0,
   waiting_provider: 1,
+  searching_alternative: 1,
+  alternative_proposed: 1,
   confirmed: 2,
-  rejected: -1,
   done: 3,
 }
+
+// Ces sous-états de "Disponibilidad con el lugar" affichent un point plein
+// (en cours) plutôt qu'un check tant qu'ils ne sont pas résolus — les autres
+// statuts gardent le check dès que l'étape est atteinte, comme avant.
+const DOT_STATUSES: BookingStatus[] = ["searching_alternative", "alternative_proposed"]
 
 type Props = {
   status: BookingStatus
@@ -77,10 +67,11 @@ type Props = {
 
 export default function BookingTimeline({ status, category, onNext, onPrev, activeContent }: Props) {
   const color = categoryColors[category] || "#111"
-  const isAlternative = status === "alternative_proposed"
-  const isSearching = status === "searching_alternative"
-  const activeSteps = isAlternative ? ALTERNATIVE_STEPS : isSearching ? SEARCHING_STEPS : steps
-  const currentIndex = isAlternative ? ALTERNATIVE_CURRENT_INDEX : isSearching ? SEARCHING_CURRENT_INDEX : PROGRESS_INDEX[status]
+  const currentIndex = status === "rejected" ? -1 : PROGRESS_INDEX[status]
+  const availabilityDescription = AVAILABILITY_DESCRIPTION[status]
+  const activeSteps = availabilityDescription
+    ? STEPS.map((step, i) => (i === 1 ? { ...step, description: availabilityDescription } : step))
+    : STEPS
   const CIRCLE_SIZE = 22
 
   return (
@@ -129,7 +120,7 @@ export default function BookingTimeline({ status, category, onNext, onPrev, acti
           // travaille encore dessus) d'une étape acquise (check) — les
           // autres statuts gardent le check dès que l'étape est atteinte,
           // comme avant.
-          const isCurrent = (isAlternative || isSearching) && i === currentIndex
+          const isCurrent = DOT_STATUSES.includes(status) && i === currentIndex
           const isLast = i === activeSteps.length - 1
           // Le connecteur sous ce cercle est rempli seulement si l'étape
           // suivante est elle aussi atteinte — pas de pourcentage intermédiaire,
