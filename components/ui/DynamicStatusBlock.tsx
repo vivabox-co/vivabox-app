@@ -29,7 +29,7 @@ export default function DynamicStatusBlock({ status, onAction, reviewed, actionP
   // d'où le Partial et le garde `if (!block) return null` juste après.
   const content: Partial<Record<
     BookingStatus,
-    { title: string; text: string; actions?: { key: StatusAction; label: string }[] }
+    { title: string; text: string; actions?: { key: StatusAction; label: string; variant?: "primary" | "secondary" }[] }
   >> = {
     requested: {
       title: "¿Qué sigue?",
@@ -51,10 +51,18 @@ export default function DynamicStatusBlock({ status, onAction, reviewed, actionP
       text: "Ya quedó agendado. Nosotros te avisamos si hay algo más que necesites saber antes del día.",
     },
 
+    // La timeline (voir BookingTimeline) raconte déjà comment on est arrivé
+    // à l'annulation — ce bloc ne répète pas la nouvelle, il tourne la page :
+    // "Buscar otra experiencia" est l'action principale (retour au catalogue
+    // compatible avec le Vivabox, jamais une nouvelle réservation créée
+    // automatiquement), "Hablar con Vivabox" reste secondaire.
     rejected: {
-      title: "¿Qué sigue?",
-      text: "Tu reserva fue cancelada. Puedes esperar a que te contactemos o elegir otra experiencia ahora mismo.",
-      actions: [{ key: "choose_new_experience", label: "Elegir otra experiencia" }],
+      title: "¿Qué quieres hacer ahora?",
+      text: "Puedes elegir otra experiencia y volver a reservar con tu Vivabox.",
+      actions: [
+        { key: "choose_new_experience", label: "Buscar otra experiencia", variant: "primary" },
+        { key: "talk_to_vivabox", label: "Hablar con Vivabox", variant: "secondary" },
+      ],
     },
 
     done: reviewed
@@ -108,11 +116,11 @@ export default function DynamicStatusBlock({ status, onAction, reviewed, actionP
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {block.actions.map((action) => {
             return (
-              // Toujours le CTA principal : chaque statut de `content`
-              // ci-dessus n'expose au plus qu'une seule action ici (les cas
-              // à choix multiples, comme "alternative_proposed", vivent dans
-              // l'étape active de BookingTimeline, pas dans ce bloc) — donc
-              // jamais de variante secondaire à distinguer visuellement.
+              // Par défaut CTA principal (pas de `variant` fourni) ; seul
+              // "rejected" expose aujourd'hui une 2e action ("Hablar con
+              // Vivabox") en secondaire — les autres cas à choix multiples
+              // (ex. "alternative_proposed") vivent dans l'étape active de
+              // BookingTimeline, pas dans ce bloc.
               <button
                 key={action.key}
                 onClick={() => onAction(action.key)}
@@ -120,9 +128,9 @@ export default function DynamicStatusBlock({ status, onAction, reviewed, actionP
                 style={{
                   padding: "9px 16px",
                   borderRadius: 999,
-                  border: "none",
-                  background: "#152F40",
-                  color: "white",
+                  border: action.variant === "secondary" ? "1px solid #D8D2C7" : "none",
+                  background: action.variant === "secondary" ? "transparent" : "#152F40",
+                  color: action.variant === "secondary" ? "#333" : "white",
                   fontSize: 13,
                   fontWeight: 500,
                   cursor: actionPending ? "default" : "pointer",

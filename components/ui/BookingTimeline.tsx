@@ -33,10 +33,27 @@ const AVAILABILITY_DESCRIPTION: Partial<Record<BookingStatus, string>> = {
   alternative_proposed: "La fecha que elegiste no estaba disponible. Encontramos otra opción para tu experiencia.",
 }
 
+// "rejected" ne réutilise pas les 4 étapes fixes : la cancellation est un
+// état TERMINAL de la timeline, pas une 3e/4e étape simplement grisée. On ne
+// garde que les 2 étapes réellement acquises (requested, availability) puis
+// on referme le parcours sur cette 3e étape "Reserva cancelada" — jamais
+// "Fecha confirmada" / "Todo listo" après une annulation (voir activeSteps
+// plus bas). Le texte reste générique faute de raison structurée en base
+// (pas de colonne cancellation_reason côté Supabase aujourd'hui) — à
+// affiner le jour où cette donnée existera, sans changer cette mécanique.
+const REJECTED_AVAILABILITY_DESCRIPTION = "Buscamos una fecha disponible para ti."
+const CANCELLED_STEP = {
+  key: "cancelled",
+  label: "Reserva cancelada",
+  description: "No encontramos una opción que funcionara para esta experiencia.",
+}
+
 // Position de chaque statut sur la ligne de progression — "searching_alternative"
 // et "alternative_proposed" restent tous deux sur l'étape "Disponibilidad con
 // el lugar" (index 1), jamais une étape à part.
-// "rejected" retombe à -1 : rien n'est acquis (cf. encadré rouge au-dessus).
+// "rejected" n'a pas d'entrée ici : son currentIndex est dérivé séparément
+// (dernière étape de activeSteps, voir plus bas) puisque ses étapes ne sont
+// pas les mêmes que STEPS.
 const PROGRESS_INDEX: Record<Exclude<BookingStatus, "rejected">, number> = {
   requested: 0,
   waiting_provider: 1,
@@ -67,11 +84,14 @@ type Props = {
 
 export default function BookingTimeline({ status, category, onNext, onPrev, activeContent }: Props) {
   const color = categoryColors[category] || "#111"
-  const currentIndex = status === "rejected" ? -1 : PROGRESS_INDEX[status]
+  const isRejected = status === "rejected"
   const availabilityDescription = AVAILABILITY_DESCRIPTION[status]
-  const activeSteps = availabilityDescription
+  const activeSteps = isRejected
+    ? [STEPS[0], { ...STEPS[1], description: REJECTED_AVAILABILITY_DESCRIPTION }, CANCELLED_STEP]
+    : availabilityDescription
     ? STEPS.map((step, i) => (i === 1 ? { ...step, description: availabilityDescription } : step))
     : STEPS
+  const currentIndex = isRejected ? activeSteps.length - 1 : PROGRESS_INDEX[status]
   const CIRCLE_SIZE = 22
 
   return (
@@ -104,13 +124,6 @@ export default function BookingTimeline({ status, category, onNext, onPrev, acti
         )}
       </div>
 
-      {status === "rejected" && (
-        <div style={errorBox}>
-          <X size={14} />
-          No pudimos confirmar la fecha solicitada. Te ayudaremos a encontrar una alternativa.
-        </div>
-      )}
-
       <div>
         {activeSteps.map((step, i) => {
           const reached = i <= currentIndex
@@ -122,6 +135,11 @@ export default function BookingTimeline({ status, category, onNext, onPrev, acti
           // comme avant.
           const isCurrent = DOT_STATUSES.includes(status) && i === currentIndex
           const isLast = i === activeSteps.length - 1
+          // Étape terminale d'une timeline annulée : cercle rouge d'erreur
+          // (déjà utilisé ailleurs dans l'app, ex. actionError) + croix,
+          // jamais un check — visuellement distinct d'une étape acquise
+          // normale, sans introduire de nouvelle couleur.
+          const isCancelledStep = isRejected && isLast
           // Le connecteur sous ce cercle est rempli seulement si l'étape
           // suivante est elle aussi atteinte — pas de pourcentage intermédiaire,
           // ça reste net avec `flex: 1` quelle que soit la hauteur réelle de la
@@ -147,7 +165,7 @@ export default function BookingTimeline({ status, category, onNext, onPrev, acti
                     width: CIRCLE_SIZE,
                     height: CIRCLE_SIZE,
                     borderRadius: "50%",
-                    backgroundColor: reached ? color : "#E8E3DC",
+                    backgroundColor: reached ? (isCancelledStep ? "#B42318" : color) : "#E8E3DC",
                     border: reached ? "none" : "2px solid #E8E3DC",
                     display: "flex",
                     alignItems: "center",
@@ -155,7 +173,8 @@ export default function BookingTimeline({ status, category, onNext, onPrev, acti
                     flexShrink: 0,
                   }}
                 >
-                  {reached && !isCurrent && <Check size={13} color="#FFF" />}
+                  {isCancelledStep && <X size={13} color="#FFF" />}
+                  {reached && !isCurrent && !isCancelledStep && <Check size={13} color="#FFF" />}
                   {isCurrent && (
                     <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#FFF" }} />
                   )}
@@ -178,7 +197,7 @@ export default function BookingTimeline({ status, category, onNext, onPrev, acti
               {/* LABEL + DESCRIPTION */}
               <div style={{ paddingBottom: isLast ? 0 : 28 }}>
                 <div style={{
-                  color: reached ? "#111" : "#999",
+                  color: isCancelledStep ? "#B42318" : reached ? "#111" : "#999",
                   fontWeight: reached ? 500 : 400,
                   lineHeight: 1.3,
                 }}>
@@ -187,7 +206,7 @@ export default function BookingTimeline({ status, category, onNext, onPrev, acti
                 <div style={{
                   marginTop: 3,
                   fontSize: 13,
-                  color: reached ? "#888" : "#bbb",
+                  color: isCancelledStep ? "#B42318" : reached ? "#888" : "#bbb",
                   lineHeight: 1.4,
                 }}>
                   {step.description}
@@ -218,14 +237,3 @@ const arrowBtn: React.CSSProperties = {
   cursor: "pointer",
 }
 
-const errorBox: React.CSSProperties = {
-  padding: "10px 14px",
-  background: "#FDECEA",
-  color: "#B42318",
-  borderRadius: 12,
-  marginBottom: 18,
-  fontSize: 14,
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-}

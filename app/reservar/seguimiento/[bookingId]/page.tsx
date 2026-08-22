@@ -38,7 +38,10 @@ const HEADER_COPY: Record<BookingStatus, { title: string; subtitle: string }> = 
   },
   alternative_proposed: { title: "Tenemos una nueva fecha para ti", subtitle: "La fecha que elegiste no estaba disponible, pero encontramos otra opción con el lugar." },
   confirmed: { title: "¡Tu experiencia está confirmada!", subtitle: "Ya tienes fecha y hora." },
-  rejected: { title: "Tu reserva fue cancelada", subtitle: "No pudimos coordinar esta experiencia con el lugar." },
+  // Reste le texte "sûr" générique (pas de colonne cancellation_reason en
+  // base) — voir CANCELLED_STEP dans BookingTimeline pour l'équivalent côté
+  // timeline.
+  rejected: { title: "Esta reserva fue cancelada", subtitle: "No pudimos encontrar una fecha que funcionara para esta experiencia." },
   done: { title: "Esperamos que la hayas disfrutado", subtitle: "Gracias por vivir esta experiencia con nosotros." },
 }
 
@@ -349,7 +352,7 @@ export default function SeguimientoPage() {
     searching_alternative: "Buscando otra fecha",
     alternative_proposed: "Nueva fecha propuesta",
     confirmed: "Reservado",
-    rejected: null,
+    rejected: "Cancelada",
     done: null,
   }
 
@@ -380,10 +383,12 @@ export default function SeguimientoPage() {
           // en dessous rendrait deux dates visibles en même temps ; pour
           // "searching_alternative", la date demandée est par définition déjà
           // passée (c'est ce qui déclenche cet état) — l'afficher laisserait
-          // croire à une date encore valide.
-          date={status === "alternative_proposed" || status === "searching_alternative" ? undefined : displayDate}
+          // croire à une date encore valide ; pour "rejected", ce n'était
+          // qu'une date demandée/intentée, jamais confirmée — l'afficher à
+          // côté du badge "Cancelada" la ferait lire comme une date acquise.
+          date={status === "alternative_proposed" || status === "searching_alternative" || status === "rejected" ? undefined : displayDate}
           format={realExperience?.format}
-          time={status === "alternative_proposed" || status === "searching_alternative" ? undefined : booking.time}
+          time={status === "alternative_proposed" || status === "searching_alternative" || status === "rejected" ? undefined : booking.time}
           category={exp.category}
           badge={badgeMap[status]}
           onClick={() => {
