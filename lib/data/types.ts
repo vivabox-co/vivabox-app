@@ -23,7 +23,10 @@ export type ActivityKey = string
    🔥 NOUVEAUX TYPES PRODUIT
 ================================ */
 
-export type EffortLevel = "suave" | "medio" | "intenso"
+// Doit correspondre au vocabulaire réel de la colonne nivel_esfuerzo du Sheet
+// (bajo/medio/alto) — "suave/medio/intenso" ne matchait aucune ligne publiée,
+// donc l'effort n'apparaissait jamais dans la fiche.
+export type EffortLevel = "bajo" | "medio" | "alto"
 
 export type Environment = "indoor" | "outdoor" | "mixto"
 

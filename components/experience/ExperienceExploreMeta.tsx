@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from "react"
 import Image from "next/image"
-import { Experience, EffortLevel, Environment, Category } from "@/lib/data/types"
+import { Experience, EffortLevel, Environment } from "@/lib/data/types"
 import { categoryColors } from "@/lib/map/categoryColors"
 import { categoryLabel } from "@/lib/map/categoryLabels"
 import { formatLabel } from "@/lib/map/formatLabels"
@@ -43,7 +43,6 @@ export default function ExperienceExploreMeta({ exp }: Props) {
     formatLabel(exp.format) && { icon: Users, text: formatLabel(exp.format)! },
   ].filter(Boolean) as { icon: typeof MapPin; text: string }[]
 
-  const vibeParagraph = buildVibeParagraph(exp)
   const includesRows = exp.includes || []
 
   // "Ideal para": combina los tags de audiencia con el mood/ambiente cuando existe.
@@ -63,8 +62,12 @@ export default function ExperienceExploreMeta({ exp }: Props) {
   if (exp.effortLevel && EFFORT_LABEL[exp.effortLevel]) {
     decisionItems.push(EFFORT_LABEL[exp.effortLevel])
   }
-  if (exp.weatherNote) decisionItems.push(exp.weatherNote)
-  if (exp.clothingNote) decisionItems.push(exp.clothingNote)
+  // El Sheet usa la convención "Influye: ..." / "No influye[: motivo]" en
+  // nota_clima y nota_vestimenta. Un "No influye" es una nota real (alguien
+  // lo verificó), pero no debe llegar al beneficiario: no cambia su
+  // decisión, es el mismo ruido que un "no aplica".
+  if (isRelevantNote(exp.weatherNote)) decisionItems.push(exp.weatherNote!)
+  if (isRelevantNote(exp.clothingNote)) decisionItems.push(exp.clothingNote!)
   decisionItems.push(...(exp.requirements || []))
   decisionItems.push(...(exp.importantToKnow || []))
 
@@ -99,7 +102,6 @@ export default function ExperienceExploreMeta({ exp }: Props) {
         {/* 1. CABECERA */}
         <h2 style={titleStyle}>{exp.title}</h2>
         {exp.subtitle && <p style={subtitleStyle}>{exp.subtitle}</p>}
-        {exp.shortDescription && <p style={desc}>{exp.shortDescription}</p>}
 
         {quickFacts.length > 0 && (
           <div style={quickFactsRow}>
@@ -132,14 +134,30 @@ export default function ExperienceExploreMeta({ exp }: Props) {
           </div>
         )}
 
-        {/* 3. QUÉ VAS A VIVIR — un párrafo editorial corto, sin cards */}
-        {vibeParagraph && (
-          <Section icon={Compass} title="Qué vas a vivir">
-            <p style={vibeText}>{vibeParagraph}</p>
+        {/* 3. ASÍ SERÁ — descripcion_corta ya escrita para esto; no duplicar
+               con un párrafo generado por categoría (ver isRelevantNote /
+               historial: antes había aquí un texto plantilla por categoría,
+               desconectado de shortDescription, mostrada dos veces). */}
+        {exp.shortDescription && (
+          <Section icon={Compass} title="Así será">
+            <p style={vibeText}>{exp.shortDescription}</p>
           </Section>
         )}
 
-        {/* 4. QUÉ INCLUYE — una línea compacta, con detalle opcional */}
+        {/* 4. IDEAL SI... — chips ligeros */}
+        {idealChips.length > 0 && (
+          <Section icon={UserCheck} title="Ideal si...">
+            <div style={chipsRow}>
+              {idealChips.map((tag, i) => (
+                <span key={i} style={chip(color)}>
+                  {capitalize(tag)}
+                </span>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* 5. QUÉ INCLUYE — una línea compacta, con detalle opcional */}
         {includesRows.length > 0 && (
           <Section icon={CheckCircle2} title="Qué incluye">
             <CompactList
@@ -152,22 +170,9 @@ export default function ExperienceExploreMeta({ exp }: Props) {
           </Section>
         )}
 
-        {/* 5. IDEAL PARA — chips ligeros */}
-        {idealChips.length > 0 && (
-          <Section icon={UserCheck} title="Ideal para">
-            <div style={chipsRow}>
-              {idealChips.map((tag, i) => (
-                <span key={i} style={chip(color)}>
-                  {capitalize(tag)}
-                </span>
-              ))}
-            </div>
-          </Section>
-        )}
-
-        {/* 6. ANTES DE ELEGIR — info práctica, compacta */}
+        {/* 6. TEN EN CUENTA — info práctica, compacta, ya filtrada por relevancia */}
         {decisionItems.length > 0 && (
-          <Section icon={Info} title="Antes de elegir">
+          <Section icon={Info} title="Ten en cuenta">
             <CompactList
               items={decisionItems}
               visibleCount={3}
@@ -252,48 +257,14 @@ const ENVIRONMENT_LABEL: Record<Environment, string> = {
 }
 
 const EFFORT_LABEL: Record<EffortLevel, string> = {
-  suave: "Suave",
-  medio: "Medio",
-  intenso: "Intenso",
+  bajo: "Esfuerzo bajo",
+  medio: "Esfuerzo medio",
+  alto: "Esfuerzo alto",
 }
 
-// "Qué vas a vivir": frase editorial corta compuesta a partir de datos reales
-// (categoría, mood/ambiente, entorno, nivel de esfuerzo) — nunca texto libre
-// inventado ni una repetición literal de la descripción o la nota Vivabox.
-const VIBE_OPENER: Record<Category, string> = {
-  gastro: "Una experiencia gastronómica pensada para disfrutar sin afán",
-  bienestar: "Un espacio pensado para desconectar y cuidarte",
-  aventura: "Una experiencia activa para salir de la rutina",
-  cultura: "Una experiencia pensada para dejarte sorprender",
-  estancias: "Una pausa pensada para desconectar del ritmo diario",
-}
-
-const ENV_VIBE_PHRASE: Record<Environment, string> = {
-  indoor: "en un espacio interior",
-  outdoor: "al aire libre",
-  mixto: "entre interior y exterior",
-}
-
-const EFFORT_VIBE_PHRASE: Record<EffortLevel, string> = {
-  suave: "a un ritmo suave",
-  medio: "con energía moderada",
-  intenso: "a toda intensidad",
-}
-
-function buildVibeParagraph(exp: Experience): string | null {
-  const opener = VIBE_OPENER[exp.category]
-  if (!opener) return null
-
-  const mood = exp.ambiance?.[0]
-  const clause = mood
-    ? `con un ambiente ${mood.toLowerCase()}`
-    : exp.environment
-    ? ENV_VIBE_PHRASE[exp.environment]
-    : exp.effortLevel
-    ? EFFORT_VIBE_PHRASE[exp.effortLevel]
-    : null
-
-  return clause ? `${opener}, ${clause}.` : `${opener}.`
+function isRelevantNote(note?: string): note is string {
+  if (!note) return false
+  return !/^no (influye|aplica)/i.test(note.trim())
 }
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -381,12 +352,6 @@ const subtitleStyle: React.CSSProperties = {
   color: "#666",
 }
 
-const desc: React.CSSProperties = {
-  marginTop: 8,
-  color: "#444",
-  lineHeight: 1.5,
-}
-
 const quickFactsRow: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -444,7 +409,7 @@ const curatedQuote: React.CSSProperties = {
   fontStyle: "italic",
 }
 
-/* Qué vas a vivir */
+/* Así será */
 
 const vibeText: React.CSSProperties = {
   margin: 0,
@@ -453,7 +418,7 @@ const vibeText: React.CSSProperties = {
   color: "#444",
 }
 
-/* Qué incluye / Antes de elegir (línea compacta) */
+/* Qué incluye / Ten en cuenta (línea compacta) */
 
 const compactLine: React.CSSProperties = {
   margin: 0,
@@ -479,7 +444,7 @@ const moreLink: React.CSSProperties = {
   cursor: "pointer",
 }
 
-/* Ideal para (chips) */
+/* Ideal si... (chips) */
 
 const chipsRow: React.CSSProperties = {
   display: "flex",
