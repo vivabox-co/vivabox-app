@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useUI, usePageReady } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
-import { Calendar, Clock, Users, Check } from "lucide-react"
+import { Calendar, Clock, Users, Check, ArrowRight } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
 import BottomSheet from "@/components/ui/BottomSheet"
 import PhotoGallery from "@/components/ui/PhotoGallery"
@@ -350,7 +350,7 @@ export default function FechasPage() {
           ) : (
             <>
               Continuar
-              <span style={ctaArrow}>→</span>
+              <ArrowRight size={18} strokeWidth={2.5} />
             </>
           )}
         </button>
@@ -703,10 +703,4 @@ const cta: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   gap: 8,
-}
-
-const ctaArrow: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  lineHeight: 1,
 }
