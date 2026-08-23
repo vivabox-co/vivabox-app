@@ -118,14 +118,12 @@ function WelcomeCard({ onFinish, loading }: { onFinish: () => void; loading: boo
       <h1 style={headline}>
         <span style={headlineIntro}>Te hicieron un regalo.</span>
         <span style={headlineMain}>
-          Ahora <span style={headlineAccent}>vos elegís</span>
-          <br />
-          cómo vivirlo.
+          Ahora <span style={headlineAccent}>eliges tú</span> la experiencia.
         </span>
       </h1>
 
       <p style={pMain}>
-        Podés elegir la experiencia que más te guste y disfrutarla a tu manera.
+        Descubre las experiencias disponibles para ti.
       </p>
 
       <button
