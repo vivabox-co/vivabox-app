@@ -215,7 +215,7 @@ const headlineIntro: React.CSSProperties = {
   fontWeight: 600,
   color: "#152F40",
   lineHeight: 1.25,
-  marginBottom: 6,
+  marginBottom: 12,
 }
 
 const headlineMain: React.CSSProperties = {
