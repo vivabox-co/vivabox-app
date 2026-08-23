@@ -8,31 +8,71 @@ import DatePickerModal from "@/components/ui/DatePickerModal"
 import PhotoGallery from "@/components/ui/PhotoGallery"
 import { formatLocalDate } from "@/lib/utils/formatLocalDate"
 import { categoryColors } from "@/lib/map/categoryColors"
-
-type Moment = "morning" | "afternoon" | "night" | null
+import { MOMENT_LABEL } from "@/lib/utils/moment"
 
 const MAX_DATES = 3
 
-const MOMENT_LABEL: Record<"morning" | "afternoon" | "night", string> = {
-  morning: "Mañana",
-  afternoon: "Tarde",
-  night: "Noche",
-}
+const PERIODS = ["morning", "afternoon", "night"] as const
+type Period = (typeof PERIODS)[number]
 
-const HOUR_RANGES: Record<"morning" | "afternoon" | "night", string[]> = {
+const HOUR_RANGES: Record<Period, string[]> = {
   morning: ["08:00", "09:00", "10:00", "11:00"],
   afternoon: ["12:00", "13:00", "14:00", "15:00", "16:00"],
   night: ["17:00", "18:00", "19:00", "20:00"],
 }
 
+const PERIOD_ICON: Record<Period, React.ReactNode> = {
+  morning: <Sunrise size={13} />,
+  afternoon: <Sun size={13} />,
+  night: <Sunset size={13} />,
+}
+
+// Pas de constante ES partagée pour les abréviations de jour dans le projet
+// (DatePickerModal.tsx a le même souci et hardcode aussi localement) — Intl
+// donne des résultats de casse/ponctuation qui varient selon l'environnement
+// ICU, donc on fixe la liste ici plutôt que de dépendre de toLocaleDateString.
+const WEEKDAY_SHORT = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+
+function formatDateChip(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number)
+  const dateObj = new Date(y, m - 1, d)
+  const weekday = WEEKDAY_SHORT[dateObj.getDay()]
+  const monthShort = formatLocalDate(iso, { month: "short" })
+  // L'année n'est affichée que si elle diffère de l'année en cours, pour ne
+  // pas alourdir l'affichage sauf ambiguïté réelle (ex: fechas à cheval sur
+  // un changement d'année).
+  const yearSuffix = y !== new Date().getFullYear() ? ` ${y}` : ""
+  return `${weekday} ${d} ${monthShort}${yearSuffix}`
+}
+
+// Le schéma bookings n'a pas de colonne dédiée aux préférences horaires par
+// date (voir app/api/booking/route.ts) — replié dans le même champ `message`
+// texte libre que l'ancien flow "Horario: <moment> (~HH:MM)" pour ne pas
+// toucher au schéma partagé avec le site vitrine. On garde le préfixe
+// "Horario:" (singulier) pour rester capturé par la regex d'extraction côté
+// GET /api/booking/[bookingId] (`/Horario:\s*([^·]+)/`), et on évite tout "·"
+// dans le contenu pour ne pas être tronqué par cette regex.
+function buildHorarioMessage(dates: string[], preferences: Record<string, string[]>): string {
+  const segments = dates
+    .filter(d => (preferences[d]?.length ?? 0) > 0)
+    .map(d => `${formatDateChip(d)}: ${preferences[d].join(", ")}`)
+
+  if (segments.length === 0) return "Horario: Sin hora preferida (flexible)"
+  return `Horario: ${segments.join("; ")}`
+}
+
 export default function FechasPage() {
-  const { selectedExperience, setSelectedTime, setHideNav } = useUI()
+  const { selectedExperience, setHideNav } = useUI()
   const router = useRouter()
 
   const [selectedDates, setSelectedDates] = useState<string[]>([])
   const [openCalendar, setOpenCalendar] = useState(false)
-  const [momentBlock, setMomentBlock] = useState<Moment>(null)
-  const [preferredHour, setPreferredHour] = useState<string | null>(null)
+  // Préférences horaires par date ("2026-08-26": ["08:00", "09:00"]) — une
+  // seule date est "active" à la fois côté UI pour ne pas empiler les 3
+  // fechas verticalement, mais les sélections des autres dates sont
+  // conservées dans cet objet en arrière-plan.
+  const [datePreferences, setDatePreferences] = useState<Record<string, string[]>>({})
+  const [activeDate, setActiveDate] = useState<string | null>(null)
   const [extraPeople, setExtraPeople] = useState(0)
   const [loading, setLoading] = useState(false) // 👈 pour l'appel API
 
@@ -69,7 +109,9 @@ export default function FechasPage() {
   const exp = selectedExperience
   const categoryColor = categoryColors[exp.category] || "#111"
 
-  const isFormComplete = selectedDates.length > 0 && !!momentBlock
+  // L'horario reste une préférence optionnelle (voir buildHorarioMessage) —
+  // seule la présence d'au moins une fecha bloque le CTA.
+  const isFormComplete = selectedDates.length > 0
   const datesMaxed = selectedDates.length >= MAX_DATES
 
   // Le premier choix est la fecha preferida (les suivants sont les
@@ -97,18 +139,19 @@ export default function FechasPage() {
     "/image/image_welcome.webp",
   ].filter((src, i, arr) => !!src && arr.indexOf(src) === i)
 
-  function selectMoment(value: Moment) {
-    setMomentBlock(value)
-    setPreferredHour(null)
+  function toggleHour(date: string, hour: string) {
+    setDatePreferences(prev => {
+      const current = prev[date] ?? []
+      const nextForDate = current.includes(hour)
+        ? current.filter(h => h !== hour)
+        : [...current, hour]
+      return { ...prev, [date]: nextForDate }
+    })
   }
 
   async function handleSubmit() {
     // Validation
-    if (!momentBlock) return
     if (selectedDates.length === 0) return
-
-    const finalTime: string[] = [momentBlock]
-    setSelectedTime(finalTime)
 
     setLoading(true)
 
@@ -125,9 +168,7 @@ export default function FechasPage() {
           fechaDeseada: preferredDate, // date principale (preferida), utilisée pour la confirmation/complétion
           fechasDeseadas: selectedDates, // preferida + alternativas, dans l'ordre de priorité
           cantidadPersonas: totalPeople,
-          mensaje: preferredHour
-            ? `Horario: ${MOMENT_LABEL[momentBlock]} (~${preferredHour})`
-            : `Horario: ${MOMENT_LABEL[momentBlock]}`
+          mensaje: buildHorarioMessage(selectedDates, datePreferences)
         })
       })
 
@@ -196,9 +237,16 @@ export default function FechasPage() {
           {selectedDates.length > 0 && (
             <div style={dateChipsRow}>
               {selectedDates.map((d, i) => (
-                <span key={d} style={i === 0 ? dateChipPreferred(categoryColor) : dateChipAlt}>
-                  {formatLocalDate(d, { day: "numeric", month: "short" })}
-                </span>
+                <button
+                  key={d}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setActiveDate(d)
+                  }}
+                  style={dateChipStyle(d === activeDate, i === 0, categoryColor)}
+                >
+                  {formatDateChip(d)}
+                </button>
               ))}
             </div>
           )}
@@ -210,37 +258,45 @@ export default function FechasPage() {
           )}
         </section>
 
-        {/* ---------- MOMENTO DEL DÍA ---------- */}
-        <section style={section}>
-          <h2 style={sectionTitle}>
-            <Clock size={17} style={sectionTitleIcon} />
-            Momento del día
-          </h2>
-          <p style={sectionDescription}>Elige cuándo te gustaría hacerlo. El lugar nos confirma la hora.</p>
+        {/* ---------- HORARIOS ---------- */}
+        {selectedDates.length > 0 && activeDate && (
+          <section style={section}>
+            <h2 style={sectionTitle}>
+              <Clock size={17} style={sectionTitleIcon} />
+              Horarios que te funcionan
+            </h2>
+            <p style={sectionDescription}>Puedes elegir varios horarios para cada fecha.</p>
 
-          <div style={chipsRow}>
-            <MomentChip icon={<Sunrise size={15} />} label="Mañana" value="morning" momentBlock={momentBlock} setMomentBlock={selectMoment} color={categoryColor} />
-            <MomentChip icon={<Sun size={15} />} label="Tarde" value="afternoon" momentBlock={momentBlock} setMomentBlock={selectMoment} color={categoryColor} />
-            <MomentChip icon={<Sunset size={15} />} label="Noche" value="night" momentBlock={momentBlock} setMomentBlock={selectMoment} color={categoryColor} />
-          </div>
-
-          {momentBlock && (
-            <div style={hourSection}>
-              <span style={hourHint}>¿Tienes una hora preferida? · Opcional</span>
-              <div style={chipsRow}>
-                {HOUR_RANGES[momentBlock].map(h => (
-                  <HourChip
-                    key={h}
-                    label={h}
-                    active={preferredHour === h}
-                    color={categoryColor}
-                    onClick={() => setPreferredHour(p => (p === h ? null : h))}
-                  />
-                ))}
-              </div>
+            <div style={activeDateLabelRow}>
+              <span style={activeDateLabel}>{formatDateChip(activeDate)}</span>
+              {(datePreferences[activeDate]?.length ?? 0) > 0 && (
+                <span style={activeDateCount}>
+                  {datePreferences[activeDate].length} seleccionado{datePreferences[activeDate].length > 1 ? "s" : ""}
+                </span>
+              )}
             </div>
-          )}
-        </section>
+
+            {PERIODS.map(period => (
+              <div key={period} style={hourGroupBlock}>
+                <span style={hourGroupLabel}>
+                  {PERIOD_ICON[period]}
+                  {MOMENT_LABEL[period]}
+                </span>
+                <div style={chipsRow}>
+                  {HOUR_RANGES[period].map(h => (
+                    <HourChip
+                      key={h}
+                      label={h}
+                      active={(datePreferences[activeDate] ?? []).includes(h)}
+                      color={categoryColor}
+                      onClick={() => toggleHour(activeDate, h)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
 
         {/* ---------- PERSONAS ---------- */}
         <section style={section}>
@@ -311,7 +367,16 @@ export default function FechasPage() {
           categoryColor={categoryColor}
           onClose={() => setOpenCalendar(false)}
           onSelect={(payload) => {
-            setSelectedDates(payload.dates)
+            const newDates = payload.dates
+            setSelectedDates(newDates)
+            // On garde les préférences des dates encore présentes ; celles
+            // retirées du calendrier n'ont plus de raison d'exister.
+            setDatePreferences(prev => {
+              const next: Record<string, string[]> = {}
+              for (const d of newDates) if (prev[d]) next[d] = prev[d]
+              return next
+            })
+            setActiveDate(prev => (prev && newDates.includes(prev) ? prev : newDates[0] ?? null))
             setOpenCalendar(false)
           }}
         />
@@ -321,16 +386,6 @@ export default function FechasPage() {
 }
 
 /* ---------- UI ---------- */
-
-function MomentChip({ icon, label, value, momentBlock, setMomentBlock, color }: any) {
-  const active = momentBlock === value
-  return (
-    <button onClick={() => setMomentBlock(value)} style={momentChipStyle(active)}>
-      {active && <span style={accentDot(color)} />}
-      {icon}{label}
-    </button>
-  )
-}
 
 function HourChip({ label, active, color, onClick }: { label: string; active: boolean; color: string; onClick: () => void }) {
   return (
@@ -457,30 +512,49 @@ const chipsRow: React.CSSProperties = { display: "flex", gap: 8, flexWrap: "wrap
 
 const dateChipsRow: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }
 
-const dateChipPreferred = (color: string): React.CSSProperties => ({
+// Le chip navy/blanc marque la date "active" (celle dont les horarios sont
+// affichés en dessous) ; l'anneau de couleur catégorie marque en plus la
+// fecha preferida (index 0 de selectedDates), indépendamment de l'activité —
+// les deux concepts sont distincts mais partagent le même langage visuel que
+// le reste de l'app (voir momentChipStyle historique / DatePickerModal).
+const dateChipStyle = (isActive: boolean, isPreferred: boolean, color: string): React.CSSProperties => ({
   padding: "9px 15px",
   borderRadius: 999,
-  background: "#152F40",
-  color: "#fff",
+  border: "none",
+  background: isActive ? "#152F40" : "#F7F5F2",
+  color: isActive ? "#fff" : "#666",
   fontSize: 13,
-  fontWeight: 600,
-  boxShadow: `0 0 0 2px ${color}`,
+  fontWeight: isActive ? 600 : 500,
   whiteSpace: "nowrap",
+  cursor: "pointer",
+  boxShadow: isPreferred ? `0 0 0 2px ${color}` : "none",
 })
 
-const dateChipAlt: React.CSSProperties = {
-  padding: "9px 15px",
-  borderRadius: 999,
-  background: "#F7F5F2",
-  color: "#666",
-  fontSize: 13,
-  fontWeight: 500,
-  whiteSpace: "nowrap",
+const activeDateLabelRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10,
+  marginBottom: 4,
 }
 
-const hourSection: React.CSSProperties = { marginTop: 14 }
+const activeDateLabel: React.CSSProperties = { fontSize: 15, fontWeight: 700, color: "#152F40" }
 
-const hourHint: React.CSSProperties = { fontSize: 12, color: "#8f8f8f", display: "block", marginBottom: 10 }
+const activeDateCount: React.CSSProperties = { fontSize: 12, color: "#8f8f8f", fontWeight: 500 }
+
+const hourGroupBlock: React.CSSProperties = { marginTop: 14 }
+
+const hourGroupLabel: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  fontSize: 12,
+  fontWeight: 600,
+  color: "#8f8f8f",
+  marginBottom: 8,
+  textTransform: "uppercase",
+  letterSpacing: 0.3,
+}
 
 const accentDot = (color: string): React.CSSProperties => ({
   width: 6,
@@ -489,19 +563,6 @@ const accentDot = (color: string): React.CSSProperties => ({
   background: color,
   display: "inline-block",
   flexShrink: 0,
-})
-
-const momentChipStyle = (active: boolean): React.CSSProperties => ({
-  padding: "10px 14px",
-  borderRadius: 999,
-  border: active ? "1.5px solid #152F40" : "1px solid #E5E2DB",
-  background: active ? "#152F40" : "#fff",
-  color: active ? "#fff" : "#444",
-  fontWeight: active ? 600 : 400,
-  fontSize: 14,
-  display: "flex",
-  gap: 6,
-  alignItems: "center",
 })
 
 const hourChipStyle = (active: boolean): React.CSSProperties => ({
