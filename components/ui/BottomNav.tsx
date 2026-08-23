@@ -31,11 +31,13 @@ function useSafariToolbarFix(ref: React.RefObject<HTMLElement | null>) {
   }, [ref]);
 }
 
-/* 🔥 Logo comme composant icône */
-function LogoIcon({ size = 20 }: { size?: number }) {
+/* 🔥 Logo comme composant icône. En état actif, la pastille de fond est du
+   même bleu marine (#152F40) que la silhouette du logo : on bascule sur une
+   variante où cette silhouette est blanche pour garder du contraste. */
+function LogoIcon({ size = 20, active = false }: { size?: number; active?: boolean }) {
   return (
     <img
-      src="/logo/LogoVivaboxSVG.svg"
+      src={active ? "/logo/LogoVivaboxSVG-white.svg" : "/logo/LogoVivaboxSVG.svg"}
       alt="Vivabox"
       style={{
         width: size,
@@ -50,7 +52,7 @@ function LogoIcon({ size = 20 }: { size?: number }) {
 type Item = {
   href?: string;
   label: string;
-  Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  Icon: React.ComponentType<{ size?: number; strokeWidth?: number; active?: boolean }>;
   action?: (router: any, beginRouteTransition: () => void) => void;
 };
 
@@ -73,7 +75,7 @@ const bookingItems: Item[] = [
       router.push(`/reservar/seguimiento/${bookingId}`);
     },
   },
-  { href: "/experiencia", label: "Tu experiencia", Icon: (props) => <LogoIcon size={36} /> },
+  { href: "/experiencia", label: "Tu experiencia", Icon: ({ active }) => <LogoIcon size={36} active={active} /> },
   { href: "/ayuda", label: "Ayuda", Icon: MessageCircle },
 ];
 
@@ -139,7 +141,7 @@ export default function BottomNav() {
               onClick={() => item.action!(router, beginRouteTransition)}
               className={`bottom-nav-item ${active ? "active" : ""}`}
             >
-              <Icon size={22} strokeWidth={active ? 2.4 : 1.8} />
+              <Icon size={22} strokeWidth={active ? 2.4 : 1.8} active={active} />
               <span>{item.label}</span>
             </div>
           );
@@ -159,7 +161,7 @@ export default function BottomNav() {
             }}
             className={`bottom-nav-item ${active ? "active" : ""}`}
           >
-            <Icon size={22} strokeWidth={active ? 2.4 : 1.8} />
+            <Icon size={22} strokeWidth={active ? 2.4 : 1.8} active={active} />
             <span>{item.label}</span>
           </Link>
         );
