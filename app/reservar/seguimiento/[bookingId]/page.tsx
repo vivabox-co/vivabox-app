@@ -317,7 +317,15 @@ export default function SeguimientoPage() {
         // retour arrière vers /mapa (sinon il resterait bloqué sur l'ancien
         // statut "rejected" jusqu'au prochain fetchBooking).
         localStorage.removeItem("currentBooking")
-        router.push("/mapa")
+        // Navigation "dure" et non router.push : le middleware a très
+        // probablement déjà redirigé /mapa vers cette même page de suivi un
+        // peu plus tôt dans cette session (juste après la reconnexion, tant
+        // que la réservation était encore "cancelled" et pas "cancelled_seen")
+        // — le Router Cache du client a mémorisé ce résultat pour /mapa et le
+        // rejouerait tel quel avec router.push, sans repasser par le
+        // middleware qui verrait pourtant le nouveau statut. Même correctif
+        // que app/activacion-completa/page.tsx (handleContinue).
+        window.location.href = "/mapa"
       } else {
         setShowRejectOptions(false)
         await fetchBooking()
