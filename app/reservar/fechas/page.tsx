@@ -207,13 +207,13 @@ export default function FechasPage() {
 
         <BrandRibbon />
 
-        <div style={{ padding: "18px 20px 0" }}>
-          <BrandDots />
-        </div>
-
-        <p style={{ ...intro, paddingTop: 0 }}>
+        <p style={intro}>
           Elige hasta 3 fechas. <strong style={introStrong}>Nosotros coordinamos.</strong>
         </p>
+
+        <div style={{ padding: "0 20px" }}>
+          <BrandDots />
+        </div>
 
         {/* ---------- FECHAS ---------- */}
         <section
