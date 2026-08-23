@@ -345,6 +345,7 @@ export default function SeguimientoPage() {
   const status: BookingStatus =
     booking.status === "requested" && progressReveal ? "waiting_provider" : booking.status
   const exp = booking.experienceSnapshot
+  const hideDates = status === "alternative_proposed" || status === "searching_alternative" || status === "rejected"
 
   const badgeMap: Record<string, string | null> = {
     requested: "Confirmando",
@@ -386,9 +387,11 @@ export default function SeguimientoPage() {
           // croire à une date encore valide ; pour "rejected", ce n'était
           // qu'une date demandée/intentée, jamais confirmée — l'afficher à
           // côté du badge "Cancelada" la ferait lire comme une date acquise.
-          date={status === "alternative_proposed" || status === "searching_alternative" || status === "rejected" ? undefined : displayDate}
+          date={hideDates ? undefined : displayDate}
           format={realExperience?.format}
-          time={status === "alternative_proposed" || status === "searching_alternative" || status === "rejected" ? undefined : booking.time}
+          time={hideDates ? undefined : booking.time}
+          requestedDates={hideDates ? undefined : booking.requestedDates}
+          datesHeading={status === "confirmed" || status === "done" ? "Fecha" : "Fechas propuestas"}
           category={exp.category}
           badge={badgeMap[status]}
           onClick={() => {
