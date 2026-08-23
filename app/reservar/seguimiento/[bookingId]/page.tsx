@@ -6,6 +6,8 @@ import Link from "next/link"
 import { ChevronRight } from "lucide-react"
 import BookingTimeline, { BookingStatus } from "@/components/ui/BookingTimeline"
 import DynamicStatusBlock, { StatusAction } from "@/components/ui/DynamicStatusBlock"
+import BrandRibbon from "@/components/ui/BrandRibbon"
+import BrandDots from "@/components/ui/BrandDots"
 import ReviewModal from "@/components/ui/ReviewModal"
 import ExperienceSummaryCard from "@/components/list/ExperienceSummaryCard"
 import { useUI, usePageReady } from "@/components/ui/UIContext"
@@ -366,13 +368,16 @@ export default function SeguimientoPage() {
     : booking.date
 
   return (
-    <div style={{ padding: "16px 16px 120px", background: "#FAF8F5", minHeight: "100vh" }}>
-      <h1 style={{ marginTop: 6, marginBottom: 4, fontSize: 24, fontWeight: 600 }}>
-        {header.title}
-      </h1>
-      <p style={{ marginBottom: 18, color: "#666", fontSize: 14 }}>
-        {header.subtitle}
-      </p>
+    <div style={{ background: "#FAF8F5", minHeight: "100vh" }}>
+      <BrandRibbon />
+      <div style={{ padding: "16px 16px 120px" }}>
+        <BrandDots />
+        <h1 style={{ marginTop: 0, marginBottom: 4, fontSize: 24, fontWeight: 600 }}>
+          {header.title}
+        </h1>
+        <p style={{ marginBottom: 18, color: "#666", fontSize: 14 }}>
+          {header.subtitle}
+        </p>
 
       <div style={{ marginBottom: 18 }}>
         <ExperienceSummaryCard
@@ -500,6 +505,7 @@ export default function SeguimientoPage() {
           onSuccess={() => setReviewed(true)}
         />
       )}
+      </div>
     </div>
   )
 }
