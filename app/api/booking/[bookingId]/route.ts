@@ -56,7 +56,7 @@ export async function GET(
 
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
-      .select("id, activation_code_id, experience_code, requested_date, requested_dates, message, status, created_at, proposed_date, proposed_moment, proposed_hour")
+      .select("id, activation_code_id, experience_code, requested_date, requested_dates, message, status, created_at, proposed_date, proposed_moment, proposed_hour, tracking_first_seen_at")
       .eq("id", bookingId)
       .maybeSingle()
 
@@ -118,6 +118,41 @@ export async function GET(
 
     const proposedMomentLabel = booking.proposed_moment ? (MOMENT_LABEL[booking.proposed_moment] ?? booking.proposed_moment) : null
 
+    // 1ère fois que CE endpoint voit la réservation en "requested" : on fige
+    // l'instant côté serveur (au lieu d'un simple minuteur front qui
+    // redémarrerait à chaque remontage de /reservar/seguimiento) pour que la
+    // mise en scène "Disponibilidad con el lugar" se déclenche au même
+    // instant réel, que le bénéficiaire reste sur la page ou navigue ailleurs
+    // et revienne. Filtre .is(...) pour ne jamais écraser une valeur déjà
+    // posée par un appel concurrent ; si ce filtre fait échouer notre propre
+    // UPDATE (l'autre appel a gagné la course), on relit la valeur qu'il a
+    // posée plutôt que de garder la nôtre.
+    let requestedSeenAt: string | null = booking.tracking_first_seen_at
+    if (booking.status === "requested" && !requestedSeenAt) {
+      const seenAt = new Date().toISOString()
+      const { data: updated, error: seenError } = await supabase
+        .from("bookings")
+        .update({ tracking_first_seen_at: seenAt })
+        .eq("id", bookingId)
+        .is("tracking_first_seen_at", null)
+        .select("tracking_first_seen_at")
+        .maybeSingle()
+
+      if (seenError) {
+        console.error("BOOKING GET SEEN_AT ERROR:", seenError)
+        requestedSeenAt = seenAt
+      } else if (updated) {
+        requestedSeenAt = updated.tracking_first_seen_at
+      } else {
+        const { data: refetched } = await supabase
+          .from("bookings")
+          .select("tracking_first_seen_at")
+          .eq("id", bookingId)
+          .maybeSingle()
+        requestedSeenAt = refetched?.tracking_first_seen_at ?? seenAt
+      }
+    }
+
     // Une réservation reste "requested" en base tant que l'équipe n'a rien
     // tranché — mais si TOUTES les préférences classées (P1/P2/P3) sont déjà
     // passées sans confirmation, il ne s'agit plus d'une simple attente de
@@ -144,6 +179,7 @@ export async function GET(
         time: displayTime,
         status: derivedStatus,
         createdAt: booking.created_at,
+        requestedSeenAt,
         requestedDates: booking.requested_dates ?? null,
         proposedDate: booking.proposed_date ?? null,
         proposedMoment: proposedMomentLabel,

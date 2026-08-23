@@ -19,6 +19,10 @@ import { getWhatsAppLink } from "@/lib/constants/contact"
 import { Booking } from "@/lib/data/types/booking"
 import { Experience } from "@/lib/data/types"
 
+// Délai de la mise en scène "requested" → "waiting_provider" (voir l'effet
+// progressReveal plus bas), ancré sur booking.requestedSeenAt.
+const PROGRESS_REVEAL_DELAY_MS = 6000
+
 // Statuts "en confirmación" (requested/waiting_provider) partagent le même
 // message : côté beneficiario, il n'y a rien à distinguer avant que le
 // lugar confirme réellement — un seul texte "todo está bajo control" évite
@@ -168,16 +172,13 @@ export default function SeguimientoPage() {
   // (effet plus bas) pour ne pas le retrouver affiché sur une prochaine
   // proposition.
   const [showRejectOptions, setShowRejectOptions] = useState(false)
-  // Persisté par booking (voir l'effet plus bas) : lu ici de façon paresseuse
-  // plutôt que dans un effet, pour ne pas rejouer un flash "requested" avant
-  // que l'effet n'ait eu le temps de le corriger. Sûr côté hydratation : le
-  // contenu réel (BookingTimeline) n'est de toute façon jamais rendu côté
-  // serveur, `booking` restant `null` tant que le fetch client n'a pas
-  // répondu (voir l'écran de chargement plus bas).
-  const [progressReveal, setProgressReveal] = useState(() => {
-    if (typeof window === "undefined") return false
-    return localStorage.getItem(`vb_seguimiento_reveal_${bookingId}`) === "1"
-  })
+  // Piloté par booking.requestedSeenAt (voir l'effet plus bas), lui-même figé
+  // côté serveur à la 1ère fois où GET /api/booking/[bookingId] a vu cette
+  // réservation en "requested" — ancre la mise en scène "Disponibilidad con
+  // el lugar" sur un instant réel plutôt que sur le temps passé en continu
+  // sur cette page : que le bénéficiaire reste ici, aille sur /experiencia ou
+  // /ayuda puis revienne, ça s'active au même instant dans tous les cas.
+  const [progressReveal, setProgressReveal] = useState(false)
 
   const { setActiveExperience, setHideNav } = useUI()
   const router = useRouter()
@@ -235,21 +236,24 @@ export default function SeguimientoPage() {
   }, [booking])
 
   // Mise en scène : "requested" bascule visuellement vers "waiting_provider"
-  // après quelques secondes pour donner une sensation de progrès, même si
-  // le statut réel en base reste "requested" — le backend n'a pas d'état
-  // "waiting_provider" (voir STATUS_MAP dans /api/booking/[bookingId]), donc
-  // ce booléen ne pilote que l'affichage (status ci-dessous), jamais la
-  // vraie donnée. Écrit dans localStorage pour qu'un aller-retour sur une
-  // autre page ne fasse pas rejouer les 6 secondes à chaque fois : une fois
-  // révélé, ça reste révélé pour cette réservation (lu au montage ci-dessus).
+  // PROGRESS_REVEAL_DELAY_MS après booking.requestedSeenAt (figé côté
+  // serveur, voir GET /api/booking/[bookingId]) pour donner une sensation de
+  // progrès, même si le statut réel en base reste "requested" — le backend
+  // n'a pas d'état "waiting_provider" à proprement parler, donc ce booléen ne
+  // pilote que l'affichage (status ci-dessous), jamais la vraie donnée.
+  // Ancré sur requestedSeenAt (instant serveur) plutôt que sur le montage de
+  // ce composant : si le délai est déjà écoulé (ex. retour après être allé
+  // sur /experiencia), on révèle immédiatement au lieu de relancer 6s.
   useEffect(() => {
-    if (!bookingId || progressReveal || booking?.status !== "requested") return
-    const t = setTimeout(() => {
-      localStorage.setItem(`vb_seguimiento_reveal_${bookingId}`, "1")
+    if (progressReveal || booking?.status !== "requested" || !booking.requestedSeenAt) return
+    const remaining = PROGRESS_REVEAL_DELAY_MS - (Date.now() - new Date(booking.requestedSeenAt).getTime())
+    if (remaining <= 0) {
       setProgressReveal(true)
-    }, 6000)
+      return
+    }
+    const t = setTimeout(() => setProgressReveal(true), remaining)
     return () => clearTimeout(t)
-  }, [bookingId, booking?.status, progressReveal])
+  }, [booking?.status, booking?.requestedSeenAt, progressReveal])
 
   // Une fois l'expérience vécue, on regarde si un avis a déjà été laissé
   // (pour afficher le message de remerciement plutôt que de redemander).
