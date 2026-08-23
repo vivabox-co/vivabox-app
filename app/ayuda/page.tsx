@@ -243,14 +243,14 @@ export default function AyudaPage() {
                     width: 30,
                     height: 30,
                     borderRadius: "50%",
-                    background: "#FFF1E6",
+                    background: "#EEF2F6",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
                   }}
                 >
-                  <Icon size={15} color="#FE842F" />
+                  <Icon size={15} color="#152F40" />
                 </span>
                 <span style={{ fontSize: 14.5, fontWeight: 600, color: "#222" }}>{faq.question}</span>
               </span>
