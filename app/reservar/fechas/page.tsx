@@ -350,7 +350,7 @@ export default function FechasPage() {
           ) : (
             <>
               Continuar
-              <ArrowRight size={18} strokeWidth={2.5} />
+              <ArrowRight size={16} strokeWidth={2.5} />
             </>
           )}
         </button>
