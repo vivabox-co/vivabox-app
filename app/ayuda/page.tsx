@@ -1,7 +1,18 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { MessageCircle, Phone, CalendarX, ChevronDown } from "lucide-react"
+import {
+  MessageCircle,
+  Phone,
+  CalendarX,
+  ChevronDown,
+  CalendarCheck,
+  HelpCircle,
+  RefreshCw,
+  CalendarClock,
+  MapPin,
+  LifeBuoy,
+} from "lucide-react"
 import { getWhatsAppLink, WHATSAPP_NUMBER } from "@/lib/constants/contact"
 import RescheduleModal from "@/components/ui/RescheduleModal"
 import { getCurrentBookingId } from "@/lib/data/getCurrentBookingId"
@@ -9,31 +20,37 @@ import { Booking } from "@/lib/data/types/booking"
 
 const FAQS = [
   {
+    icon: CalendarCheck,
     question: "¿Cuándo se confirma mi experiencia?",
     answer:
       "Después de solicitar tu reserva, contactamos al lugar para confirmar la fecha y hora que elegiste. Te avisaremos apenas tengamos la confirmación.",
   },
   {
+    icon: HelpCircle,
     question: "¿Qué significa “En espera de confirmación”?",
     answer:
       "Significa que ya recibimos tu solicitud y estamos esperando que el lugar confirme la fecha y hora. No necesitas hacer nada por ahora.",
   },
   {
+    icon: RefreshCw,
     question: "¿Qué pasa si no pueden confirmar la fecha que elegí?",
     answer:
       "Si el lugar no puede confirmar la fecha que elegiste, te contactaremos para proponerte una alternativa disponible. Si la nueva fecha te funciona, la confirmaremos por ti.",
   },
   {
+    icon: CalendarClock,
     question: "¿Qué pasa si necesito cambiar la fecha?",
     answer:
       "Si tus planes cambiaron, escríbenos lo antes posible. Revisaremos con el lugar si es posible cambiar la fecha. Los cambios dependen de la disponibilidad y de las condiciones de cada experiencia.",
   },
   {
+    icon: MapPin,
     question: "¿Dónde veo las instrucciones de mi experiencia?",
     answer:
       "Cuando tu reserva esté confirmada, encontrarás toda la información que necesitas para disfrutarla: fecha, hora, lugar e instrucciones especiales.",
   },
   {
+    icon: LifeBuoy,
     question: "¿Qué hago si tengo un problema con mi reserva?",
     answer:
       "Escríbenos por WhatsApp y cuéntanos qué pasó. Revisaremos tu reserva y te ayudaremos con el siguiente paso.",
@@ -190,57 +207,71 @@ export default function AyudaPage() {
       </Card>
 
       {/* FAQ */}
-      <Card>
-        <h3 style={{ marginTop: 0, marginBottom: 4 }}>Preguntas frecuentes</h3>
-        {FAQS.map((faq, i) => {
-          const open = openFaq === i
-          return (
-            <div
-              key={faq.question}
+      <h3 style={{ margin: "4px 4px 12px", fontSize: 19 }}>Preguntas frecuentes</h3>
+      {FAQS.map((faq, i) => {
+        const open = openFaq === i
+        const Icon = faq.icon
+        return (
+          <div
+            key={faq.question}
+            style={{
+              background: "#fff",
+              borderRadius: 18,
+              padding: "14px 16px",
+              marginBottom: 10,
+              boxShadow: "0 4px 14px rgba(0,0,0,0.04)",
+            }}
+          >
+            <button
+              onClick={() => setOpenFaq(open ? null : i)}
               style={{
-                borderTop: i > 0 ? "1px solid #EFEBE5" : "none",
-                paddingTop: i > 0 ? 12 : 8,
-                paddingBottom: 12,
+                width: "100%",
+                background: "none",
+                border: "none",
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                textAlign: "left",
+                cursor: "pointer",
               }}
             >
-              <button
-                onClick={() => setOpenFaq(open ? null : i)}
-                style={{
-                  width: "100%",
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
-                  fontSize: 15,
-                  fontWeight: 500,
-                  color: "#222",
-                  textAlign: "left",
-                  cursor: "pointer",
-                }}
-              >
-                {faq.question}
-                <ChevronDown
-                  size={16}
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span
                   style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: "50%",
+                    background: "#FFF1E6",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     flexShrink: 0,
-                    transition: "transform 0.2s ease",
-                    transform: open ? "rotate(180deg)" : "rotate(0deg)",
-                    color: "#999",
                   }}
-                />
-              </button>
-              {open && (
-                <p style={{ margin: "8px 0 0", color: "#666", fontSize: 14, lineHeight: 1.5 }}>
-                  {faq.answer}
-                </p>
-              )}
-            </div>
-          )
-        })}
-      </Card>
+                >
+                  <Icon size={15} color="#FE842F" />
+                </span>
+                <span style={{ fontSize: 14.5, fontWeight: 600, color: "#222" }}>{faq.question}</span>
+              </span>
+              <ChevronDown
+                size={16}
+                style={{
+                  flexShrink: 0,
+                  transition: "transform 0.2s ease",
+                  transform: open ? "rotate(180deg)" : "rotate(0deg)",
+                  color: "#999",
+                }}
+              />
+            </button>
+            {open && (
+              <p style={{ margin: "10px 0 0 40px", color: "#666", fontSize: 14, lineHeight: 1.5 }}>
+                {faq.answer}
+              </p>
+            )}
+          </div>
+        )
+      })}
 
       {showReschedule && booking && (
         <RescheduleModal
