@@ -75,7 +75,7 @@ const bookingItems: Item[] = [
       router.push(`/reservar/seguimiento/${bookingId}`);
     },
   },
-  { href: "/experiencia", label: "Tu experiencia", Icon: ({ active }) => <LogoIcon size={36} active={active} /> },
+  { href: "/experiencia", label: "Tu experiencia", Icon: ({ active }) => <LogoIcon size={22} active={active} /> },
   { href: "/ayuda", label: "Ayuda", Icon: MessageCircle },
 ];
 
