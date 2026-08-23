@@ -121,16 +121,13 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // Seule une réservation encore en cours (Reservada/Confirmada) justifie
-    // de forcer /reservar/seguimiento depuis ici — "Rechazada" (annulée)
-    // retombe avec "Activada" vers /mapa : sinon quiconque a une réservation
-    // annulée revoit cet écran à chaque fois qu'il ouvre l'app (ex: en tapant
-    // app.vivabox.com.co), sans jamais pouvoir en sortir depuis la racine.
-    // L'écran de refus reste atteignable manuellement (nav "Seguimiento",
-    // lien direct) — voir la branche "Rechazada" plus bas, qui ne bloque pas
-    // cet accès — avec un CTA "Elegir otra experiencia" mis en avant pour
-    // qui tombe dessus en cours de session.
-    if (context.estado === 'Reservada' || context.estado === 'Confirmada') {
+    // Une réservation en cours (Reservada/Confirmada) OU tout juste annulée
+    // et pas encore vue (Rechazada) justifie de forcer /reservar/seguimiento
+    // depuis ici : la personne doit voir l'écran d'annulation et cliquer
+    // elle-même sur "Elegir otra experiencia" avant de pouvoir repartir vers
+    // /mapa — voir respond-alternative, qui bascule "cancelled" en
+    // "cancelled_seen" (→ estado "Activada") à ce moment-là seulement.
+    if (context.estado === 'Reservada' || context.estado === 'Confirmada' || context.estado === 'Rechazada') {
       const redirect = NextResponse.redirect(new URL(`/reservar/seguimiento/${context.booking_id}`, request.url));
       return withRenewedCookie(redirect, sessionToken, context);
     }
@@ -170,13 +167,19 @@ export async function middleware(request: NextRequest) {
     return withRenewedCookie(NextResponse.next(), sessionToken, context);
   }
 
-  if (estado === 'Reservada' || estado === 'Confirmada') {
+  if (estado === 'Reservada' || estado === 'Confirmada' || estado === 'Rechazada') {
     // Si on essaie d'accéder à /mapa, /lista, /favoritos ou de relancer une
     // réservation via /reservar/fechas → rediriger vers suivi. Exact match sur
     // '/reservar/fechas' (pas de startsWith) pour ne pas emporter avec lui
     // '/reservar/fechas/confirmacion', qui doit rester atteignable juste après
     // la création de la réservation (c'est justement elle qui fait passer
     // l'estado à 'Reservada').
+    // 'Rechazada' (réservation annulée, pas encore vue) est traité pareil :
+    // la personne doit atterrir sur l'écran de suivi, voir le message
+    // d'annulation, et cliquer elle-même sur "Elegir otra experiencia" avant
+    // de pouvoir revenir sur /mapa — ce clic appelle respond-alternative, qui
+    // bascule le statut en "cancelled_seen" (→ estado "Activada") et lève le
+    // blocage à partir de là.
     if (
       pathname === '/mapa' ||
       pathname === '/lista' ||
@@ -188,16 +191,6 @@ export async function middleware(request: NextRequest) {
       return withRenewedCookie(redirect, sessionToken, context);
     }
     // Sinon, laisser passer (ex: page de suivi elle-même)
-    return withRenewedCookie(NextResponse.next(), sessionToken, context);
-  }
-
-  if (estado === 'Rechazada') {
-    // Contrairement à Reservada/Confirmada, on ne force pas la redirection
-    // depuis /mapa, /lista ou /favoritos : la personne doit pouvoir repartir
-    // chercher une autre expérience sans être coincée sur l'écran de refus.
-    // Mais contrairement à Activada, on ne bloque pas non plus l'accès à
-    // /reservar/seguimiento — elle doit pouvoir revoir pourquoi sa réservation
-    // a été refusée si elle y retourne (nav "Seguimiento", lien direct).
     return withRenewedCookie(NextResponse.next(), sessionToken, context);
   }
 

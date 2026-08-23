@@ -36,12 +36,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       if (!stored) return
 
       // status vient du miroir écrit par /reservar/seguimiento (voir ce
-      // fichier) — absent juste après la création de la réservation
-      // (confirmacion n'écrit que l'id), donc jamais égal à "rejected" à ce
-      // stade : le blocage reste actif tant qu'on n'a pas confirmé que la
-      // réservation est refusée.
+      // fichier). Le blocage reste actif même en "rejected" (réservation
+      // annulée) : la personne doit voir l'écran d'annulation et cliquer
+      // elle-même sur "Elegir otra experiencia" (qui bascule le statut en
+      // "cancelled_seen" côté API et met à jour ce miroir) avant qu'un
+      // retour arrière puisse la faire sortir de /reservar/seguimiento.
       const booking = JSON.parse(stored)
-      if (booking.status === "rejected") return
 
       const inBookingFlow =
         pathname.startsWith("/reservar/seguimiento") ||

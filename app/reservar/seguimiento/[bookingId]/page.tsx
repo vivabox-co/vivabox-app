@@ -311,6 +311,12 @@ export default function SeguimientoPage() {
       }
 
       if (action === "choose_new_experience") {
+        // La réservation vient d'être marquée "cancelled_seen" côté API : ce
+        // n'est plus "la" réservation en cours, donc plus rien à protéger —
+        // on efface le miroir pour que ClientLayout cesse de bloquer un
+        // retour arrière vers /mapa (sinon il resterait bloqué sur l'ancien
+        // statut "rejected" jusqu'au prochain fetchBooking).
+        localStorage.removeItem("currentBooking")
         router.push("/mapa")
       } else {
         setShowRejectOptions(false)
