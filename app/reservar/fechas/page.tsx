@@ -207,17 +207,15 @@ export default function FechasPage() {
 
         <BrandRibbon />
 
-        <p style={intro}>
+        <p style={{ ...intro, paddingBottom: 2 }}>
           Elige hasta 3 fechas. <strong style={introStrong}>Nosotros coordinamos.</strong>
         </p>
 
-        <div style={{ padding: "0 20px" }}>
-          <BrandDots />
-        </div>
+        <BrandDots style={{ justifyContent: "center", margin: "10px 0" }} />
 
         {/* ---------- FECHAS ---------- */}
         <section
-          style={{ ...sectionPrimary, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
+          style={{ ...sectionPrimary, marginTop: 14, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
           onClick={() => setOpenCalendar(true)}
         >
           <div style={sectionHeaderRow}>
