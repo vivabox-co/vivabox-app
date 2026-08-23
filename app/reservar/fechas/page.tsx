@@ -7,6 +7,7 @@ import { Calendar, Clock, Users, Check, ArrowRight } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
 import BottomSheet from "@/components/ui/BottomSheet"
 import PhotoGallery from "@/components/ui/PhotoGallery"
+import BrandRibbon from "@/components/ui/BrandRibbon"
 import { formatLocalDate } from "@/lib/utils/formatLocalDate"
 import { categoryColors } from "@/lib/map/categoryColors"
 
@@ -202,6 +203,8 @@ export default function FechasPage() {
             <div style={heroTitle}>{exp.title}</div>
           </PhotoGallery>
         </div>
+
+        <BrandRibbon />
 
         <p style={intro}>
           Elige hasta 3 fechas. <strong style={introStrong}>Nosotros coordinamos.</strong>
