@@ -3,30 +3,26 @@
 import { useState, useEffect } from "react"
 import { useUI, usePageReady } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
-import { Calendar, Clock, Users, Sunrise, Sun, Sunset, Check } from "lucide-react"
+import { Calendar, Clock, Users, Check } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
 import BottomSheet from "@/components/ui/BottomSheet"
 import PhotoGallery from "@/components/ui/PhotoGallery"
 import { formatLocalDate } from "@/lib/utils/formatLocalDate"
 import { categoryColors } from "@/lib/map/categoryColors"
-import { MOMENT_LABEL } from "@/lib/utils/moment"
 
 const MAX_DATES = 3
 
-const PERIODS = ["morning", "afternoon", "night"] as const
-type Period = (typeof PERIODS)[number]
-
-const HOUR_RANGES: Record<Period, string[]> = {
-  morning: ["08:00", "09:00", "10:00", "11:00"],
-  afternoon: ["12:00", "13:00", "14:00", "15:00", "16:00"],
-  night: ["17:00", "18:00", "19:00", "20:00"],
-}
-
-const PERIOD_ICON: Record<Period, React.ReactNode> = {
-  morning: <Sunrise size={13} />,
-  afternoon: <Sun size={13} />,
-  night: <Sunset size={13} />,
-}
+// Pas encore de source de disponibilité par prestador/fecha (voir
+// lib/data/types.ts::Experience — aucun champ horario) : ces créneaux restent
+// génériques pour tout le catalogue, comme avant. Aplatis en une seule liste
+// (au lieu du regroupement matin/après-midi/soir) pour l'affichage en grille
+// du bottom sheet — le jour où une vraie dispo par prestador existe, c'est ce
+// tableau qu'il faudra remplacer par une source dynamique par `openHourSheet`.
+const ALL_HOURS = [
+  "08:00", "09:00", "10:00", "11:00",
+  "12:00", "13:00", "14:00", "15:00", "16:00",
+  "17:00", "18:00", "19:00", "20:00",
+]
 
 // Pas de constante ES partagée pour les abréviations de jour dans le projet
 // (DatePickerModal.tsx a le même souci et hardcode aussi localement) — Intl
@@ -255,36 +251,42 @@ export default function FechasPage() {
         </section>
 
         {/* ---------- HORARIOS ---------- */}
-        {/* Un bloc indépendant par fecha (pas de tab/fecha-activa partagée) :
-            le lien fecha → horario doit être visuellement évident sans essai-
-            erreur — chaque carte porte sa propre date et son propre sélecteur. */}
+        {/* Une seule carte, une ligne compacte par fecha : le lien fecha →
+            horario reste sur une même ligne (pas de fecha activa/tab
+            partagée, ni une grande card par date — cf. retour utilisateur
+            sur la verticalité de la version précédente). Chaque ligne ouvre
+            le bottom sheet propre à sa date. */}
         {selectedDates.length > 0 && (
           <>
             <div style={horariosHeaderWrap}>
               <h2 style={sectionTitle}>
                 <Clock size={17} style={sectionTitleIcon} />
-                Horarios que te funcionan
+                ¿Cuándo te funciona?
               </h2>
-              <p style={sectionDescription}>Cada fecha puede tener un horario distinto.</p>
+              <p style={sectionDescription}>Puedes elegir un horario distinto para cada fecha.</p>
             </div>
 
-            {selectedDates.map(d => {
-              const hours = datePreferences[d] ?? []
-              const hasHours = hours.length > 0
-              return (
-                <section key={d} style={section}>
-                  <div style={dateHourHeader}>
-                    <Calendar size={15} style={sectionTitleIcon} />
-                    <span style={dateHourDateLabel}>{formatDateChip(d)}</span>
-                  </div>
-                  <span style={dateHourHint}>Horario que te funciona</span>
-                  <button onClick={() => setOpenHourSheet(d)} style={hourSelectorButton(hasHours)}>
-                    <span style={hourSelectorButtonText}>{hasHours ? hours.join(" · ") : "Elegir horario"}</span>
-                    <span>{hasHours ? "Cambiar →" : "→"}</span>
+            <section style={hoursCard}>
+              {selectedDates.map((d, i) => {
+                const hours = datePreferences[d] ?? []
+                const hasHours = hours.length > 0
+                return (
+                  <button
+                    key={d}
+                    onClick={() => setOpenHourSheet(d)}
+                    style={hourRow(i === selectedDates.length - 1)}
+                  >
+                    <span style={hourRowDate}>{formatDateChip(d)}</span>
+                    <span style={hourRowRight}>
+                      <span style={hourRowSummary(hasHours)}>
+                        {hasHours ? hours.join(" · ") : "Elegir horario"}
+                      </span>
+                      <span style={hourRowArrow}>→</span>
+                    </span>
                   </button>
-                </section>
-              )
-            })}
+                )
+              })}
+            </section>
           </>
         )}
 
@@ -382,27 +384,20 @@ export default function FechasPage() {
           openHourSheet && (
             <div style={sheetBodyWrap}>
               <h3 style={sheetDateTitle}>{formatDateChip(openHourSheet)}</h3>
-              <p style={sheetSubtitle}>Elige una o varias horas que te funcionen.</p>
+              <p style={sheetQuestion}>¿Qué horarios te funcionan?</p>
+              <p style={sheetSubtitle}>Puedes elegir varios.</p>
 
-              {PERIODS.map(period => (
-                <div key={period} style={hourGroupBlock}>
-                  <span style={hourGroupLabel}>
-                    {PERIOD_ICON[period]}
-                    {MOMENT_LABEL[period]}
-                  </span>
-                  <div style={chipsRow}>
-                    {HOUR_RANGES[period].map(h => (
-                      <HourChip
-                        key={h}
-                        label={h}
-                        active={(datePreferences[openHourSheet] ?? []).includes(h)}
-                        color={categoryColor}
-                        onClick={() => toggleHour(openHourSheet, h)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
+              <div style={hourGrid}>
+                {ALL_HOURS.map(h => (
+                  <HourChip
+                    key={h}
+                    label={h}
+                    active={(datePreferences[openHourSheet] ?? []).includes(h)}
+                    color={categoryColor}
+                    onClick={() => toggleHour(openHourSheet, h)}
+                  />
+                ))}
+              </div>
             </div>
           )
         }
@@ -539,8 +534,6 @@ const inlineTextLink: React.CSSProperties = {
   cursor: "pointer",
 }
 
-const chipsRow: React.CSSProperties = { display: "flex", gap: 8, flexWrap: "wrap" }
-
 const dateChipsRow: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }
 
 // Ces chips ne sont plus des tabs cliquables : uniquement un rappel visuel
@@ -559,42 +552,61 @@ const dateChipStyle = (isPreferred: boolean, color: string): React.CSSProperties
 
 const horariosHeaderWrap: React.CSSProperties = { margin: "20px 20px 0 20px" }
 
-const dateHourHeader: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }
+// Une seule carte pour les 3 fechas (au lieu d'une card par date) : padding
+// horizontal porté par la carte, padding vertical minime pour laisser les
+// lignes elles-mêmes gérer leur propre hauteur/divider.
+const hoursCard: React.CSSProperties = {
+  margin: "16px 20px 0 20px",
+  padding: "2px 18px",
+  borderRadius: 20,
+  border: "1px solid #ECEAE5",
+  background: "#fff",
+}
 
-const dateHourDateLabel: React.CSSProperties = { fontSize: 15, fontWeight: 700, color: "#152F40" }
-
-const dateHourHint: React.CSSProperties = { display: "block", fontSize: 12, color: "#8f8f8f", marginBottom: 12 }
-
-// Plein-largeur et bordé même sans sélection, pour qu'il se lise comme un
-// bouton tappable dès le premier rendu — pas comme un simple lien texte.
-const hourSelectorButton = (hasHours: boolean): React.CSSProperties => ({
+// Ligne = bouton pleine largeur, fecha à gauche / résumé horario + flèche à
+// droite, sur une seule ligne (ellipsis plutôt que retour à la ligne si la
+// sélection est longue). Divider fin entre lignes, pas sur la dernière.
+const hourRow = (isLast: boolean): React.CSSProperties => ({
   width: "100%",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  gap: 10,
-  padding: "13px 16px",
-  borderRadius: 14,
-  border: hasHours ? "1.5px solid #152F40" : "1px solid #E5E2DB",
-  background: hasHours ? "#152F40" : "#fff",
-  color: hasHours ? "#fff" : "#152F40",
-  fontSize: 14,
-  fontWeight: 600,
-  cursor: "pointer",
+  gap: 12,
+  padding: "16px 0",
+  border: "none",
+  borderBottom: isLast ? "none" : "1px solid #F0EEE9",
+  background: "transparent",
   textAlign: "left",
+  cursor: "pointer",
+  WebkitTapHighlightColor: "transparent",
 })
 
-const hourSelectorButtonText: React.CSSProperties = {
+const hourRowDate: React.CSSProperties = { fontSize: 15, fontWeight: 700, color: "#152F40", flexShrink: 0 }
+
+const hourRowRight: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, minWidth: 0 }
+
+// Rempli = résumé en navy (même poids que la fecha, la sélection est le fait
+// notable) ; vide = "Elegir horario" en gris mais toujours accompagné de la
+// flèche, pour rester lisible comme actionnable sans avoir l'air rempli.
+const hourRowSummary = (hasHours: boolean): React.CSSProperties => ({
+  fontSize: 14,
+  fontWeight: hasHours ? 600 : 500,
+  color: hasHours ? "#152F40" : "#8f8f8f",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-}
+  minWidth: 0,
+})
+
+const hourRowArrow: React.CSSProperties = { fontSize: 14, color: "#152F40", fontWeight: 600, flexShrink: 0 }
 
 const sheetBodyWrap: React.CSSProperties = { padding: "4px 0 24px" }
 
 const sheetDateTitle: React.CSSProperties = { fontSize: 18, fontWeight: 700, color: "#152F40", margin: 0 }
 
-const sheetSubtitle: React.CSSProperties = { fontSize: 13, color: "#8f8f8f", marginTop: 6, marginBottom: 4 }
+const sheetQuestion: React.CSSProperties = { fontSize: 15, fontWeight: 600, color: "#152F40", marginTop: 12, marginBottom: 2 }
+
+const sheetSubtitle: React.CSSProperties = { fontSize: 13, color: "#8f8f8f", marginTop: 0, marginBottom: 16 }
 
 const sheetSaveBtn: React.CSSProperties = {
   width: "100%",
@@ -607,18 +619,12 @@ const sheetSaveBtn: React.CSSProperties = {
   border: "none",
 }
 
-const hourGroupBlock: React.CSSProperties = { marginTop: 14 }
-
-const hourGroupLabel: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  fontSize: 12,
-  fontWeight: 600,
-  color: "#8f8f8f",
-  marginBottom: 8,
-  textTransform: "uppercase",
-  letterSpacing: 0.3,
+// Matrice de chips (grid, pas flex-wrap) : alignement propre en colonnes,
+// lisible en un coup d'œil sans regroupement Mañana/Tarde/Noche.
+const hourGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, 1fr)",
+  gap: 10,
 }
 
 const accentDot = (color: string): React.CSSProperties => ({
@@ -631,16 +637,18 @@ const accentDot = (color: string): React.CSSProperties => ({
 })
 
 const hourChipStyle = (active: boolean): React.CSSProperties => ({
-  padding: "8px 12px",
-  borderRadius: 999,
+  width: "100%",
+  padding: "10px 6px",
+  borderRadius: 12,
   border: active ? "1.5px solid #152F40" : "1px solid #E5E2DB",
   background: active ? "#152F40" : "#fff",
   color: active ? "#fff" : "#555",
-  fontWeight: active ? 600 : 400,
+  fontWeight: active ? 600 : 500,
   fontSize: 13,
   display: "flex",
-  gap: 6,
+  gap: 5,
   alignItems: "center",
+  justifyContent: "center",
 })
 
 const personasMainRow: React.CSSProperties = {
