@@ -348,7 +348,10 @@ export default function FechasPage() {
               Creando reserva...
             </>
           ) : (
-            "Continuar →"
+            <>
+              Continuar
+              <span style={ctaArrow}>→</span>
+            </>
           )}
         </button>
       </div>
@@ -699,5 +702,11 @@ const cta: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 10,
+  gap: 8,
+}
+
+const ctaArrow: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  lineHeight: 1,
 }
