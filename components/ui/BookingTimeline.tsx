@@ -2,6 +2,7 @@
 
 import { Check, X, ChevronLeft, ChevronRight } from "lucide-react"
 import { categoryColors } from "@/lib/map/categoryColors"
+import BrandDots from "@/components/ui/BrandDots"
 
 export type BookingStatus =
   | "requested"
@@ -108,20 +109,19 @@ export default function BookingTimeline({ status, category, onNext, onPrev, acti
           Así va tu experiencia
         </h3>
 
-        {(onNext || onPrev) && (
-          <div style={{ display: "flex", gap: 8 }}>
-            {onPrev && (
-              <button onClick={onPrev} style={arrowBtn}>
-                <ChevronLeft size={16} />
-              </button>
-            )}
-            {onNext && (
-              <button onClick={onNext} style={arrowBtn}>
-                <ChevronRight size={16} />
-              </button>
-            )}
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <BrandDots style={{ marginBottom: 0 }} />
+          {onPrev && (
+            <button onClick={onPrev} style={arrowBtn}>
+              <ChevronLeft size={16} />
+            </button>
+          )}
+          {onNext && (
+            <button onClick={onNext} style={arrowBtn}>
+              <ChevronRight size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div>
