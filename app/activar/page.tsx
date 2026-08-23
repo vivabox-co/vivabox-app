@@ -138,7 +138,7 @@ function WelcomeCard({ onFinish, loading }: { onFinish: () => void; loading: boo
             Comenzando...
           </>
         ) : (
-          "Activar mi regalo"
+          "Empezar"
         )}
       </button>
     </div>
