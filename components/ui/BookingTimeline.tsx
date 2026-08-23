@@ -105,23 +105,27 @@ export default function BookingTimeline({ status, category, onNext, onPrev, acti
         justifyContent: "space-between",
         marginBottom: 22,
       }}>
-        <h3 style={{ fontSize: 18, margin: 0 }}>
-          Así va tu experiencia
-        </h3>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <h3 style={{ fontSize: 18, margin: 0 }}>
+            Así va tu experiencia
+          </h3>
           <BrandDots style={{ marginBottom: 0 }} />
-          {onPrev && (
-            <button onClick={onPrev} style={arrowBtn}>
-              <ChevronLeft size={16} />
-            </button>
-          )}
-          {onNext && (
-            <button onClick={onNext} style={arrowBtn}>
-              <ChevronRight size={16} />
-            </button>
-          )}
         </div>
+
+        {(onNext || onPrev) && (
+          <div style={{ display: "flex", gap: 8 }}>
+            {onPrev && (
+              <button onClick={onPrev} style={arrowBtn}>
+                <ChevronLeft size={16} />
+              </button>
+            )}
+            {onNext && (
+              <button onClick={onNext} style={arrowBtn}>
+                <ChevronRight size={16} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div>
