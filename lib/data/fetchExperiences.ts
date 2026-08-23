@@ -117,6 +117,7 @@ function mapRow(row: Record<string, string>): Experience | null {
     importantToKnow: toArray(row.info_importante),
     ambiance: toArray(row.ambiente_animo),
     environment: clean(row.entorno) as Environment,
+    badges: toArray(row.badges_visibles, "|"),
     providerPhone: clean(row.proveedor_telefono),
     needsPhone: toBool(row.requiere_telefono),
     needsPeopleCount: toBool(row.requiere_num_personas),

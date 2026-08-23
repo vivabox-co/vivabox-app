@@ -85,6 +85,12 @@ export type Experience = {
   ambiance?: string[]
   environment?: Environment
 
+  // Claves editoriales (col. badges_visibles), hasta 3 por fila. No son un
+  // sistema de restricciones — mezclan highlights (chimenea, con_chef) con
+  // datos ya mostrados en otra sección (esfuerzo_alto, al_aire_libre); ver
+  // BADGE_LABELS/EXCLUDED_BADGE_KEYS en ExperienceExploreMeta.
+  badges?: string[]
+
   /* 🔑 DONNÉES UTILISÉES APRÈS CONFIRMATION */
   address?: string              // affiché après confirmation
   meetingPointNote?: string

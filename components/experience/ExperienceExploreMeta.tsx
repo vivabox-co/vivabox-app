@@ -19,6 +19,7 @@ import {
   UserCheck,
   Info,
   Heart,
+  AlertTriangle,
   type LucideIcon,
 } from "lucide-react"
 
@@ -54,6 +55,24 @@ export default function ExperienceExploreMeta({ exp }: Props) {
     )
   )
 
+  // requisitos/info_importante mezclan en una misma celda restricciones que
+  // pueden descartar la experiencia (edad, licencia, salud) con recomendaciones
+  // blandas (buena condición física, llevar abrigo). extractConstraints separa
+  // las frases "no apto para.../mayor de X años/licencia" del resto, para
+  // mostrarlas cerca del hero en vez de enterrarlas en Ten en cuenta.
+  const { hard: hardFromRequirements, soft: softRequirements } = extractConstraints(exp.requirements)
+  const { hard: hardFromImportant, soft: softImportant } = extractConstraints(exp.importantToKnow)
+  const hardConstraints = [...hardFromRequirements, ...hardFromImportant]
+
+  // badges_visibles trae hasta 3 claves por fila, pero varias duplican una
+  // info que ya se muestra en otra sección (esfuerzo, entorno, incluye). Solo
+  // vale la pena mostrar cerca del hero lo que no se dice en ningún otro
+  // lado — máximo 2, nunca las 3 mecánicamente.
+  const highlightBadges = (exp.badges || [])
+    .filter((key) => !EXCLUDED_BADGE_KEYS.has(key))
+    .map((key) => BADGE_LABELS[key] || humanizeBadgeKey(key))
+    .slice(0, 2)
+
   // "Antes de elegir": datos prácticos reales, traducidos a lenguaje humano.
   const decisionItems: string[] = []
   if (exp.environment && ENVIRONMENT_LABEL[exp.environment]) {
@@ -68,8 +87,8 @@ export default function ExperienceExploreMeta({ exp }: Props) {
   // decisión, es el mismo ruido que un "no aplica".
   if (isRelevantNote(exp.weatherNote)) decisionItems.push(exp.weatherNote!)
   if (isRelevantNote(exp.clothingNote)) decisionItems.push(exp.clothingNote!)
-  decisionItems.push(...(exp.requirements || []))
-  decisionItems.push(...(exp.importantToKnow || []))
+  decisionItems.push(...softRequirements)
+  decisionItems.push(...softImportant)
 
   return (
     <div style={{ paddingBottom: 24 }}>
@@ -113,6 +132,32 @@ export default function ExperienceExploreMeta({ exp }: Props) {
                   {fact.text}
                 </span>
               </Fragment>
+            ))}
+          </div>
+        )}
+
+        {/* 1bis. RESTRICCIONES DURAS — lo único que puede impedir elegir esta
+               experiencia (edad, licencia, salud). Cerca del hero, antes de
+               cualquier texto editorial, para no descubrirlo tarde. */}
+        {hardConstraints.length > 0 && (
+          <div style={warnBlock}>
+            {hardConstraints.map((text, i) => (
+              <div key={i} style={warnItem}>
+                <AlertTriangle size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>{text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 1ter. HIGHLIGHTS — hasta 2 claves de badges_visibles, ya
+               filtradas de lo que duplica otra sección (ver EXCLUDED_BADGE_KEYS). */}
+        {highlightBadges.length > 0 && (
+          <div style={highlightRow}>
+            {highlightBadges.map((label, i) => (
+              <span key={i} style={highlightPill}>
+                {label}
+              </span>
             ))}
           </div>
         )}
@@ -262,9 +307,84 @@ const EFFORT_LABEL: Record<EffortLevel, string> = {
   alto: "Esfuerzo alto",
 }
 
+// Etiquetas humanas para las claves de badges_visibles observadas en el
+// Sheet en producción (16 filas publicadas, agosto 2026). Una clave nueva
+// que no esté aquí no rompe nada: humanizeBadgeKey() da un fallback legible.
+const BADGE_LABELS: Record<string, string> = {
+  nivel_basico: "No necesitas experiencia",
+  en_montana: "En la montaña",
+  con_animales: "Con animales",
+  parrilla: "Con parrillada",
+  en_silencio: "En silencio",
+  sin_pantallas: "Sin pantallas",
+  traje_bano: "Trae traje de baño",
+  glamping: "Domo de glamping",
+  en_naturaleza: "En plena naturaleza",
+  desconexion: "Desconexión",
+  vista_montana: "Vista a la montaña",
+  cabana: "Cabaña",
+  chimenea: "Chimenea",
+  cocina_colombiana: "Cocina colombiana",
+  ingredientes_locales: "Ingredientes locales",
+  menu_degustacion: "Menú degustación",
+  maridaje: "Con maridaje",
+  taller_practico: "Taller práctico",
+  cata_chocolate: "Cata de chocolate",
+  cata_cafe: "Cata de café",
+  reposteria: "Repostería",
+  degustacion: "Degustación",
+  preparas_tu_plato: "Preparas tu propio plato",
+  con_chef: "Con chef",
+}
+
+// Claves que duplican una info ya visible en otra sección de la fiche —
+// mostrarlas también como highlight sería repetir, no aportar.
+const EXCLUDED_BADGE_KEYS = new Set([
+  "esfuerzo_alto",   // ya en Ten en cuenta (EFFORT_LABEL)
+  "esfuerzo_medio",
+  "esfuerzo_bajo",
+  "al_aire_libre",   // ya en Ten en cuenta (ENVIRONMENT_LABEL)
+  "interior",
+  "equipo_incluido", // ya en Qué incluye
+  "equipo_seguridad",
+  "guia_incluido",
+  "brunch",          // ya en el título
+])
+
+function humanizeBadgeKey(key: string): string {
+  return key.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())
+}
+
 function isRelevantNote(note?: string): note is string {
   if (!note) return false
   return !/^no (influye|aplica)/i.test(note.trim())
+}
+
+// Detecta, dentro de una frase, una exclusión dura (puede impedir elegir la
+// experiencia) frente a una recomendación blanda. Heurística de texto, no un
+// campo estructurado: requisitos/info_importante en el Sheet mezclan ambos
+// tipos en una misma celda sin marcador de severidad (ej. escalada: "Tener
+// buena condición física. No apto para personas con vértigo o problemas
+// cardíacos." — una frase blanda y una dura, sin separador semántico).
+const HARD_CONSTRAINT_RE = /no apto|mayor de \d+|licencia/i
+
+function splitSentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+function extractConstraints(items: string[] = []): { hard: string[]; soft: string[] } {
+  const hard: string[] = []
+  const soft: string[] = []
+  items.forEach((item) => {
+    splitSentences(item).forEach((sentence) => {
+      if (HARD_CONSTRAINT_RE.test(sentence)) hard.push(sentence)
+      else soft.push(sentence)
+    })
+  })
+  return { hard, soft }
 }
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -370,6 +490,50 @@ const quickFactItem: React.CSSProperties = {
 
 const quickFactSep: React.CSSProperties = {
   color: "#ccc",
+}
+
+/* Restricciones duras — tono cálido, no alarmante (nunca rojo: ver
+   Anti_Patterns.md, "colores agresivos = tensión") */
+
+const warnBlock: React.CSSProperties = {
+  marginTop: 12,
+  display: "flex",
+  flexDirection: "column",
+  gap: 6,
+}
+
+const warnItem: React.CSSProperties = {
+  display: "flex",
+  gap: 8,
+  alignItems: "flex-start",
+  padding: "8px 12px",
+  background: "#FFF6E5",
+  border: "1px solid #F3DDAE",
+  borderRadius: 12,
+  fontSize: 13,
+  lineHeight: 1.4,
+  color: "#6B4B12",
+  fontWeight: 600,
+}
+
+/* Highlights (badges_visibles) — tono neutro, no compite con la categoría
+   ni con el aviso de restricciones. */
+
+const highlightRow: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+  marginTop: 12,
+}
+
+const highlightPill: React.CSSProperties = {
+  display: "inline-flex",
+  padding: "5px 12px",
+  borderRadius: 20,
+  background: "#F3EFEA",
+  color: "#444",
+  fontSize: 13,
+  fontWeight: 600,
 }
 
 /* La elegimos */
