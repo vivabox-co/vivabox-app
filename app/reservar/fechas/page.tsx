@@ -5,6 +5,7 @@ import { useUI, usePageReady } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
 import { Calendar, Clock, Users, Sunrise, Sun, Sunset, Check } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
+import BottomSheet from "@/components/ui/BottomSheet"
 import PhotoGallery from "@/components/ui/PhotoGallery"
 import { formatLocalDate } from "@/lib/utils/formatLocalDate"
 import { categoryColors } from "@/lib/map/categoryColors"
@@ -67,12 +68,14 @@ export default function FechasPage() {
 
   const [selectedDates, setSelectedDates] = useState<string[]>([])
   const [openCalendar, setOpenCalendar] = useState(false)
-  // Préférences horaires par date ("2026-08-26": ["08:00", "09:00"]) — une
-  // seule date est "active" à la fois côté UI pour ne pas empiler les 3
-  // fechas verticalement, mais les sélections des autres dates sont
-  // conservées dans cet objet en arrière-plan.
+  // Préférences horaires par date ("2026-08-26": ["08:00", "09:00"]) — chaque
+  // fecha a son propre bloc indépendant dans le JSX (pas de "fecha activa"
+  // globale qui contrôlerait une section partagée, cf. retour utilisateur :
+  // ce modèle-tab n'était pas assez explicite).
   const [datePreferences, setDatePreferences] = useState<Record<string, string[]>>({})
-  const [activeDate, setActiveDate] = useState<string | null>(null)
+  // Date dont le bottom sheet d'horarios est ouvert (null = fermé). Un seul
+  // sheet est réutilisé pour les 3 fechas plutôt que d'en monter un par date.
+  const [openHourSheet, setOpenHourSheet] = useState<string | null>(null)
   const [extraPeople, setExtraPeople] = useState(0)
   const [loading, setLoading] = useState(false) // 👈 pour l'appel API
 
@@ -237,16 +240,9 @@ export default function FechasPage() {
           {selectedDates.length > 0 && (
             <div style={dateChipsRow}>
               {selectedDates.map((d, i) => (
-                <button
-                  key={d}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setActiveDate(d)
-                  }}
-                  style={dateChipStyle(d === activeDate, i === 0, categoryColor)}
-                >
+                <span key={d} style={dateChipStyle(i === 0, categoryColor)}>
                   {formatDateChip(d)}
-                </button>
+                </span>
               ))}
             </div>
           )}
@@ -259,43 +255,37 @@ export default function FechasPage() {
         </section>
 
         {/* ---------- HORARIOS ---------- */}
-        {selectedDates.length > 0 && activeDate && (
-          <section style={section}>
-            <h2 style={sectionTitle}>
-              <Clock size={17} style={sectionTitleIcon} />
-              Horarios que te funcionan
-            </h2>
-            <p style={sectionDescription}>Puedes elegir varios horarios para cada fecha.</p>
-
-            <div style={activeDateLabelRow}>
-              <span style={activeDateLabel}>{formatDateChip(activeDate)}</span>
-              {(datePreferences[activeDate]?.length ?? 0) > 0 && (
-                <span style={activeDateCount}>
-                  {datePreferences[activeDate].length} seleccionado{datePreferences[activeDate].length > 1 ? "s" : ""}
-                </span>
-              )}
+        {/* Un bloc indépendant par fecha (pas de tab/fecha-activa partagée) :
+            le lien fecha → horario doit être visuellement évident sans essai-
+            erreur — chaque carte porte sa propre date et son propre sélecteur. */}
+        {selectedDates.length > 0 && (
+          <>
+            <div style={horariosHeaderWrap}>
+              <h2 style={sectionTitle}>
+                <Clock size={17} style={sectionTitleIcon} />
+                Horarios que te funcionan
+              </h2>
+              <p style={sectionDescription}>Cada fecha puede tener un horario distinto.</p>
             </div>
 
-            {PERIODS.map(period => (
-              <div key={period} style={hourGroupBlock}>
-                <span style={hourGroupLabel}>
-                  {PERIOD_ICON[period]}
-                  {MOMENT_LABEL[period]}
-                </span>
-                <div style={chipsRow}>
-                  {HOUR_RANGES[period].map(h => (
-                    <HourChip
-                      key={h}
-                      label={h}
-                      active={(datePreferences[activeDate] ?? []).includes(h)}
-                      color={categoryColor}
-                      onClick={() => toggleHour(activeDate, h)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </section>
+            {selectedDates.map(d => {
+              const hours = datePreferences[d] ?? []
+              const hasHours = hours.length > 0
+              return (
+                <section key={d} style={section}>
+                  <div style={dateHourHeader}>
+                    <Calendar size={15} style={sectionTitleIcon} />
+                    <span style={dateHourDateLabel}>{formatDateChip(d)}</span>
+                  </div>
+                  <span style={dateHourHint}>Horario que te funciona</span>
+                  <button onClick={() => setOpenHourSheet(d)} style={hourSelectorButton(hasHours)}>
+                    <span style={hourSelectorButtonText}>{hasHours ? hours.join(" · ") : "Elegir horario"}</span>
+                    <span>{hasHours ? "Cambiar →" : "→"}</span>
+                  </button>
+                </section>
+              )
+            })}
+          </>
         )}
 
         {/* ---------- PERSONAS ---------- */}
@@ -376,11 +366,52 @@ export default function FechasPage() {
               for (const d of newDates) if (prev[d]) next[d] = prev[d]
               return next
             })
-            setActiveDate(prev => (prev && newDates.includes(prev) ? prev : newDates[0] ?? null))
+            // Si la fecha dont le sheet horarios était ouvert vient d'être
+            // retirée, on ferme le sheet plutôt que de le laisser configurer
+            // une date qui n'existe plus.
+            setOpenHourSheet(prev => (prev && newDates.includes(prev) ? prev : null))
             setOpenCalendar(false)
           }}
         />
       )}
+
+      <BottomSheet
+        open={!!openHourSheet}
+        onClose={() => setOpenHourSheet(null)}
+        body={
+          openHourSheet && (
+            <div style={sheetBodyWrap}>
+              <h3 style={sheetDateTitle}>{formatDateChip(openHourSheet)}</h3>
+              <p style={sheetSubtitle}>Elige una o varias horas que te funcionen.</p>
+
+              {PERIODS.map(period => (
+                <div key={period} style={hourGroupBlock}>
+                  <span style={hourGroupLabel}>
+                    {PERIOD_ICON[period]}
+                    {MOMENT_LABEL[period]}
+                  </span>
+                  <div style={chipsRow}>
+                    {HOUR_RANGES[period].map(h => (
+                      <HourChip
+                        key={h}
+                        label={h}
+                        active={(datePreferences[openHourSheet] ?? []).includes(h)}
+                        color={categoryColor}
+                        onClick={() => toggleHour(openHourSheet, h)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        }
+        footer={
+          <button onClick={() => setOpenHourSheet(null)} className="vb-btn-primary" style={sheetSaveBtn}>
+            Guardar horarios
+          </button>
+        }
+      />
     </>
   )
 }
@@ -512,35 +543,69 @@ const chipsRow: React.CSSProperties = { display: "flex", gap: 8, flexWrap: "wrap
 
 const dateChipsRow: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }
 
-// Le chip navy/blanc marque la date "active" (celle dont les horarios sont
-// affichés en dessous) ; l'anneau de couleur catégorie marque en plus la
-// fecha preferida (index 0 de selectedDates), indépendamment de l'activité —
-// les deux concepts sont distincts mais partagent le même langage visuel que
-// le reste de l'app (voir momentChipStyle historique / DatePickerModal).
-const dateChipStyle = (isActive: boolean, isPreferred: boolean, color: string): React.CSSProperties => ({
+// Ces chips ne sont plus des tabs cliquables : uniquement un rappel visuel
+// des fechas choisies. La fecha preferida (index 0) garde son anneau de
+// couleur catégorie, seul signal encore porté par ce composant.
+const dateChipStyle = (isPreferred: boolean, color: string): React.CSSProperties => ({
   padding: "9px 15px",
   borderRadius: 999,
-  border: "none",
-  background: isActive ? "#152F40" : "#F7F5F2",
-  color: isActive ? "#fff" : "#666",
+  background: isPreferred ? "#152F40" : "#F7F5F2",
+  color: isPreferred ? "#fff" : "#666",
   fontSize: 13,
-  fontWeight: isActive ? 600 : 500,
+  fontWeight: isPreferred ? 600 : 500,
   whiteSpace: "nowrap",
-  cursor: "pointer",
   boxShadow: isPreferred ? `0 0 0 2px ${color}` : "none",
 })
 
-const activeDateLabelRow: React.CSSProperties = {
+const horariosHeaderWrap: React.CSSProperties = { margin: "20px 20px 0 20px" }
+
+const dateHourHeader: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }
+
+const dateHourDateLabel: React.CSSProperties = { fontSize: 15, fontWeight: 700, color: "#152F40" }
+
+const dateHourHint: React.CSSProperties = { display: "block", fontSize: 12, color: "#8f8f8f", marginBottom: 12 }
+
+// Plein-largeur et bordé même sans sélection, pour qu'il se lise comme un
+// bouton tappable dès le premier rendu — pas comme un simple lien texte.
+const hourSelectorButton = (hasHours: boolean): React.CSSProperties => ({
+  width: "100%",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: 10,
-  marginBottom: 4,
+  padding: "13px 16px",
+  borderRadius: 14,
+  border: hasHours ? "1.5px solid #152F40" : "1px solid #E5E2DB",
+  background: hasHours ? "#152F40" : "#fff",
+  color: hasHours ? "#fff" : "#152F40",
+  fontSize: 14,
+  fontWeight: 600,
+  cursor: "pointer",
+  textAlign: "left",
+})
+
+const hourSelectorButtonText: React.CSSProperties = {
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 }
 
-const activeDateLabel: React.CSSProperties = { fontSize: 15, fontWeight: 700, color: "#152F40" }
+const sheetBodyWrap: React.CSSProperties = { padding: "4px 0 24px" }
 
-const activeDateCount: React.CSSProperties = { fontSize: 12, color: "#8f8f8f", fontWeight: 500 }
+const sheetDateTitle: React.CSSProperties = { fontSize: 18, fontWeight: 700, color: "#152F40", margin: 0 }
+
+const sheetSubtitle: React.CSSProperties = { fontSize: 13, color: "#8f8f8f", marginTop: 6, marginBottom: 4 }
+
+const sheetSaveBtn: React.CSSProperties = {
+  width: "100%",
+  padding: 16,
+  borderRadius: 14,
+  background: "#152F40",
+  color: "#fff",
+  fontSize: 15,
+  fontWeight: 600,
+  border: "none",
+}
 
 const hourGroupBlock: React.CSSProperties = { marginTop: 14 }
 
