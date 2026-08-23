@@ -456,7 +456,7 @@ const emptyStateBtn: React.CSSProperties = {
 const heroWrapper: React.CSSProperties = {
   position: "relative",
   width: "100%",
-  height: "40vh",
+  aspectRatio: "16 / 9",
   overflow: "hidden",
 }
 
