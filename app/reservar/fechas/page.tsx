@@ -8,6 +8,7 @@ import DatePickerModal from "@/components/ui/DatePickerModal"
 import BottomSheet from "@/components/ui/BottomSheet"
 import PhotoGallery from "@/components/ui/PhotoGallery"
 import BrandRibbon from "@/components/ui/BrandRibbon"
+import BrandDots from "@/components/ui/BrandDots"
 import { formatLocalDate } from "@/lib/utils/formatLocalDate"
 import { categoryColors } from "@/lib/map/categoryColors"
 
@@ -206,7 +207,11 @@ export default function FechasPage() {
 
         <BrandRibbon />
 
-        <p style={intro}>
+        <div style={{ padding: "18px 20px 0" }}>
+          <BrandDots />
+        </div>
+
+        <p style={{ ...intro, paddingTop: 0 }}>
           Elige hasta 3 fechas. <strong style={introStrong}>Nosotros coordinamos.</strong>
         </p>
 
