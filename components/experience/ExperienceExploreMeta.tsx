@@ -64,14 +64,26 @@ export default function ExperienceExploreMeta({ exp }: Props) {
   const { hard: hardFromImportant, soft: softImportant } = extractConstraints(exp.importantToKnow)
   const hardConstraints = [...hardFromRequirements, ...hardFromImportant]
 
-  // badges_visibles trae hasta 3 claves por fila, pero varias duplican una
-  // info que ya se muestra en otra sección (esfuerzo, entorno, incluye). Solo
-  // vale la pena mostrar cerca del hero lo que no se dice en ningún otro
-  // lado — máximo 2, nunca las 3 mecánicamente.
+  // claves_eleccion trae hasta 3 claves curadas por fila (regla editorial
+  // desde el 23/08/2026: solo lo que puede influir en la decisión, vacío si
+  // no hay nada que valga la pena). El filtro EXCLUDED_BADGE_KEYS se
+  // mantiene pese a la curación editorial: aunque el editor elija esa clave
+  // a propósito, seguiría siendo una repetición visual de lo que ya se
+  // muestra en Ten en cuenta / Qué incluye — el filtro protege el layout,
+  // no la intención del editor. Máximo 2, nunca las 3 mecánicamente.
   const highlightBadges = (exp.badges || [])
     .filter((key) => !EXCLUDED_BADGE_KEYS.has(key))
     .map((key) => BADGE_LABELS[key] || humanizeBadgeKey(key))
     .slice(0, 2)
+
+  // Si claves_eleccion tenía contenido pero todo terminó filtrado, puede ser
+  // intencional (nada diferenciador para esta experiencia) o una fila que
+  // aún no fue re-curada tras el cambio de regla editorial — el código no
+  // puede distinguir los dos casos. Este warning ayuda en QA a detectar
+  // filas a revisar, sin cambiar nada en la interfaz.
+  if (process.env.NODE_ENV !== "production" && (exp.badges?.length ?? 0) > 0 && highlightBadges.length === 0) {
+    console.warn(`⚠️ ${exp.id}: claves_eleccion (${exp.badges!.join("|")}) entièrement filtrée → 0 highlight affiché`)
+  }
 
   // "Antes de elegir": datos prácticos reales, traducidos a lenguaje humano.
   const decisionItems: string[] = []
@@ -150,7 +162,7 @@ export default function ExperienceExploreMeta({ exp }: Props) {
           </div>
         )}
 
-        {/* 1ter. HIGHLIGHTS — hasta 2 claves de badges_visibles, ya
+        {/* 1ter. HIGHLIGHTS — hasta 2 claves de claves_eleccion, ya
                filtradas de lo que duplica otra sección (ver EXCLUDED_BADGE_KEYS). */}
         {highlightBadges.length > 0 && (
           <div style={highlightRow}>
@@ -307,9 +319,12 @@ const EFFORT_LABEL: Record<EffortLevel, string> = {
   alto: "Esfuerzo alto",
 }
 
-// Etiquetas humanas para las claves de badges_visibles observadas en el
-// Sheet en producción (16 filas publicadas, agosto 2026). Una clave nueva
-// que no esté aquí no rompe nada: humanizeBadgeKey() da un fallback legible.
+// Etiquetas humanas para las claves de claves_eleccion observadas en el
+// Sheet en producción (16 filas publicadas, agosto 2026). Desde el
+// 23/08/2026 la columna acepta también texto libre para un detalle puntual
+// que no merece una clave permanente aquí (ej. "2 bebidas") — ese texto cae
+// en el mismo fallback humanizeBadgeKey() que una clave todavía no
+// registrada, y no rompe nada en ninguno de los dos casos.
 const BADGE_LABELS: Record<string, string> = {
   nivel_basico: "No necesitas experiencia",
   en_montana: "En la montaña",
@@ -351,6 +366,10 @@ const EXCLUDED_BADGE_KEYS = new Set([
   "brunch",          // ya en el título
 ])
 
+// Fallback para una clave sin entrada en BADGE_LABELS: puede ser una clave
+// snake_case todavía no registrada ("vista_al_lago" → "Vista al lago") o
+// texto libre ya escrito en lenguaje humano ("2 bebidas" queda igual, solo
+// se capitaliza la primera letra si hace falta).
 function humanizeBadgeKey(key: string): string {
   return key.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())
 }
@@ -516,7 +535,7 @@ const warnItem: React.CSSProperties = {
   fontWeight: 600,
 }
 
-/* Highlights (badges_visibles) — tono neutro, no compite con la categoría
+/* Highlights (claves_eleccion) — tono neutro, no compite con la categoría
    ni con el aviso de restricciones. */
 
 const highlightRow: React.CSSProperties = {

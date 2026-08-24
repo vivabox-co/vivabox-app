@@ -85,10 +85,12 @@ export type Experience = {
   ambiance?: string[]
   environment?: Environment
 
-  // Claves editoriales (col. badges_visibles), hasta 3 por fila. No son un
-  // sistema de restricciones — mezclan highlights (chimenea, con_chef) con
-  // datos ya mostrados en otra sección (esfuerzo_alto, al_aire_libre); ver
-  // BADGE_LABELS/EXCLUDED_BADGE_KEYS en ExperienceExploreMeta.
+  // Claves editoriales (col. claves_eleccion, ex-badges_visibles — renommée
+  // le 23/08/2026 côté sheet : règle éditoriale resserrée à 2-3 infos qui
+  // influencent vraiment la décision, plutôt vide que générique), hasta 3
+  // por fila. No son un sistema de restricciones — mezclan highlights
+  // (chimenea, con_chef) con datos ya mostrados en otra sección (esfuerzo_alto,
+  // al_aire_libre); ver BADGE_LABELS/EXCLUDED_BADGE_KEYS en ExperienceExploreMeta.
   badges?: string[]
 
   /* 🔑 DONNÉES UTILISÉES APRÈS CONFIRMATION */

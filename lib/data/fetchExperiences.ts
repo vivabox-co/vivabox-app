@@ -108,7 +108,12 @@ function mapRow(row: Record<string, string>): Experience | null {
     gallery: toArray(row.imagenes_adicionales, "|").map(toAssetPath),
     vivanote: clean(row.nota_vivabox),
     shortDescription: clean(row.descripcion_corta),
-    includes: toArray(row.incluye),
+    // incluye est standardisé sur "·" depuis le 23/08/2026 (liste courte,
+    // pas de virgules) précisément parce que certains éléments contiennent
+    // eux-mêmes des virgules internes, ex. AVE-COR-004 :
+    // "refrigerio (agua de panela, arepa, queso, almojábana)" — un seul
+    // élément de la liste, qui casserait en 4 fragments avec un split ",".
+    includes: toArray(row.incluye, "·"),
     requirements: toArray(row.requisitos),
     idealFor: toArray(row.ideal_para),
     effortLevel: clean(row.nivel_esfuerzo) as EffortLevel,
@@ -117,7 +122,7 @@ function mapRow(row: Record<string, string>): Experience | null {
     importantToKnow: toArray(row.info_importante),
     ambiance: toArray(row.ambiente_animo),
     environment: clean(row.entorno) as Environment,
-    badges: toArray(row.badges_visibles, "|"),
+    badges: toArray(row.claves_eleccion, "|"),
     providerPhone: clean(row.proveedor_telefono),
     needsPhone: toBool(row.requiere_telefono),
     needsPeopleCount: toBool(row.requiere_num_personas),
