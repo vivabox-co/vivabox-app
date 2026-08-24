@@ -79,6 +79,172 @@ function toAssetPath(value: string = ""): string {
   return v.replace(/^\/images\//, "/image/")
 }
 
+/* ================= TEN EN CUENTA (requisitos_excluyentes / recomendaciones / aviso_previo) =================
+ *
+ * El Sheet soporta dos esquemas para "qué debe saber el beneficiario antes
+ * de elegir": las columnas nuevas y explícitas (requisitos_excluyentes,
+ * recomendaciones, aviso_previo, clima_afecta, ropa_especial), y el esquema
+ * legado (una sola columna `requisitos`/`info_importante` en texto libre que
+ * mezcla exclusiones duras con recomendaciones blandas, y `nota_clima`/
+ * `nota_vestimenta` con la convención manual "Influye: "/"No influye").
+ * mapRow() usa las columnas nuevas cuando la fila ya fue migrada, y cae de
+ * vuelta a la heurística de texto libre para las filas que no.
+ */
+
+// Separa frases dentro de una celda por puntuación de fin de oración — NO por
+// coma, porque una sola frase real puede contener comas internas (ej. "No
+// apto para personas con vértigo, problemas cardíacos o de columna."), que
+// un split por "," rompería en dos fragmentos sin sentido.
+function splitSentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+// Heurística de texto para el esquema legado: separa, dentro de una lista de
+// frases, las exclusiones duras (pueden impedir elegir la experiencia) de
+// los avisos que hay que comunicar antes de reservar, y deja el resto como
+// recomendación blanda.
+const HARD_CONSTRAINT_RE = /no apto|mayor de \d+|licencia/i
+const DISCLOSURE_RE = /^avisar\b/i
+
+function classifyLegacySentences(sentences: string[]): {
+  hard: string[]
+  soft: string[]
+  aviso: string[]
+} {
+  const hard: string[] = []
+  const soft: string[] = []
+  const aviso: string[] = []
+  sentences.forEach((sentence) => {
+    if (HARD_CONSTRAINT_RE.test(sentence)) hard.push(sentence)
+    else if (DISCLOSURE_RE.test(sentence)) aviso.push(sentence)
+    else soft.push(sentence)
+  })
+  return { hard, soft, aviso }
+}
+
+// Quita el prefijo editorial "Influye: " del esquema legado (marca interna
+// para que isRelevantNote pueda filtrar "No influye") — no es lenguaje para
+// el beneficiario.
+function stripInfluencePrefix(note: string): string {
+  const stripped = note.replace(/^\s*influye\s*:?\s*/i, "").trim()
+  // nota_vestimenta se escribe en el Sheet como frase nominal en minúscula
+  // pensada para leerse después de "Influye: " (ej. "ropa cómoda y calzado
+  // cerrado") — al quitar el prefijo queda como oración suelta y sin
+  // mayúscula inicial, así que se capitaliza para que combine con el resto
+  // de líneas de la lista (que sí son oraciones completas).
+  return stripped.charAt(0).toUpperCase() + stripped.slice(1)
+}
+
+// Esquema legado: "No influye"/"No aplica" es una nota real (alguien la
+// verificó) pero no debe llegar al beneficiario — no cambia su decisión, es
+// el mismo ruido que una celda vacía.
+function isRelevantNote(note: string): boolean {
+  return !!note && !/^no (influye|aplica)/i.test(note.trim())
+}
+
+const DEDUPE_STOPWORDS = new Set([
+  "de", "la", "el", "los", "las", "para", "al", "en", "con", "y", "o",
+  "un", "una", "que", "se", "es", "si", "hay", "por", "del", "su", "tu",
+  "lo", "más", "muy", "no", "sin", "llevar", "traer",
+])
+
+function wordsForCompare(text: string): Set<string> {
+  const normalized = text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+  return new Set(
+    normalized.split(/\s+/).filter((w) => w && !DEDUPE_STOPWORDS.has(w))
+  )
+}
+
+function wordOverlapRatio(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0
+  let common = 0
+  a.forEach((w) => {
+    if (b.has(w)) common++
+  })
+  return common / Math.min(a.size, b.size)
+}
+
+// requisitos/info_importante y nota_clima/nota_vestimenta no se coordinan
+// entre sí en el esquema legado — la misma recomendación puede quedar
+// redactada dos veces con palabras distintas en dos columnas. Se compara por
+// solapamiento de palabras (no texto exacto) y se conserva la primera
+// aparición.
+const DEDUPE_SIMILARITY_THRESHOLD = 0.6
+
+function dedupeSimilar(items: string[]): string[] {
+  const kept: { text: string; words: Set<string> }[] = []
+  items.forEach((item) => {
+    const words = wordsForCompare(item)
+    const isDuplicate = kept.some(
+      (k) => wordOverlapRatio(k.words, words) >= DEDUPE_SIMILARITY_THRESHOLD
+    )
+    if (!isDuplicate) kept.push({ text: item, words })
+  })
+  return kept.map((k) => k.text)
+}
+
+function deriveTenEnCuenta(row: Record<string, string>): {
+  requisitosExcluyentes: string[]
+  recomendaciones: string[]
+  avisoPrevio: string[]
+} {
+  const newExcluyentes = clean(row.requisitos_excluyentes)
+  const newRecomendaciones = clean(row.recomendaciones)
+  const newAviso = clean(row.aviso_previo)
+  const hasNewRequisitosSchema = !!(newExcluyentes || newRecomendaciones || newAviso)
+
+  let requisitosExcluyentes: string[]
+  let recomendacionesSoft: string[]
+  let avisoPrevio: string[]
+
+  if (hasNewRequisitosSchema) {
+    requisitosExcluyentes = splitSentences(newExcluyentes)
+    recomendacionesSoft = splitSentences(newRecomendaciones)
+    avisoPrevio = splitSentences(newAviso)
+  } else {
+    const classified = classifyLegacySentences([
+      ...splitSentences(clean(row.requisitos)),
+      ...splitSentences(clean(row.info_importante)),
+    ])
+    requisitosExcluyentes = classified.hard
+    recomendacionesSoft = classified.soft
+    avisoPrevio = classified.aviso
+  }
+
+  const hasNewClimaSchema = clean(row.clima_afecta) !== ""
+  const climaAfecta = hasNewClimaSchema
+    ? toBool(row.clima_afecta)
+    : isRelevantNote(clean(row.nota_clima))
+  const climaText = climaAfecta
+    ? hasNewClimaSchema
+      ? clean(row.nota_clima)
+      : stripInfluencePrefix(clean(row.nota_clima))
+    : ""
+
+  const hasNewRopaSchema = clean(row.ropa_especial) !== ""
+  const ropaEspecial = hasNewRopaSchema
+    ? toBool(row.ropa_especial)
+    : isRelevantNote(clean(row.nota_vestimenta))
+  const ropaText = ropaEspecial
+    ? hasNewRopaSchema
+      ? clean(row.nota_vestimenta)
+      : stripInfluencePrefix(clean(row.nota_vestimenta))
+    : ""
+
+  const recomendaciones = dedupeSimilar(
+    [...recomendacionesSoft, climaText, ropaText].filter(Boolean)
+  )
+
+  return { requisitosExcluyentes, recomendaciones, avisoPrevio }
+}
+
 /* ================= PARSING CSV (fallback) ================= */
 
 function mapRow(row: Record<string, string>): Experience | null {
@@ -90,6 +256,8 @@ function mapRow(row: Record<string, string>): Experience | null {
     console.warn("⚠️ Ligne ignorée (id ou coordonnées invalides) :", id)
     return null
   }
+
+  const { requisitosExcluyentes, recomendaciones, avisoPrevio } = deriveTenEnCuenta(row)
 
   return {
     id,
@@ -114,12 +282,19 @@ function mapRow(row: Record<string, string>): Experience | null {
     // "refrigerio (agua de panela, arepa, queso, almojábana)" — un seul
     // élément de la liste, qui casserait en 4 fragments avec un split ",".
     includes: toArray(row.incluye, "·"),
-    requirements: toArray(row.requisitos),
+    // splitSentences (no toArray/",") a propósito: una sola frase real puede
+    // contener comas internas (ej. AVE-COR-003 "No apto para personas con
+    // vértigo, problemas cardíacos o de columna."), que un split por ","
+    // rompería en dos fragmentos sin sentido.
+    requirements: splitSentences(clean(row.requisitos)),
     idealFor: toArray(row.ideal_para),
     effortLevel: clean(row.nivel_esfuerzo) as EffortLevel,
     weatherNote: clean(row.nota_clima),
     clothingNote: clean(row.nota_vestimenta),
     importantToKnow: toArray(row.info_importante),
+    requisitosExcluyentes,
+    recomendaciones,
+    avisoPrevio,
     ambiance: toArray(row.ambiente_animo),
     environment: clean(row.entorno) as Environment,
     badges: toArray(row.claves_eleccion, "|"),

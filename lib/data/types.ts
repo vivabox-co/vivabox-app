@@ -81,6 +81,16 @@ export type Experience = {
   clothingNote?: string
   importantToKnow?: string[]
 
+  // Versión estructurada de requisitos/info_importante/nota_clima/nota_vestimenta
+  // (ver fetchExperiences.ts): usa las columnas explícitas del Sheet
+  // (requisitos_excluyentes/recomendaciones/aviso_previo/clima_afecta/
+  // ropa_especial) cuando existen, y cae de vuelta a la misma heurística de
+  // texto libre que requirements/weatherNote/etc. para filas del Sheet
+  // todavía no migradas a las columnas nuevas.
+  requisitosExcluyentes: string[]
+  recomendaciones: string[]
+  avisoPrevio: string[]
+
   /* 🔴 FILTRAGE INTELLIGENT */
   ambiance?: string[]
   environment?: Environment

@@ -55,14 +55,11 @@ export default function ExperienceExploreMeta({ exp }: Props) {
     )
   )
 
-  // requisitos/info_importante mezclan en una misma celda restricciones que
-  // pueden descartar la experiencia (edad, licencia, salud) con recomendaciones
-  // blandas (buena condición física, llevar abrigo). extractConstraints separa
-  // las frases "no apto para.../mayor de X años/licencia" del resto, para
-  // mostrarlas cerca del hero en vez de enterrarlas en Ten en cuenta.
-  const { hard: hardFromRequirements, soft: softRequirements } = extractConstraints(exp.requirements)
-  const { hard: hardFromImportant, soft: softImportant } = extractConstraints(exp.importantToKnow)
-  const hardConstraints = [...hardFromRequirements, ...hardFromImportant]
+  // requisitos_excluyentes/recomendaciones/aviso_previo ya vienen separados
+  // desde fetchExperiences.ts (columnas explícitas del Sheet, o la misma
+  // heurística de texto libre aplicada una sola vez para filas todavía no
+  // migradas) — el componente ya no necesita repetir esa clasificación.
+  const hardConstraints = exp.requisitosExcluyentes
 
   // claves_eleccion trae hasta 3 claves curadas por fila (regla editorial
   // desde el 23/08/2026: solo lo que puede influir en la decisión, vacío si
@@ -93,25 +90,8 @@ export default function ExperienceExploreMeta({ exp }: Props) {
     exp.effortLevel && EFFORT_LABEL[exp.effortLevel],
   ].filter(Boolean) as string[]
 
-  // "Antes de elegir": notas prácticas en texto libre, traducidas a lenguaje
-  // humano. El Sheet usa la convención "Influye: ..." / "No influye[: motivo]"
-  // en nota_clima y nota_vestimenta. Un "No influye" es una nota real (alguien
-  // lo verificó), pero no debe llegar al beneficiario: no cambia su decisión,
-  // es el mismo ruido que un "no aplica". Cuando SÍ influye, el prefijo
-  // "Influye:" es solo la marca editorial para el filtro — nunca debe
-  // imprimirse tal cual (stripInfluencePrefix lo quita antes de mostrar).
-  const rawDecisionItems: string[] = []
-  if (isRelevantNote(exp.weatherNote)) rawDecisionItems.push(stripInfluencePrefix(exp.weatherNote!))
-  if (isRelevantNote(exp.clothingNote)) rawDecisionItems.push(stripInfluencePrefix(exp.clothingNote!))
-  rawDecisionItems.push(...softRequirements)
-  rawDecisionItems.push(...softImportant)
-
-  // requisitos/info_importante y nota_clima/nota_vestimenta no se coordinan
-  // entre sí en el Sheet: es común que la misma recomendación ("llevar ropa
-  // abrigada") quede escrita dos veces con palabras distintas en dos
-  // columnas. dedupeSimilar compara por solapamiento de palabras (no texto
-  // exacto) para no repetir el mismo consejo dos veces en la ficha.
-  const decisionItems = dedupeSimilar(rawDecisionItems)
+  // "Antes de elegir": notas prácticas ya deduplicadas por fetchExperiences.ts.
+  const decisionItems = exp.recomendaciones
 
   return (
     <div style={{ paddingBottom: 24 }}>
@@ -238,9 +218,10 @@ export default function ExperienceExploreMeta({ exp }: Props) {
           </Section>
         )}
 
-        {/* 6. TEN EN CUENTA — datos estructurados (pastillas) separados de las
-               notas en texto libre (lista apilada), ya deduplicadas. */}
-        {(factPills.length > 0 || decisionItems.length > 0) && (
+        {/* 6. TEN EN CUENTA — datos estructurados (pastillas), notas prácticas
+               (lista apilada) y avisos a comunicar antes de reservar, cada
+               uno con su propio tratamiento en vez de una sola frase plana. */}
+        {(factPills.length > 0 || decisionItems.length > 0 || exp.avisoPrevio.length > 0) && (
           <Section icon={Info} title="Ten en cuenta">
             {factPills.length > 0 && (
               <div style={{ ...chipsRow, marginBottom: decisionItems.length > 0 ? 10 : 0 }}>
@@ -260,6 +241,12 @@ export default function ExperienceExploreMeta({ exp }: Props) {
                 color={color}
                 layout="stacked"
               />
+            )}
+            {exp.avisoPrevio.length > 0 && (
+              <p style={{ ...compactLine, marginTop: factPills.length > 0 || decisionItems.length > 0 ? 10 : 0 }}>
+                <strong>Avisar antes de reservar: </strong>
+                {exp.avisoPrevio.join(" · ")}
+              </p>
             )}
           </Section>
         )}
@@ -418,90 +405,6 @@ const EXCLUDED_BADGE_KEYS = new Set([
 // se capitaliza la primera letra si hace falta).
 function humanizeBadgeKey(key: string): string {
   return key.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())
-}
-
-function isRelevantNote(note?: string): note is string {
-  if (!note) return false
-  return !/^no (influye|aplica)/i.test(note.trim())
-}
-
-// Quita el prefijo editorial "Influye: " (marca interna del Sheet para que
-// isRelevantNote pueda filtrar) — no es lenguaje para el beneficiario.
-function stripInfluencePrefix(note: string): string {
-  return note.replace(/^\s*influye\s*:?\s*/i, "").trim()
-}
-
-const DEDUPE_STOPWORDS = new Set([
-  "de", "la", "el", "los", "las", "para", "al", "en", "con", "y", "o",
-  "un", "una", "que", "se", "es", "si", "hay", "por", "del", "su", "tu",
-  "lo", "más", "muy", "no", "sin", "llevar", "traer",
-])
-
-function wordsForCompare(text: string): Set<string> {
-  const normalized = text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s]/g, " ")
-  return new Set(
-    normalized.split(/\s+/).filter((w) => w && !DEDUPE_STOPWORDS.has(w))
-  )
-}
-
-function wordOverlapRatio(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 || b.size === 0) return 0
-  let common = 0
-  a.forEach((w) => {
-    if (b.has(w)) common++
-  })
-  return common / Math.min(a.size, b.size)
-}
-
-// requisitos/info_importante y nota_clima/nota_vestimenta se escriben en el
-// Sheet sin coordinarse entre sí — la misma recomendación puede quedar
-// redactada dos veces con palabras distintas. Se compara por solapamiento
-// de palabras (no texto exacto) y se conserva la primera aparición: el
-// orden ya prioriza nota_clima/nota_vestimenta (columnas dedicadas) sobre
-// requisitos/info_importante (texto libre general).
-const DEDUPE_SIMILARITY_THRESHOLD = 0.6
-
-function dedupeSimilar(items: string[]): string[] {
-  const kept: { text: string; words: Set<string> }[] = []
-  items.forEach((item) => {
-    const words = wordsForCompare(item)
-    const isDuplicate = kept.some(
-      (k) => wordOverlapRatio(k.words, words) >= DEDUPE_SIMILARITY_THRESHOLD
-    )
-    if (!isDuplicate) kept.push({ text: item, words })
-  })
-  return kept.map((k) => k.text)
-}
-
-// Detecta, dentro de una frase, una exclusión dura (puede impedir elegir la
-// experiencia) frente a una recomendación blanda. Heurística de texto, no un
-// campo estructurado: requisitos/info_importante en el Sheet mezclan ambos
-// tipos en una misma celda sin marcador de severidad (ej. escalada: "Tener
-// buena condición física. No apto para personas con vértigo o problemas
-// cardíacos." — una frase blanda y una dura, sin separador semántico).
-const HARD_CONSTRAINT_RE = /no apto|mayor de \d+|licencia/i
-
-function splitSentences(text: string): string[] {
-  return text
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-}
-
-function extractConstraints(items: string[] = []): { hard: string[]; soft: string[] } {
-  const hard: string[] = []
-  const soft: string[] = []
-  items.forEach((item) => {
-    splitSentences(item).forEach((sentence) => {
-      if (HARD_CONSTRAINT_RE.test(sentence)) hard.push(sentence)
-      else soft.push(sentence)
-    })
-  })
-  return { hard, soft }
 }
 
 function hexToRgba(hex: string, alpha: number): string {
