@@ -85,22 +85,33 @@ export default function ExperienceExploreMeta({ exp }: Props) {
     console.warn(`⚠️ ${exp.id}: claves_eleccion (${exp.badges!.join("|")}) entièrement filtrée → 0 highlight affiché`)
   }
 
-  // "Antes de elegir": datos prácticos reales, traducidos a lenguaje humano.
-  const decisionItems: string[] = []
-  if (exp.environment && ENVIRONMENT_LABEL[exp.environment]) {
-    decisionItems.push(ENVIRONMENT_LABEL[exp.environment])
-  }
-  if (exp.effortLevel && EFFORT_LABEL[exp.effortLevel]) {
-    decisionItems.push(EFFORT_LABEL[exp.effortLevel])
-  }
-  // El Sheet usa la convención "Influye: ..." / "No influye[: motivo]" en
-  // nota_clima y nota_vestimenta. Un "No influye" es una nota real (alguien
-  // lo verificó), pero no debe llegar al beneficiario: no cambia su
-  // decisión, es el mismo ruido que un "no aplica".
-  if (isRelevantNote(exp.weatherNote)) decisionItems.push(exp.weatherNote!)
-  if (isRelevantNote(exp.clothingNote)) decisionItems.push(exp.clothingNote!)
-  decisionItems.push(...softRequirements)
-  decisionItems.push(...softImportant)
+  // "Entorno y esfuerzo": datos estructurados (no texto libre), mostrados
+  // como pastillas cortas separadas del resto — no tiene sentido mezclarlos
+  // en la misma frase que una nota de clima de una línea completa.
+  const factPills = [
+    exp.environment && ENVIRONMENT_LABEL[exp.environment],
+    exp.effortLevel && EFFORT_LABEL[exp.effortLevel],
+  ].filter(Boolean) as string[]
+
+  // "Antes de elegir": notas prácticas en texto libre, traducidas a lenguaje
+  // humano. El Sheet usa la convención "Influye: ..." / "No influye[: motivo]"
+  // en nota_clima y nota_vestimenta. Un "No influye" es una nota real (alguien
+  // lo verificó), pero no debe llegar al beneficiario: no cambia su decisión,
+  // es el mismo ruido que un "no aplica". Cuando SÍ influye, el prefijo
+  // "Influye:" es solo la marca editorial para el filtro — nunca debe
+  // imprimirse tal cual (stripInfluencePrefix lo quita antes de mostrar).
+  const rawDecisionItems: string[] = []
+  if (isRelevantNote(exp.weatherNote)) rawDecisionItems.push(stripInfluencePrefix(exp.weatherNote!))
+  if (isRelevantNote(exp.clothingNote)) rawDecisionItems.push(stripInfluencePrefix(exp.clothingNote!))
+  rawDecisionItems.push(...softRequirements)
+  rawDecisionItems.push(...softImportant)
+
+  // requisitos/info_importante y nota_clima/nota_vestimenta no se coordinan
+  // entre sí en el Sheet: es común que la misma recomendación ("llevar ropa
+  // abrigada") quede escrita dos veces con palabras distintas en dos
+  // columnas. dedupeSimilar compara por solapamiento de palabras (no texto
+  // exacto) para no repetir el mismo consejo dos veces en la ficha.
+  const decisionItems = dedupeSimilar(rawDecisionItems)
 
   return (
     <div style={{ paddingBottom: 24 }}>
@@ -227,16 +238,29 @@ export default function ExperienceExploreMeta({ exp }: Props) {
           </Section>
         )}
 
-        {/* 6. TEN EN CUENTA — info práctica, compacta, ya filtrada por relevancia */}
-        {decisionItems.length > 0 && (
+        {/* 6. TEN EN CUENTA — datos estructurados (pastillas) separados de las
+               notas en texto libre (lista apilada), ya deduplicadas. */}
+        {(factPills.length > 0 || decisionItems.length > 0) && (
           <Section icon={Info} title="Ten en cuenta">
-            <CompactList
-              items={decisionItems}
-              visibleCount={3}
-              moreLabel="Ver información +"
-              lessLabel="Ver menos −"
-              color={color}
-            />
+            {factPills.length > 0 && (
+              <div style={{ ...chipsRow, marginBottom: decisionItems.length > 0 ? 10 : 0 }}>
+                {factPills.map((label, i) => (
+                  <span key={i} style={factPill}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
+            {decisionItems.length > 0 && (
+              <CompactList
+                items={decisionItems}
+                visibleCount={3}
+                moreLabel="Ver información +"
+                lessLabel="Ver menos −"
+                color={color}
+                layout="stacked"
+              />
+            )}
           </Section>
         )}
       </div>
@@ -272,12 +296,18 @@ function CompactList({
   moreLabel,
   lessLabel,
   color,
+  layout = "inline",
 }: {
   items: string[]
   visibleCount: number
   moreLabel: string
   lessLabel: string
   color: string
+  // "inline": ítems cortos y homogéneos (ej. Qué incluye) → una sola frase
+  // unida por "·". "stacked": ítems de largo dispar, una frase por línea —
+  // necesario en Ten en cuenta, donde una pastilla de 2 palabras y una nota
+  // completa no deben leerse como parte de la misma oración.
+  layout?: "inline" | "stacked"
 }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -288,9 +318,25 @@ function CompactList({
 
   return (
     <>
-      <p style={compactLine}>{visible.join(" · ")}</p>
+      {layout === "stacked" ? (
+        visible.map((item, i) => (
+          <p key={i} style={compactLine}>
+            • {item}
+          </p>
+        ))
+      ) : (
+        <p style={compactLine}>{visible.join(" · ")}</p>
+      )}
       {expanded && rest.length > 0 && (
-        <p style={compactLineMuted}>{rest.join(" · ")}</p>
+        layout === "stacked" ? (
+          rest.map((item, i) => (
+            <p key={i} style={compactLineMuted}>
+              • {item}
+            </p>
+          ))
+        ) : (
+          <p style={compactLineMuted}>{rest.join(" · ")}</p>
+        )
       )}
       {rest.length > 0 && (
         <button
@@ -377,6 +423,58 @@ function humanizeBadgeKey(key: string): string {
 function isRelevantNote(note?: string): note is string {
   if (!note) return false
   return !/^no (influye|aplica)/i.test(note.trim())
+}
+
+// Quita el prefijo editorial "Influye: " (marca interna del Sheet para que
+// isRelevantNote pueda filtrar) — no es lenguaje para el beneficiario.
+function stripInfluencePrefix(note: string): string {
+  return note.replace(/^\s*influye\s*:?\s*/i, "").trim()
+}
+
+const DEDUPE_STOPWORDS = new Set([
+  "de", "la", "el", "los", "las", "para", "al", "en", "con", "y", "o",
+  "un", "una", "que", "se", "es", "si", "hay", "por", "del", "su", "tu",
+  "lo", "más", "muy", "no", "sin", "llevar", "traer",
+])
+
+function wordsForCompare(text: string): Set<string> {
+  const normalized = text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+  return new Set(
+    normalized.split(/\s+/).filter((w) => w && !DEDUPE_STOPWORDS.has(w))
+  )
+}
+
+function wordOverlapRatio(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0
+  let common = 0
+  a.forEach((w) => {
+    if (b.has(w)) common++
+  })
+  return common / Math.min(a.size, b.size)
+}
+
+// requisitos/info_importante y nota_clima/nota_vestimenta se escriben en el
+// Sheet sin coordinarse entre sí — la misma recomendación puede quedar
+// redactada dos veces con palabras distintas. Se compara por solapamiento
+// de palabras (no texto exacto) y se conserva la primera aparición: el
+// orden ya prioriza nota_clima/nota_vestimenta (columnas dedicadas) sobre
+// requisitos/info_importante (texto libre general).
+const DEDUPE_SIMILARITY_THRESHOLD = 0.6
+
+function dedupeSimilar(items: string[]): string[] {
+  const kept: { text: string; words: Set<string> }[] = []
+  items.forEach((item) => {
+    const words = wordsForCompare(item)
+    const isDuplicate = kept.some(
+      (k) => wordOverlapRatio(k.words, words) >= DEDUPE_SIMILARITY_THRESHOLD
+    )
+    if (!isDuplicate) kept.push({ text: item, words })
+  })
+  return kept.map((k) => k.text)
 }
 
 // Detecta, dentro de una frase, una exclusión dura (puede impedir elegir la
@@ -614,6 +712,18 @@ const compactLineMuted: React.CSSProperties = {
   ...compactLine,
   marginTop: 6,
   color: "#777",
+}
+
+/* Ten en cuenta — pastillas de datos estructurados (entorno/esfuerzo) */
+
+const factPill: React.CSSProperties = {
+  display: "inline-flex",
+  padding: "4px 11px",
+  borderRadius: 20,
+  background: "#F3EFEA",
+  color: "#444",
+  fontSize: 12.5,
+  fontWeight: 600,
 }
 
 const moreLink: React.CSSProperties = {
