@@ -211,7 +211,7 @@ export default function FechasPage() {
           Elige hasta 3 fechas. <strong style={introStrong}>Nosotros coordinamos.</strong>
         </p>
 
-        <BrandDots style={{ justifyContent: "center", margin: "10px 0" }} />
+        <BrandDots style={{ justifyContent: "center", margin: "18px 0 0" }} />
 
         {/* ---------- FECHAS ---------- */}
         <section
