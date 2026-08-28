@@ -17,7 +17,6 @@ import { useUI, usePageReady } from "@/components/ui/UIContext"
 
 import { categoryColors } from "@/lib/map/categoryColors"
 import { categoryLabel } from "@/lib/map/categoryLabels"
-import { formatLabel } from "@/lib/map/formatLabels"
 import { formatDuration } from "@/lib/format/duration"
 
 import RecoOverlay from "@/components/reco/RecoOverlay"
@@ -319,6 +318,11 @@ export default function ListaPage() {
  * usa el primer elemento de `includes` (dato real de la experiencia,
  * nunca inventado).
  */
+// Nombre de personnes réduit au seul chiffre pour la card Lista (espace
+// restreint sur une seule ligne) — la fiche détail et les autres écrans
+// gardent le libellé complet de formatLabel().
+const FORMAT_COUNT: Record<string, string> = { solo: "1", duo: "2" }
+
 function getKeyFact(exp: Experience): { icon: typeof Clock; text: string } | null {
   const duration = formatDuration(exp.duration)
   if (duration) {
@@ -412,19 +416,30 @@ function ExperienceCard({ exp, onClick, popular, isFav, onFav }: any) {
             opacity: 0.6,
             marginTop: 6,
             display: "flex",
-            flexWrap: "wrap",
+            alignItems: "center",
+            flexWrap: "nowrap",
             gap: 10,
-            rowGap: 4,
           }}
         >
-          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <MapPin size={13} /> {exp.city || exp.zone}
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              minWidth: 0,
+              overflow: "hidden",
+            }}
+          >
+            <MapPin size={13} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {exp.city || exp.zone}
+            </span>
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <Users size={13} /> {formatLabel(exp.format)}
+          <span style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+            <Users size={13} /> {FORMAT_COUNT[exp.format]}
           </span>
           {keyFact && (
-            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
               <keyFact.icon size={13} /> {keyFact.text}
             </span>
           )}
