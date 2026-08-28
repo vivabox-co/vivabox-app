@@ -113,18 +113,18 @@ export function ActivatedCard({
       <div style={checkCircle} className={instant ? undefined : "vb-activation-check"}>
         <AnimatedCheck instant={instant} />
       </div>
-      <h2 style={h2}>Tu regalo está activo</h2>
+      <h2 style={h2}>Tu regalo está listo</h2>
       <div style={flowRow}>
-        <IconStep icon={<Compass size={40} />} label="Explorás" sub="Todo disponible" />
+        <IconStep icon={<Compass size={40} />} label="Explorá" sub="Todo lo que podés vivir" />
         <BigArrow />
         <IconStep
           icon={<img src="/logo/LogoVivaboxSVG.svg" style={{ width: 51 }} alt="Vivabox" />}
-          label="Elegís"
-          sub="Una experiencia"
+          label="Elegí"
+          sub="Tu experiencia"
           highlight
         />
         <BigArrow />
-        <IconStep icon={<CalendarDays size={40} />} label="Reservás" sub="Y coordinamos" />
+        <IconStep icon={<CalendarDays size={40} />} label="Reservá" sub="Nosotros coordinamos" />
       </div>
       <button
         onClick={handleClick}
