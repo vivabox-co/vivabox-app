@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, MessageCircle } from "lucide-react"
 import { useUI, usePageReady } from "@/components/ui/UIContext"
 import BrandRibbon from "@/components/ui/BrandRibbon"
 import ExperienceSummaryCard from "@/components/list/ExperienceSummaryCard"
-import { isValidWhatsApp } from "@/lib/utils/isValidWhatsApp"
+import PhoneNumberField from "@/components/ui/PhoneNumberField"
 
 // Sépare le nom complet stocké côté activation ("Nombre Apellido", un seul
 // champ en base — voir activation_codes.beneficiary_name) en deux parties
@@ -38,6 +38,7 @@ export default function ConfirmarReservaPage() {
   const [savingName, setSavingName] = useState(false)
 
   const [whatsapp, setWhatsapp] = useState("")
+  const [whatsappValid, setWhatsappValid] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
 
@@ -82,7 +83,6 @@ export default function ConfirmarReservaPage() {
   const totalPeople = baseCapacity + reservationExtraPeople
   const preferredDate = reservationDates[0]
 
-  const whatsappValid = isValidWhatsApp(whatsapp)
   const isFormComplete = whatsappValid
 
   function startEditName() {
@@ -227,13 +227,11 @@ export default function ConfirmarReservaPage() {
         </h2>
 
         <label style={fieldLabel}>WhatsApp</label>
-        <input
-          value={whatsapp}
-          onChange={(e) => setWhatsapp(e.target.value)}
-          placeholder="+57 300 1234567"
-          type="tel"
-          inputMode="tel"
-          style={input}
+        <PhoneNumberField
+          onChange={(e164, valid) => {
+            setWhatsapp(e164)
+            setWhatsappValid(valid)
+          }}
         />
         <p style={helperText}>Te avisaremos por aquí cuando el lugar confirme tu fecha.</p>
       </section>
@@ -390,15 +388,6 @@ const fieldLabel: React.CSSProperties = {
   fontWeight: 600,
   color: "#555",
   marginBottom: 6,
-}
-
-const input: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: 12,
-  border: "1px solid #ddd",
-  fontSize: 15,
-  boxSizing: "border-box",
 }
 
 const errorText: React.CSSProperties = {
