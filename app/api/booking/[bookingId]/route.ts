@@ -118,17 +118,22 @@ export async function GET(
 
     const proposedMomentLabel = booking.proposed_moment ? (MOMENT_LABEL[booking.proposed_moment] ?? booking.proposed_moment) : null
 
-    // 1ère fois que CE endpoint voit la réservation en "requested" : on fige
-    // l'instant côté serveur (au lieu d'un simple minuteur front qui
-    // redémarrerait à chaque remontage de /reservar/seguimiento) pour que la
-    // mise en scène "Disponibilidad con el lugar" se déclenche au même
-    // instant réel, que le bénéficiaire reste sur la page ou navigue ailleurs
-    // et revienne. Filtre .is(...) pour ne jamais écraser une valeur déjà
-    // posée par un appel concurrent ; si ce filtre fait échouer notre propre
-    // UPDATE (l'autre appel a gagné la course), on relit la valeur qu'il a
-    // posée plutôt que de garder la nôtre.
+    // 1ère fois que /reservar/seguimiento (seul appelant qui passe ?track=1,
+    // voir plus bas) voit la réservation en "requested" : on fige l'instant
+    // côté serveur (au lieu d'un simple minuteur front qui redémarrerait à
+    // chaque remontage) pour que la mise en scène "Disponibilidad con el
+    // lugar" se déclenche au même instant réel, que le bénéficiaire reste sur
+    // la page ou navigue ailleurs et revienne. Sans ce filtre, l'écran de
+    // confirmation (/reservar/fechas/confirmacion) — qui appelle aussi ce GET
+    // pour récupérer juste l'image — démarrait l'horloge avant même que le
+    // bénéficiaire ait cliqué "Ver seguimiento", donc l'étape apparaissait
+    // déjà validée en arrivant sur /reservar/seguimiento. Filtre .is(...)
+    // pour ne jamais écraser une valeur déjà posée par un appel concurrent ;
+    // si ce filtre fait échouer notre propre UPDATE (l'autre appel a gagné la
+    // course), on relit la valeur qu'il a posée plutôt que de garder la nôtre.
+    const track = req.nextUrl.searchParams.get("track") === "1"
     let requestedSeenAt: string | null = booking.tracking_first_seen_at
-    if (booking.status === "requested" && !requestedSeenAt) {
+    if (track && booking.status === "requested" && !requestedSeenAt) {
       const seenAt = new Date().toISOString()
       const { data: updated, error: seenError } = await supabase
         .from("bookings")

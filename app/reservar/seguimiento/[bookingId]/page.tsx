@@ -195,7 +195,12 @@ export default function SeguimientoPage() {
   // cette route en amont). Extrait en fonction réutilisable pour pouvoir
   // rafraîchir après une réponse à une date alternative (handleAction).
   const fetchBooking = useCallback(() => {
-    return fetch(`/api/booking/${bookingId}`)
+    // ?track=1 : seul appelant autorisé à figer tracking_first_seen_at côté
+    // API (voir la garde `track` dans GET /api/booking/[bookingId]) — les
+    // autres pages qui font le même GET (confirmacion, experiencia, ayuda)
+    // ne doivent pas démarrer l'horloge des 6s avant que le bénéficiaire
+    // n'ait réellement atteint cette page.
+    return fetch(`/api/booking/${bookingId}?track=1`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
