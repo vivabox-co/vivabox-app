@@ -15,6 +15,16 @@ type UIContextType = {
   selectedExperience: SelectedExperience
   setSelectedExperience: (exp: SelectedExperience) => void
 
+  // Brouillon de réservation (fechas + personas choisies à l'étape 1, voir
+  // app/reservar/fechas/page.tsx) — persisté en sessionStorage comme
+  // selectedExperience ci-dessus, pour survivre à la navigation vers l'étape
+  // 2 (app/reservar/fechas/confirmar) et à un éventuel retour en arrière.
+  reservationDates: string[]
+  setReservationDates: (dates: string[]) => void
+  reservationExtraPeople: number
+  setReservationExtraPeople: (n: number) => void
+  clearReservationDraft: () => void
+
   selectedDate: string | null
   setSelectedDate: (d: string | null) => void
 
@@ -75,6 +85,44 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     } else {
       sessionStorage.removeItem("vivabox_selected_experience")
     }
+    // Choisir une expérience (nouvelle ou relancée depuis /mapa, /lista,
+    // /favoritos...) démarre un nouveau parcours de réservation : un
+    // brouillon fechas/personas laissé par un choix précédent n'a plus de
+    // raison de préremplir celui-ci.
+    clearReservationDraft()
+  }
+
+  const [reservationDates, setReservationDatesState] = useState<string[]>(() => {
+    if (typeof window === "undefined") return []
+    const saved = sessionStorage.getItem("vivabox_reservation_dates")
+    return saved ? JSON.parse(saved) : []
+  })
+
+  function setReservationDates(dates: string[]) {
+    setReservationDatesState(dates)
+    if (dates.length > 0) {
+      sessionStorage.setItem("vivabox_reservation_dates", JSON.stringify(dates))
+    } else {
+      sessionStorage.removeItem("vivabox_reservation_dates")
+    }
+  }
+
+  const [reservationExtraPeople, setReservationExtraPeopleState] = useState<number>(() => {
+    if (typeof window === "undefined") return 0
+    const saved = sessionStorage.getItem("vivabox_reservation_extra_people")
+    return saved ? Number(saved) || 0 : 0
+  })
+
+  function setReservationExtraPeople(n: number) {
+    setReservationExtraPeopleState(n)
+    sessionStorage.setItem("vivabox_reservation_extra_people", String(n))
+  }
+
+  function clearReservationDraft() {
+    setReservationDatesState([])
+    setReservationExtraPeopleState(0)
+    sessionStorage.removeItem("vivabox_reservation_dates")
+    sessionStorage.removeItem("vivabox_reservation_extra_people")
   }
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -127,6 +175,12 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
 
         selectedExperience,
         setSelectedExperience,
+
+        reservationDates,
+        setReservationDates,
+        reservationExtraPeople,
+        setReservationExtraPeople,
+        clearReservationDraft,
 
         selectedDate,
         setSelectedDate,

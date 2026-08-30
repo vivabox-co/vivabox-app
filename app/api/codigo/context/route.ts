@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     const { data: activationCode, error: codeError } = await supabase
       .from("activation_codes")
-      .select("status")
+      .select("status, beneficiary_name")
       .eq("id", session.activation_code_id)
       .maybeSingle()
 
@@ -98,7 +98,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { estado, booking_id: booking?.id ?? null, renewedExpiresAt },
+      data: {
+        estado,
+        booking_id: booking?.id ?? null,
+        renewedExpiresAt,
+        beneficiaryName: activationCode.beneficiary_name ?? "",
+      },
     });
 
   } catch (error) {

@@ -1,11 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useUI, usePageReady } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
-import { Calendar, Clock, Users, Check, ArrowRight } from "lucide-react"
+import { Calendar, Users, Check, ArrowRight } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
-import BottomSheet from "@/components/ui/BottomSheet"
 import PhotoGallery from "@/components/ui/PhotoGallery"
 import BrandRibbon from "@/components/ui/BrandRibbon"
 import BrandDots from "@/components/ui/BrandDots"
@@ -13,18 +12,6 @@ import { formatLocalDate } from "@/lib/utils/formatLocalDate"
 import { categoryColors } from "@/lib/map/categoryColors"
 
 const MAX_DATES = 3
-
-// Pas encore de source de disponibilité par prestador/fecha (voir
-// lib/data/types.ts::Experience — aucun champ horario) : ces créneaux restent
-// génériques pour tout le catalogue, comme avant. Aplatis en une seule liste
-// (au lieu du regroupement matin/après-midi/soir) pour l'affichage en grille
-// du bottom sheet — le jour où une vraie dispo par prestador existe, c'est ce
-// tableau qu'il faudra remplacer par une source dynamique par `openHourSheet`.
-const ALL_HOURS = [
-  "08:00", "09:00", "10:00", "11:00",
-  "12:00", "13:00", "14:00", "15:00", "16:00",
-  "17:00", "18:00", "19:00", "20:00",
-]
 
 // Pas de constante ES partagée pour les abréviations de jour dans le projet
 // (DatePickerModal.tsx a le même souci et hardcode aussi localement) — Intl
@@ -44,38 +31,17 @@ function formatDateChip(iso: string): string {
   return `${weekday} ${d} ${monthShort}${yearSuffix}`
 }
 
-// Le schéma bookings n'a pas de colonne dédiée aux préférences horaires par
-// date (voir app/api/booking/route.ts) — replié dans le même champ `message`
-// texte libre que l'ancien flow "Horario: <moment> (~HH:MM)" pour ne pas
-// toucher au schéma partagé avec le site vitrine. On garde le préfixe
-// "Horario:" (singulier) pour rester capturé par la regex d'extraction côté
-// GET /api/booking/[bookingId] (`/Horario:\s*([^·]+)/`), et on évite tout "·"
-// dans le contenu pour ne pas être tronqué par cette regex.
-function buildHorarioMessage(dates: string[], preferences: Record<string, string[]>): string {
-  const segments = dates
-    .filter(d => (preferences[d]?.length ?? 0) > 0)
-    .map(d => `${formatDateChip(d)}: ${preferences[d].join(", ")}`)
-
-  if (segments.length === 0) return "Horario: Sin hora preferida (flexible)"
-  return `Horario: ${segments.join("; ")}`
-}
-
 export default function FechasPage() {
-  const { selectedExperience, setHideNav } = useUI()
+  const {
+    selectedExperience,
+    setHideNav,
+    reservationDates: selectedDates,
+    setReservationDates: setSelectedDates,
+    reservationExtraPeople: extraPeople,
+    setReservationExtraPeople: setExtraPeople,
+    beginRouteTransition,
+  } = useUI()
   const router = useRouter()
-
-  const [selectedDates, setSelectedDates] = useState<string[]>([])
-  const [openCalendar, setOpenCalendar] = useState(false)
-  // Préférences horaires par date ("2026-08-26": ["08:00", "09:00"]) — chaque
-  // fecha a son propre bloc indépendant dans le JSX (pas de "fecha activa"
-  // globale qui contrôlerait une section partagée, cf. retour utilisateur :
-  // ce modèle-tab n'était pas assez explicite).
-  const [datePreferences, setDatePreferences] = useState<Record<string, string[]>>({})
-  // Date dont le bottom sheet d'horarios est ouvert (null = fermé). Un seul
-  // sheet est réutilisé pour les 3 fechas plutôt que d'en monter un par date.
-  const [openHourSheet, setOpenHourSheet] = useState<string | null>(null)
-  const [extraPeople, setExtraPeople] = useState(0)
-  const [loading, setLoading] = useState(false) // 👈 pour l'appel API
 
   useEffect(() => {
     setHideNav(true)
@@ -110,16 +76,8 @@ export default function FechasPage() {
   const exp = selectedExperience
   const categoryColor = categoryColors[exp.category] || "#111"
 
-  // L'horario reste une préférence optionnelle (voir buildHorarioMessage) —
-  // seule la présence d'au moins une fecha bloque le CTA.
   const isFormComplete = selectedDates.length > 0
   const datesMaxed = selectedDates.length >= MAX_DATES
-
-  // Le premier choix est la fecha preferida (les suivants sont les
-  // alternativas, implicites dans l'ordre de selectedDates) — conservé
-  // explicitement pour que la priorité soit sans ambiguïté jusqu'au payload
-  // envoyé à l'équipe de coordination.
-  const preferredDate = selectedDates[0] ?? null
 
   // La cantidad de base viene del producto (format), pas d'un choix libre —
   // seul le nombre de personnes EN PLUS (si l'expérience le permet) est
@@ -140,53 +98,10 @@ export default function FechasPage() {
     "/image/image_welcome.webp",
   ].filter((src, i, arr) => !!src && arr.indexOf(src) === i)
 
-  function toggleHour(date: string, hour: string) {
-    setDatePreferences(prev => {
-      const current = prev[date] ?? []
-      const nextForDate = current.includes(hour)
-        ? current.filter(h => h !== hour)
-        : [...current, hour]
-      return { ...prev, [date]: nextForDate }
-    })
-  }
-
-  async function handleSubmit() {
-    // Validation
-    if (selectedDates.length === 0) return
-
-    setLoading(true)
-
-    try {
-      // La session vit dans le cookie vb_session, envoyé automatiquement —
-      // le middleware a déjà protégé cette route en amont.
-      const response = await fetch("/api/booking", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          experienciaId: exp.id,
-          fechaDeseada: preferredDate, // date principale (preferida), utilisée pour la confirmation/complétion
-          fechasDeseadas: selectedDates, // preferida + alternativas, dans l'ordre de priorité
-          cantidadPersonas: totalPeople,
-          mensaje: buildHorarioMessage(selectedDates, datePreferences)
-        })
-      })
-
-      const data = await response.json()
-
-      if (data.success && data.bookingId) {
-        router.push(`/reservar/fechas/confirmacion?bookingId=${data.bookingId}`)
-      } else {
-        console.error("Erreur création booking:", data.error)
-        alert("No se pudo crear la reserva. Por favor, intenta de nuevo.")
-        setLoading(false)
-      }
-    } catch (error) {
-      console.error("Network error:", error)
-      alert("Error de conexión. Intenta de nuevo.")
-      setLoading(false)
-    }
+  function handleContinue() {
+    if (!isFormComplete) return
+    beginRouteTransition()
+    router.push("/reservar/fechas/confirmar")
   }
 
   return (
@@ -207,6 +122,8 @@ export default function FechasPage() {
 
         <BrandRibbon />
 
+        <h1 style={pageTitle}>¿Cuándo te gustaría ir?</h1>
+
         <p style={{ ...intro, paddingBottom: 2 }}>
           Elige hasta 3 fechas. <strong style={introStrong}>Nosotros coordinamos.</strong>
         </p>
@@ -214,87 +131,12 @@ export default function FechasPage() {
         <BrandDots style={{ justifyContent: "center", margin: "18px 0 0" }} />
 
         {/* ---------- FECHAS ---------- */}
-        <section
-          style={{ ...sectionPrimary, marginTop: 14, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
-          onClick={() => setOpenCalendar(true)}
-        >
-          <div style={sectionHeaderRow}>
-            <h2 style={sectionTitle}>
-              <Calendar size={17} style={sectionTitleIcon} />
-              Fechas posibles
-            </h2>
-            <div style={sectionHeaderRight}>
-              <span style={{ ...counterBadge, color: selectedDates.length > 0 ? categoryColor : "#999" }}>
-                {selectedDates.length}/{MAX_DATES}
-              </span>
-              {datesMaxed && (
-                <button onClick={() => setOpenCalendar(true)} style={inlineTextLink}>
-                  Editar fechas →
-                </button>
-              )}
-            </div>
-          </div>
-
-          <p style={sectionDescription}>
-            Danos hasta {MAX_DATES} fechas que te funcionen. Así podemos encontrar una opción más rápido.
-          </p>
-
-          {selectedDates.length > 0 && (
-            <div style={dateChipsRow}>
-              {selectedDates.map((d, i) => (
-                <span key={d} style={dateChipStyle(i === 0, categoryColor)}>
-                  {formatDateChip(d)}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {!datesMaxed && (
-            <button onClick={() => setOpenCalendar(true)} style={inlineTextLink}>
-              {selectedDates.length === 0 ? "+ Elegir fechas" : "+ Elegir otra fecha"}
-            </button>
-          )}
-        </section>
-
-        {/* ---------- HORARIOS ---------- */}
-        {/* Une seule carte, une ligne compacte par fecha : le lien fecha →
-            horario reste sur une même ligne (pas de fecha activa/tab
-            partagée, ni une grande card par date — cf. retour utilisateur
-            sur la verticalité de la version précédente). Chaque ligne ouvre
-            le bottom sheet propre à sa date. */}
-        {selectedDates.length > 0 && (
-          <>
-            <div style={horariosHeaderWrap}>
-              <h2 style={sectionTitle}>
-                <Clock size={17} style={sectionTitleIcon} />
-                ¿Cuándo te funciona?
-              </h2>
-              <p style={sectionDescription}>Puedes elegir un horario distinto para cada fecha.</p>
-            </div>
-
-            <section style={hoursCard}>
-              {selectedDates.map((d, i) => {
-                const hours = datePreferences[d] ?? []
-                const hasHours = hours.length > 0
-                return (
-                  <button
-                    key={d}
-                    onClick={() => setOpenHourSheet(d)}
-                    style={hourRow(i === selectedDates.length - 1)}
-                  >
-                    <span style={hourRowDate}>{formatDateChip(d)}</span>
-                    <span style={hourRowRight}>
-                      <span style={hourRowSummary(hasHours)}>
-                        {hasHours ? hours.join(" · ") : "Elegir horario"}
-                      </span>
-                      <span style={hourRowArrow}>→</span>
-                    </span>
-                  </button>
-                )
-              })}
-            </section>
-          </>
-        )}
+        <FechasCard
+          categoryColor={categoryColor}
+          selectedDates={selectedDates}
+          setSelectedDates={setSelectedDates}
+          datesMaxed={datesMaxed}
+        />
 
         {/* ---------- PERSONAS ---------- */}
         <section style={section}>
@@ -317,7 +159,7 @@ export default function FechasPage() {
             <>
               <div style={extraRow}>
                 <button
-                  onClick={() => setExtraPeople(p => Math.max(0, p - 1))}
+                  onClick={() => setExtraPeople(Math.max(0, extraPeople - 1))}
                   disabled={extraPeople === 0}
                   style={{ ...extraBtn, opacity: extraPeople === 0 ? 0.3 : 1 }}
                 >
@@ -326,7 +168,7 @@ export default function FechasPage() {
                 <span style={extraCount}>
                   {extraPeople === 0 ? "Sin personas extra" : `${extraPeople} persona${extraPeople > 1 ? "s" : ""} extra`}
                 </span>
-                <button onClick={() => setExtraPeople(p => p + 1)} style={extraBtn}>
+                <button onClick={() => setExtraPeople(extraPeople + 1)} style={extraBtn}>
                   +
                 </button>
               </div>
@@ -339,28 +181,81 @@ export default function FechasPage() {
         </section>
 
         <button
-          onClick={handleSubmit}
-          disabled={loading || !isFormComplete}
+          onClick={handleContinue}
+          disabled={!isFormComplete}
           className="vb-btn-primary"
           style={{
             ...cta,
-            opacity: loading ? 0.6 : isFormComplete ? 1 : 0.4,
-            cursor: loading || !isFormComplete ? "not-allowed" : "pointer"
+            opacity: isFormComplete ? 1 : 0.4,
+            cursor: isFormComplete ? "pointer" : "not-allowed"
           }}
         >
-          {loading ? (
-            <>
-              <span className="vb-spinner-light" />
-              Creando reserva...
-            </>
-          ) : (
-            <>
-              Continuar
-              <ArrowRight size={16} strokeWidth={2.5} />
-            </>
-          )}
+          Continuar
+          <ArrowRight size={16} strokeWidth={2.5} />
         </button>
       </div>
+    </>
+  )
+}
+
+/* ---------- FECHAS CARD (+ modal) ---------- */
+
+function FechasCard({
+  categoryColor,
+  selectedDates,
+  setSelectedDates,
+  datesMaxed,
+}: {
+  categoryColor: string
+  selectedDates: string[]
+  setSelectedDates: (dates: string[]) => void
+  datesMaxed: boolean
+}) {
+  const [openCalendar, setOpenCalendar] = useState(false)
+
+  return (
+    <>
+      <section
+        style={{ ...sectionPrimary, marginTop: 20, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
+        onClick={() => setOpenCalendar(true)}
+      >
+        <div style={sectionHeaderRow}>
+          <h2 style={sectionTitle}>
+            <Calendar size={17} style={sectionTitleIcon} />
+            Fechas posibles
+          </h2>
+          <div style={sectionHeaderRight}>
+            <span style={{ ...counterBadge, color: selectedDates.length > 0 ? categoryColor : "#999" }}>
+              {selectedDates.length}/{MAX_DATES}
+            </span>
+            {datesMaxed && (
+              <button onClick={(e) => { e.stopPropagation(); setOpenCalendar(true) }} style={inlineTextLink}>
+                Editar fechas →
+              </button>
+            )}
+          </div>
+        </div>
+
+        <p style={sectionDescription}>
+          Dinos hasta {MAX_DATES} fechas que te funcionen.
+        </p>
+
+        {selectedDates.length > 0 && (
+          <div style={dateChipsRow}>
+            {selectedDates.map((d, i) => (
+              <span key={d} style={dateChipStyle(i === 0, categoryColor)}>
+                {formatDateChip(d)}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {!datesMaxed && (
+          <button onClick={(e) => { e.stopPropagation(); setOpenCalendar(true) }} style={inlineTextLink}>
+            {selectedDates.length === 0 ? "+ Elegir fechas" : "+ Elegir otra fecha"}
+          </button>
+        )}
+      </section>
 
       {openCalendar && (
         <DatePickerModal
@@ -368,66 +263,12 @@ export default function FechasPage() {
           categoryColor={categoryColor}
           onClose={() => setOpenCalendar(false)}
           onSelect={(payload) => {
-            const newDates = payload.dates
-            setSelectedDates(newDates)
-            // On garde les préférences des dates encore présentes ; celles
-            // retirées du calendrier n'ont plus de raison d'exister.
-            setDatePreferences(prev => {
-              const next: Record<string, string[]> = {}
-              for (const d of newDates) if (prev[d]) next[d] = prev[d]
-              return next
-            })
-            // Si la fecha dont le sheet horarios était ouvert vient d'être
-            // retirée, on ferme le sheet plutôt que de le laisser configurer
-            // une date qui n'existe plus.
-            setOpenHourSheet(prev => (prev && newDates.includes(prev) ? prev : null))
+            setSelectedDates(payload.dates)
             setOpenCalendar(false)
           }}
         />
       )}
-
-      <BottomSheet
-        open={!!openHourSheet}
-        onClose={() => setOpenHourSheet(null)}
-        body={
-          openHourSheet && (
-            <div style={sheetBodyWrap}>
-              <h3 style={sheetDateTitle}>{formatDateChip(openHourSheet)}</h3>
-              <p style={sheetQuestion}>¿Qué horarios te funcionan?</p>
-              <p style={sheetSubtitle}>Puedes elegir varios.</p>
-
-              <div style={hourGrid}>
-                {ALL_HOURS.map(h => (
-                  <HourChip
-                    key={h}
-                    label={h}
-                    active={(datePreferences[openHourSheet] ?? []).includes(h)}
-                    color={categoryColor}
-                    onClick={() => toggleHour(openHourSheet, h)}
-                  />
-                ))}
-              </div>
-            </div>
-          )
-        }
-        footer={
-          <button onClick={() => setOpenHourSheet(null)} className="vb-btn-primary" style={sheetSaveBtn}>
-            Guardar horarios
-          </button>
-        }
-      />
     </>
-  )
-}
-
-/* ---------- UI ---------- */
-
-function HourChip({ label, active, color, onClick }: { label: string; active: boolean; color: string; onClick: () => void }) {
-  return (
-    <button onClick={onClick} style={hourChipStyle(active)}>
-      {active && <span style={accentDot(color)} />}
-      {label}
-    </button>
   )
 }
 
@@ -488,8 +329,17 @@ const heroTitle: React.CSSProperties = {
   pointerEvents: "none",
 }
 
+const pageTitle: React.CSSProperties = {
+  margin: "20px 20px 0",
+  fontSize: 24,
+  fontWeight: 700,
+  color: "#152F40",
+  letterSpacing: -0.3,
+  lineHeight: 1.25,
+}
+
 const intro: React.CSSProperties = {
-  padding: "22px 20px 8px",
+  padding: "10px 20px 8px",
   fontSize: 19,
   lineHeight: 1.4,
   color: "#666",
@@ -557,107 +407,6 @@ const dateChipStyle = (isPreferred: boolean, color: string): React.CSSProperties
   fontWeight: isPreferred ? 600 : 500,
   whiteSpace: "nowrap",
   boxShadow: isPreferred ? `0 0 0 2px ${color}` : "none",
-})
-
-const horariosHeaderWrap: React.CSSProperties = { margin: "20px 20px 0 20px" }
-
-// Une seule carte pour les 3 fechas (au lieu d'une card par date) : padding
-// horizontal porté par la carte, padding vertical minime pour laisser les
-// lignes elles-mêmes gérer leur propre hauteur/divider.
-const hoursCard: React.CSSProperties = {
-  margin: "16px 20px 0 20px",
-  padding: "2px 18px",
-  borderRadius: 20,
-  border: "1px solid #ECEAE5",
-  background: "#fff",
-}
-
-// Ligne = bouton pleine largeur, fecha à gauche / résumé horario + flèche à
-// droite, sur une seule ligne (ellipsis plutôt que retour à la ligne si la
-// sélection est longue). Divider fin entre lignes, pas sur la dernière.
-const hourRow = (isLast: boolean): React.CSSProperties => ({
-  width: "100%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 12,
-  padding: "16px 0",
-  border: "none",
-  borderBottom: isLast ? "none" : "1px solid #F0EEE9",
-  background: "transparent",
-  textAlign: "left",
-  cursor: "pointer",
-  WebkitTapHighlightColor: "transparent",
-})
-
-const hourRowDate: React.CSSProperties = { fontSize: 15, fontWeight: 700, color: "#152F40", flexShrink: 0 }
-
-const hourRowRight: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, minWidth: 0 }
-
-// Rempli = résumé en navy (même poids que la fecha, la sélection est le fait
-// notable) ; vide = "Elegir horario" en gris mais toujours accompagné de la
-// flèche, pour rester lisible comme actionnable sans avoir l'air rempli.
-const hourRowSummary = (hasHours: boolean): React.CSSProperties => ({
-  fontSize: 14,
-  fontWeight: hasHours ? 600 : 500,
-  color: hasHours ? "#152F40" : "#8f8f8f",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  minWidth: 0,
-})
-
-const hourRowArrow: React.CSSProperties = { fontSize: 14, color: "#152F40", fontWeight: 600, flexShrink: 0 }
-
-const sheetBodyWrap: React.CSSProperties = { padding: "4px 0 24px" }
-
-const sheetDateTitle: React.CSSProperties = { fontSize: 18, fontWeight: 700, color: "#152F40", margin: 0 }
-
-const sheetQuestion: React.CSSProperties = { fontSize: 15, fontWeight: 600, color: "#152F40", marginTop: 12, marginBottom: 2 }
-
-const sheetSubtitle: React.CSSProperties = { fontSize: 13, color: "#8f8f8f", marginTop: 0, marginBottom: 16 }
-
-const sheetSaveBtn: React.CSSProperties = {
-  width: "100%",
-  padding: 16,
-  borderRadius: 14,
-  background: "#152F40",
-  color: "#fff",
-  fontSize: 15,
-  fontWeight: 600,
-  border: "none",
-}
-
-// Matrice de chips (grid, pas flex-wrap) : alignement propre en colonnes,
-// lisible en un coup d'œil sans regroupement Mañana/Tarde/Noche.
-const hourGrid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(4, 1fr)",
-  gap: 10,
-}
-
-const accentDot = (color: string): React.CSSProperties => ({
-  width: 6,
-  height: 6,
-  borderRadius: "50%",
-  background: color,
-  display: "inline-block",
-  flexShrink: 0,
-})
-
-const hourChipStyle = (active: boolean): React.CSSProperties => ({
-  width: "100%",
-  padding: "10px 6px",
-  borderRadius: 12,
-  border: active ? "1.5px solid #152F40" : "1px solid #E5E2DB",
-  background: active ? "#152F40" : "#fff",
-  color: active ? "#fff" : "#555",
-  fontWeight: active ? 600 : 500,
-  fontSize: 13,
-  display: "flex",
-  gap: 5,
-  alignItems: "center",
-  justifyContent: "center",
 })
 
 const personasMainRow: React.CSSProperties = {

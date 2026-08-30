@@ -24,9 +24,11 @@ export async function POST(req: NextRequest) {
       : requestedDate ? [requestedDate] : null
     const cantidadPersonas = body.cantidadPersonas
     const mensaje = typeof body.mensaje === "string" ? body.mensaje : ""
-    // La table bookings n'a pas de colonne dédiée au nombre de personnes —
-    // repliée dans message pour ne pas modifier le schéma partagé avec le site vitrine.
-    const message = [mensaje, cantidadPersonas ? `Personas: ${cantidadPersonas}` : null]
+    const whatsapp = typeof body.whatsapp === "string" ? body.whatsapp.trim().slice(0, 30) : ""
+    // La table bookings n'a pas de colonne dédiée au nombre de personnes ni
+    // au WhatsApp du bénéficiaire — repliés dans message pour ne pas modifier
+    // le schéma partagé avec le site vitrine (même logique que Horario avant).
+    const message = [mensaje, cantidadPersonas ? `Personas: ${cantidadPersonas}` : null, whatsapp ? `WhatsApp: ${whatsapp}` : null]
       .filter(Boolean)
       .join(" · ")
       .slice(0, 500)
