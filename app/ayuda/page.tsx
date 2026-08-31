@@ -283,13 +283,13 @@ function Row({ icon: Icon, text, iconColor }: any) {
     <div
       style={{
         display: "flex",
-        gap: 8,
+        gap: 10,
         marginBottom: 8,
         color: "#555",
         alignItems: "center",
       }}
     >
-      <Icon size={16} style={iconColor ? { color: iconColor } : undefined} />
+      <Icon size={24} strokeWidth={1.8} style={iconColor ? { color: iconColor, flexShrink: 0 } : { flexShrink: 0 }} />
       <span>{text}</span>
     </div>
   )

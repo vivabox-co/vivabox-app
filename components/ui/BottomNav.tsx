@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { Map, List, Heart, Clock, MessageCircle } from "lucide-react";
+import { Map, List, Heart, Clock, HelpCircle } from "lucide-react";
 import { getCurrentBookingId } from "@/lib/data/getCurrentBookingId";
 import { useUI } from "@/components/ui/UIContext";
 import { getNavGroup, NavGroup } from "@/lib/utils/getNavGroup";
@@ -77,7 +77,7 @@ const bookingItems: Item[] = [
     },
   },
   { href: "/experiencia", label: "Tu experiencia", Icon: ({ active }) => <LogoIcon size={34} active={active} /> },
-  { href: "/ayuda", label: "Ayuda", Icon: MessageCircle },
+  { href: "/ayuda", label: "Ayuda", Icon: HelpCircle },
 ];
 
 export default function BottomNav() {
