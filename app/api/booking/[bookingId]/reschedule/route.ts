@@ -77,9 +77,15 @@ export async function POST(
     const horarioSegment = hour ? `Horario: ${MOMENT_LABEL[moment]} (~${hour})` : `Horario: ${MOMENT_LABEL[moment]}`
     const message = [horarioSegment, ...otherSegments].join(" · ").slice(0, 500)
 
+    // Le statut dérivé "searching_alternative" (GET /api/booking/[bookingId])
+    // se base sur requested_dates, pas requested_date : sans le mettre à jour
+    // aussi ici, un reschedule depuis cet état gardait l'ancien tableau (déjà
+    // tout passé) et le statut restait bloqué sur "searching_alternative"
+    // malgré la nouvelle date. RescheduleModal ne propose qu'une seule date à
+    // la fois, donc on remplace tout le tableau par celle-ci.
     const { data: updated, error: updateError } = await supabase
       .from("bookings")
-      .update({ requested_date: date, message })
+      .update({ requested_date: date, requested_dates: [date], message })
       .eq("id", bookingId)
       .select("id, requested_date, message, status")
       .maybeSingle()
