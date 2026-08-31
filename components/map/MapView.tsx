@@ -324,7 +324,14 @@ export default function MapView({
         disabled={locating}
         aria-label="Ver mi ubicación"
         style={{
-          position: "absolute",
+          // `fixed` (et non `absolute`) pour partager le même référentiel
+          // que .bottom-nav-help (également `fixed`, ancré au vrai viewport) :
+          // le wrapper de MapView est dimensionné en 100dvh, une unité qui
+          // peut diverger légèrement du viewport réel juste après un
+          // rechargement (ex. reconnexion) sur PWA Android tant que la barre
+          // système se stabilise, ce qui désynchronisait ce bouton — resté
+          // "absolute" et donc calé sur ce wrapper — de la bulle Ayuda.
+          position: "fixed",
           right: 16,
           // Remonté au-dessus du bouton Ayuda flottant de BottomNav.tsx
           // (.bottom-nav-help), dont le bord haut est à
@@ -354,7 +361,9 @@ export default function MapView({
       {geoError && (
         <div
           style={{
-            position: "absolute",
+            // Même raison qu'au-dessus (bouton "Ver mi ubicación") : `fixed`
+            // pour rester ancré au vrai viewport, pas au wrapper 100dvh.
+            position: "fixed",
             right: 16,
             bottom: "calc(184px + env(safe-area-inset-bottom))",
             zIndex: 1000,
