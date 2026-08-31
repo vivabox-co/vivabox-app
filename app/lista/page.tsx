@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Search, Heart, MapPin, Users, Clock, CheckCircle2 } from "lucide-react"
 
@@ -20,6 +19,7 @@ import { categoryLabel } from "@/lib/map/categoryLabels"
 import { formatDuration } from "@/lib/format/duration"
 
 import RecoOverlay from "@/components/reco/RecoOverlay"
+import VivaboxLogo from "@/components/ui/VivaboxLogo"
 
 /* ================= CONSTANTES UI ================= */
 
@@ -53,6 +53,26 @@ export default function ListaPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [activeActivities, setActiveActivities] = useState<ActivityKey[]>([])
+
+  const [logoBlinking, setLogoBlinking] = useState(false)
+  const hasOpenedRecoRef = useRef(false)
+
+  /* =====================================================
+     💡 NUDGE — attire l'attention vers le logo (quiz reco)
+     tant que la personne ne l'a pas encore ouvert : les 4
+     couleurs du logo clignotent ensemble (4 pulsations
+     lentes, ~2.8s) toutes les 15s — même comportement que /mapa
+     ===================================================== */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (hasOpenedRecoRef.current) return
+
+      setLogoBlinking(true)
+      setTimeout(() => setLogoBlinking(false), 2900)
+    }, 15000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     fetchExperiences()
@@ -112,7 +132,10 @@ export default function ListaPage() {
           }}
         >
           <button
-            onClick={() => setRecoOpen(true)}
+            onClick={() => {
+              hasOpenedRecoRef.current = true
+              setRecoOpen(true)
+            }}
             aria-label="Abrir recomendaciones Vivabox"
             style={{
               padding: 0,
@@ -124,12 +147,7 @@ export default function ListaPage() {
               justifyContent: "center",
             }}
           >
-            <Image
-              src="/logo/LogoVivaboxSVG.svg"
-              alt="Vivabox"
-              width={50}
-              height={50}
-            />
+            <VivaboxLogo width={50} height={50} blinking={logoBlinking} />
           </button>
         </div>
 
