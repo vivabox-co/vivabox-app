@@ -1,57 +1,41 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import {
-  MessageCircle,
-  Phone,
-  CalendarX,
-  ChevronDown,
-  CalendarCheck,
-  HelpCircle,
-  RefreshCw,
-  CalendarClock,
-  MapPin,
-  LifeBuoy,
-} from "lucide-react"
+import { MessageCircle, Phone, CalendarX } from "lucide-react"
 import { getWhatsAppLink, WHATSAPP_NUMBER } from "@/lib/constants/contact"
 import RescheduleModal from "@/components/ui/RescheduleModal"
+import FaqAccordion from "@/components/ui/FaqAccordion"
 import { getCurrentBookingId } from "@/lib/data/getCurrentBookingId"
 import { Booking } from "@/lib/data/types/booking"
 import { logout } from "@/lib/utils/logout"
 
 const FAQS = [
   {
-    icon: CalendarCheck,
     question: "¿Cuándo se confirma mi experiencia?",
     answer:
       "Después de solicitar tu reserva, contactamos al lugar para confirmar la fecha y hora que elegiste. Te avisaremos apenas tengamos la confirmación.",
   },
   {
-    icon: HelpCircle,
     question: "¿Qué significa “En espera de confirmación”?",
     answer:
       "Significa que ya recibimos tu solicitud y estamos esperando que el lugar confirme la fecha y hora. No necesitas hacer nada por ahora.",
   },
   {
-    icon: RefreshCw,
     question: "¿Qué pasa si no pueden confirmar la fecha que elegí?",
     answer:
       "Si el lugar no puede confirmar la fecha que elegiste, te contactaremos para proponerte una alternativa disponible. Si la nueva fecha te funciona, la confirmaremos por ti.",
   },
   {
-    icon: CalendarClock,
     question: "¿Qué pasa si necesito cambiar la fecha?",
     answer:
       "Si tus planes cambiaron, escríbenos lo antes posible. Revisaremos con el lugar si es posible cambiar la fecha. Los cambios dependen de la disponibilidad y de las condiciones de cada experiencia.",
   },
   {
-    icon: MapPin,
     question: "¿Dónde veo las instrucciones de mi experiencia?",
     answer:
       "Cuando tu reserva esté confirmada, encontrarás toda la información que necesitas para disfrutarla: fecha, hora, lugar e instrucciones especiales.",
   },
   {
-    icon: LifeBuoy,
     question: "¿Qué hago si tengo un problema con mi reserva?",
     answer:
       "Escríbenos por WhatsApp y cuéntanos qué pasó. Revisaremos tu reserva y te ayudaremos con el siguiente paso.",
@@ -61,7 +45,6 @@ const FAQS = [
 export default function AyudaPage() {
   const [booking, setBooking] = useState<Booking | null>(null)
   const [showReschedule, setShowReschedule] = useState(false)
-  const [openFaq, setOpenFaq] = useState<number | null>(null)
 
   // Reprend la réservation active (même logique que /experiencia, y compris
   // le fallback serveur si le localStorage a été vidé par un logout) pour
@@ -209,70 +192,9 @@ export default function AyudaPage() {
 
       {/* FAQ */}
       <h3 style={{ margin: "4px 4px 12px", fontSize: 19 }}>Preguntas frecuentes</h3>
-      {FAQS.map((faq, i) => {
-        const open = openFaq === i
-        const Icon = faq.icon
-        return (
-          <div
-            key={faq.question}
-            style={{
-              background: "#fff",
-              borderRadius: 18,
-              padding: "14px 16px",
-              marginBottom: 10,
-              boxShadow: "0 4px 14px rgba(0,0,0,0.04)",
-            }}
-          >
-            <button
-              onClick={() => setOpenFaq(open ? null : i)}
-              style={{
-                width: "100%",
-                background: "none",
-                border: "none",
-                padding: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-                textAlign: "left",
-                cursor: "pointer",
-              }}
-            >
-              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: "50%",
-                    background: "#EEF2F6",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Icon size={15} color="#152F40" />
-                </span>
-                <span style={{ fontSize: 14.5, fontWeight: 600, color: "#222" }}>{faq.question}</span>
-              </span>
-              <ChevronDown
-                size={16}
-                style={{
-                  flexShrink: 0,
-                  transition: "transform 0.2s ease",
-                  transform: open ? "rotate(180deg)" : "rotate(0deg)",
-                  color: "#999",
-                }}
-              />
-            </button>
-            {open && (
-              <p style={{ margin: "10px 0 0 40px", color: "#666", fontSize: 14, lineHeight: 1.5 }}>
-                {faq.answer}
-              </p>
-            )}
-          </div>
-        )
-      })}
+      <Card>
+        <FaqAccordion items={FAQS} />
+      </Card>
 
       <p style={{ textAlign: "center", margin: "8px 0 0" }}>
         <button

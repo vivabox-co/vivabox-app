@@ -1,34 +1,30 @@
 "use client"
 
-import { useState } from "react"
-import { MessageCircle, Phone, ChevronDown, Compass, Heart, Send, HelpCircle } from "lucide-react"
+import { MessageCircle, Phone } from "lucide-react"
 import { getWhatsAppLink, WHATSAPP_NUMBER } from "@/lib/constants/contact"
 import { logout } from "@/lib/utils/logout"
+import FaqAccordion from "@/components/ui/FaqAccordion"
 
 // FAQ générique pour l'étape pré-réservation (avant qu'une réservation
 // existe) : pas de contenu lié à "ma reserva" ici, voir app/ayuda/page.tsx
 // pour la FAQ post-réservation.
 const FAQS = [
   {
-    icon: Compass,
     question: "¿Cómo reservo una experiencia?",
     answer:
       "Explora las experiencias en Mapa o Lista, elige la que más te guste y selecciona tus fechas preferidas. Nosotros nos encargamos de solicitar la confirmación con el lugar.",
   },
   {
-    icon: Send,
     question: "¿Qué pasa después de enviar mi solicitud?",
     answer:
       "Contactamos al lugar para confirmar la fecha y hora que elegiste. Te avisaremos apenas tengamos la confirmación.",
   },
   {
-    icon: Heart,
     question: "¿Puedo guardar experiencias para decidir más tarde?",
     answer:
       "Sí, toca el corazón en cualquier experiencia para guardarla en Favoritos y encontrarla fácilmente cuando quieras reservar.",
   },
   {
-    icon: HelpCircle,
     question: "¿Puedo cambiar de experiencia antes de reservar?",
     answer:
       "Claro, puedes seguir explorando en Mapa o Lista y elegir otra experiencia en cualquier momento, hasta que envíes tu solicitud de reserva.",
@@ -36,8 +32,6 @@ const FAQS = [
 ]
 
 export default function AyudaGeneralPage() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null)
-
   return (
     <div
       style={{
@@ -107,70 +101,9 @@ export default function AyudaGeneralPage() {
 
       {/* FAQ */}
       <h3 style={{ margin: "4px 4px 12px", fontSize: 19 }}>Preguntas frecuentes</h3>
-      {FAQS.map((faq, i) => {
-        const open = openFaq === i
-        const Icon = faq.icon
-        return (
-          <div
-            key={faq.question}
-            style={{
-              background: "#fff",
-              borderRadius: 18,
-              padding: "14px 16px",
-              marginBottom: 10,
-              boxShadow: "0 4px 14px rgba(0,0,0,0.04)",
-            }}
-          >
-            <button
-              onClick={() => setOpenFaq(open ? null : i)}
-              style={{
-                width: "100%",
-                background: "none",
-                border: "none",
-                padding: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-                textAlign: "left",
-                cursor: "pointer",
-              }}
-            >
-              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: "50%",
-                    background: "#EEF2F6",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Icon size={15} color="#152F40" />
-                </span>
-                <span style={{ fontSize: 14.5, fontWeight: 600, color: "#222" }}>{faq.question}</span>
-              </span>
-              <ChevronDown
-                size={16}
-                style={{
-                  flexShrink: 0,
-                  transition: "transform 0.2s ease",
-                  transform: open ? "rotate(180deg)" : "rotate(0deg)",
-                  color: "#999",
-                }}
-              />
-            </button>
-            {open && (
-              <p style={{ margin: "10px 0 0 40px", color: "#666", fontSize: 14, lineHeight: 1.5 }}>
-                {faq.answer}
-              </p>
-            )}
-          </div>
-        )
-      })}
+      <Card>
+        <FaqAccordion items={FAQS} />
+      </Card>
 
       {/* CUENTA */}
       <Card>
