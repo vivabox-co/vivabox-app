@@ -89,10 +89,10 @@ function AlternativeProposalStep({
       <p style={stepQuestion}>¿Te funciona esta fecha?</p>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <button onClick={onAccept} disabled={pending} style={stepPrimaryBtn(pending)}>
+        <button className="vb-btn-primary" onClick={onAccept} disabled={pending} style={stepPrimaryBtn(pending)}>
           Sí, me funciona
         </button>
-        <button onClick={onReject} disabled={pending} style={stepSecondaryBtn(pending)}>
+        <button className="vb-btn-primary" onClick={onReject} disabled={pending} style={stepSecondaryBtn(pending)}>
           Prefiero otra fecha
         </button>
       </div>
@@ -129,10 +129,10 @@ function RejectAlternativeStep({
       </p>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <button onClick={onKeepSearching} disabled={pending} style={stepPrimaryBtn(pending)}>
+        <button className="vb-btn-primary" onClick={onKeepSearching} disabled={pending} style={stepPrimaryBtn(pending)}>
           Buscar otra fecha
         </button>
-        <button onClick={onTalkToVivabox} disabled={pending} style={stepSecondaryBtn(pending)}>
+        <button className="vb-btn-primary" onClick={onTalkToVivabox} disabled={pending} style={stepSecondaryBtn(pending)}>
           Hablar con Vivabox
         </button>
       </div>
@@ -358,7 +358,7 @@ export default function SeguimientoPage() {
           <img src="/logo/LogoVivaboxSVG.svg" alt="Vivabox" style={errorLogo} />
           <h1 style={errorTitle}>No pudimos cargar tu reserva</h1>
           <p style={errorText}>Por favor, intenta de nuevo más tarde o contáctanos si el problema continúa.</p>
-          <button onClick={() => router.push("/mapa")} style={errorButton}>
+          <button className="vb-btn-primary" onClick={() => router.push("/mapa")} style={errorButton}>
             Volver al mapa
           </button>
         </div>

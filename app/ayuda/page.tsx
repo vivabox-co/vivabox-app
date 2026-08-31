@@ -96,6 +96,7 @@ export default function AyudaPage() {
 
         {/* PRIMARY */}
         <button
+          className="vb-btn-primary"
           onClick={() => window.open(getWhatsAppLink("Hola, necesito ayuda con mi Vivabox."), "_blank")}
           style={{
             marginTop: 12,
@@ -153,6 +154,7 @@ export default function AyudaPage() {
 
         {canReschedule ? (
           <button
+            className="vb-btn-primary"
             onClick={() => setShowReschedule(true)}
             style={{
               marginTop: 12,
@@ -171,6 +173,7 @@ export default function AyudaPage() {
           </button>
         ) : (
           <button
+            className="vb-btn-primary"
             onClick={() => window.open(getWhatsAppLink("Hola, quisiera cambiar la fecha de mi experiencia."), "_blank")}
             style={{
               marginTop: 12,

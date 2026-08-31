@@ -65,6 +65,7 @@ export default function AyudaGeneralPage() {
         </p>
 
         <button
+          className="vb-btn-primary"
           onClick={() => window.open(getWhatsAppLink("Hola, tengo una pregunta sobre Vivabox."), "_blank")}
           style={{
             marginTop: 12,

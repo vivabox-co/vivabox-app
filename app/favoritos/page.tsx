@@ -100,7 +100,7 @@ export default function FavoritosPage() {
   footer={
     selectedExperience && (
       <button
-        className="cta-button"
+        className="cta-button vb-btn-primary"
         onClick={() => {
           beginRouteTransition()
           router.push("/reservar/fechas")
@@ -142,6 +142,7 @@ export default function FavoritosPage() {
 
             <div style={{ display: "flex", gap: 12 }}>
               <button
+                className="vb-btn-primary"
                 onClick={() => setConfirmId(null)}
                 style={{
                   flex: 1,
@@ -155,6 +156,7 @@ export default function FavoritosPage() {
               </button>
 
               <button
+                className="vb-btn-primary"
                 onClick={() => {
                   toggleFavorite(confirmId)
                   setConfirmId(null)

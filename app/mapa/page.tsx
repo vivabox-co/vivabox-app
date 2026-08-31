@@ -267,7 +267,7 @@ export default function MapaPage() {
         footer={
           selectedExperience && (
             <button
-              className="cta-button"
+              className="cta-button vb-btn-primary"
               onClick={() => {
                 if (!selectedExperience?.id) return
                 beginRouteTransition()
