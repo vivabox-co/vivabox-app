@@ -10,12 +10,26 @@ import { getNavGroup, NavGroup } from "@/lib/utils/getNavGroup";
 
 /* 🔥 Recale la nav sur le viewport visuel réel : Safari iOS ne repositionne
    pas toujours les éléments `position: fixed` quand sa barre d'outils du
-   bas se rétracte/déploie, ce qui coupe la nav de façon intermittente. */
+   bas se rétracte/déploie, ce qui coupe la nav de façon intermittente.
+   Strictement limité à iOS : sur Android, `window.innerHeight` se resize déjà
+   en même temps que la barre d'adresse (contrairement à iOS où il reste fixe),
+   donc `position: fixed` s'y comporte bien nativement. Appliquer ce correctif
+   là-bas faisait plus de mal que de bien — les deux valeurs de viewport se
+   désynchronisent une frame pendant l'animation de la barre, ce qui envoyait
+   un translateY erroné et faisait "décrocher" la nav en plein scroll. */
+function isIOS() {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
 function useSafariToolbarFix(ref: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
     const el = ref.current;
     const vv = typeof window !== "undefined" ? window.visualViewport : null;
-    if (!el || !vv) return;
+    if (!el || !vv || !isIOS()) return;
 
     function update() {
       const offset = window.innerHeight - vv!.height - vv!.offsetTop;
