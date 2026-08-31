@@ -120,7 +120,7 @@ function VigenciaCard({ state }: { state: VigenciaFetchState }) {
       ? { bg: "#FFF6E9", border: "#F2DFB8", text: "#8A5300" }
       : info.status === "expired"
       ? { bg: "#fff", border: "#E7E2DC", text: "#B42318" }
-      : { bg: "#fff", border: "transparent", text: "#152F40" }
+      : { bg: "#F1F7E9", border: "#E3EDD5", text: "#152F40" }
 
   return (
     <div style={cardStyle(colors.bg, colors.border)}>
@@ -131,7 +131,13 @@ function VigenciaCard({ state }: { state: VigenciaFetchState }) {
         {info.status === "expired" ? `Vencida el ${dateLabel}` : `Hasta el ${dateLabel}`}
       </div>
       {info.status !== "expired" && (
-        <div style={{ fontSize: 13, color: "#9a9a9a", marginTop: 2 }}>
+        <div
+          style={{
+            fontSize: 13,
+            color: info.status === "active" ? "#5E7D22" : "#9a9a9a",
+            marginTop: 2,
+          }}
+        >
           Te quedan <b>{info.daysRemaining}</b> día{info.daysRemaining === 1 ? "" : "s"}
         </div>
       )}

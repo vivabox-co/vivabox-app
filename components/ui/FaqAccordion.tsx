@@ -11,6 +11,11 @@ type Props = {
   items: FaqAccordionItem[]
 }
 
+// Même 4 couleurs que BrandDots (une par couleur du logo), utilisées ici en
+// rotation comme repère discret par question — accent uniquement, jamais de
+// fond ni de texte coloré.
+const ACCENT_COLORS = ["#FF8406", "#CB2033", "#8DB92F", "#0294D2"]
+
 // Style éditorial repris du site vitrine (FaqAccordion.tsx) : fines
 // dividers au lieu de cards, pas d'icônes, toggle typographique +/- au
 // lieu d'un chevron. Adapté à la palette de l'app (pas de --nm-border
@@ -23,6 +28,7 @@ export default function FaqAccordion({ items }: Props) {
       {items.map((item, i) => {
         const isOpen = open === i
         const isLast = i === items.length - 1
+        const accent = ACCENT_COLORS[i % ACCENT_COLORS.length]
 
         return (
           <div
@@ -45,8 +51,21 @@ export default function FaqAccordion({ items }: Props) {
                 cursor: "pointer",
               }}
             >
-              <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600, lineHeight: 1.4, color: "#222" }}>
-                {item.question}
+              <span style={{ display: "flex", flex: 1, alignItems: "flex-start", gap: 10 }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 7,
+                    height: 7,
+                    marginTop: 6,
+                    borderRadius: "50%",
+                    background: accent,
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.4, color: "#222" }}>
+                  {item.question}
+                </span>
               </span>
 
               <span
