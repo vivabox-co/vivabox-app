@@ -127,8 +127,8 @@ export default function ListaPage() {
             <Image
               src="/logo/LogoVivaboxSVG.svg"
               alt="Vivabox"
-              width={52}
-              height={52}
+              width={50}
+              height={50}
             />
           </button>
         </div>
