@@ -18,6 +18,10 @@ const publicRoutes = [
   '/api/activate_code',
   '/api/verify_access',
   '/api/experiencias',
+  // CGU / politique de données : doivent rester accessibles sans session
+  // puisqu'on les lie depuis le formulaire d'activation lui-même, avant
+  // toute session (voir app/activar/datos/page.tsx).
+  '/legal',
 ];
 
 const activationEntryRoute = '/activar';

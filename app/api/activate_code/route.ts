@@ -5,6 +5,7 @@ import { isValidEmail } from "@/lib/utils/isValidEmail"
 import { checkRateLimit, getClientIp } from "@/lib/utils/rateLimit"
 import { generateSessionToken, hashSessionToken } from "@/lib/utils/sessionToken"
 import { SESSION_VALIDITY_DAYS } from "@/lib/constants/session"
+import { LEGAL_VERSION } from "@/lib/constants/legal"
 
 const RATE_LIMIT_MAX_ATTEMPTS = 5
 const RATE_LIMIT_WINDOW_MINUTES = 15
@@ -18,9 +19,14 @@ export async function POST(req: Request) {
     const codeInput = typeof body.codigo === "string" ? body.codigo : ""
     const name = typeof body.nombre === "string" ? body.nombre.trim().slice(0, 100) : ""
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 100) : ""
+    const aceptaTerminos = body.aceptaTerminos === true
 
     if (!codeInput || !name || !email) {
       return NextResponse.json({ success: false, error: "INVALID_INPUT" })
+    }
+
+    if (!aceptaTerminos) {
+      return NextResponse.json({ success: false, error: "CONSENT_REQUIRED" })
     }
 
     if (!isValidEmail(email)) {
@@ -55,6 +61,9 @@ export async function POST(req: Request) {
         beneficiary_name: name,
         beneficiary_email: email,
         activated_at: new Date().toISOString(),
+        consent_terms_version: LEGAL_VERSION,
+        consent_accepted_at: new Date().toISOString(),
+        consent_accepted_ip: ip,
       })
       .eq("code_normalized", normalizedCode)
       .eq("status", "unused")

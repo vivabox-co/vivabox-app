@@ -15,7 +15,7 @@ import "@/lib/pwa/deferredInstallPrompt"
 // (disponible synchronement) plutôt que du seul hideNav du contexte, qui n'est
 // mis à jour que par un useEffect de la page cible et arrive donc un cran trop
 // tard (flash de la navbar le temps que l'effet se déclenche).
-const HIDDEN_NAV_PATHS = ["/activar", "/activacion-completa", "/reservar/fechas"]
+const HIDDEN_NAV_PATHS = ["/activar", "/activacion-completa", "/reservar/fechas", "/legal"]
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()

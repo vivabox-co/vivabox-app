@@ -6,6 +6,7 @@ import { useUI } from "@/components/ui/UIContext"
 import { prefersReducedMotion } from "@/lib/utils/prefersReducedMotion"
 import { useNextCardMinHeight } from "@/components/ui/useNextCardMinHeight"
 import { ActivatedCard } from "@/app/activacion-completa/page"
+import { LEGAL_TERMS_PATH, LEGAL_PRIVACY_PATH } from "@/lib/constants/legal"
 
 // Un peu plus douce pour le dernier saut (vers "Tu regalo está activo"),
 // comme pour les autres transitions de ce flow (voir app/activar/page.tsx).
@@ -19,6 +20,7 @@ export default function DatosPage() {
   const [apellido, setApellido] = useState("")
   const [email, setEmail] = useState("")
   const [codigo, setCodigo] = useState("")
+  const [aceptaTerminos, setAceptaTerminos] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [leaving, setLeaving] = useState(false)
@@ -52,6 +54,11 @@ export default function DatosPage() {
       return
     }
 
+    if (!aceptaTerminos) {
+      setError("Debes aceptar los Términos y la Política de Datos")
+      return
+    }
+
     const nombreCompleto = `${nombre.trim()} ${apellido.trim()}`.trim()
 
     setLoading(true)
@@ -62,7 +69,7 @@ export default function DatosPage() {
       const activateRes = await fetch("/api/activate_code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo, nombre: nombreCompleto, email }),
+        body: JSON.stringify({ codigo, nombre: nombreCompleto, email, aceptaTerminos }),
       })
 
       let activateData: any = null
@@ -173,6 +180,7 @@ console.log("activateData.error:", activateData?.error)
               nombre={nombre}
               apellido={apellido}
               email={email}
+              aceptaTerminos={aceptaTerminos}
               error={error}
               loading={loading}
               disabled={leaving}
@@ -180,6 +188,7 @@ console.log("activateData.error:", activateData?.error)
               onNombreChange={setNombre}
               onApellidoChange={setApellido}
               onEmailChange={setEmail}
+              onAceptaTerminosChange={setAceptaTerminos}
               onSubmit={handleSubmit}
             />
           </div>
@@ -211,6 +220,7 @@ type DatosCardBodyProps = {
   nombre: string
   apellido: string
   email: string
+  aceptaTerminos: boolean
   error: string
   loading: boolean
   disabled?: boolean
@@ -218,6 +228,7 @@ type DatosCardBodyProps = {
   onNombreChange: (value: string) => void
   onApellidoChange: (value: string) => void
   onEmailChange: (value: string) => void
+  onAceptaTerminosChange: (value: boolean) => void
   onSubmit: (e: React.FormEvent) => void
 }
 
@@ -226,6 +237,7 @@ export function DatosCardBody({
   nombre,
   apellido,
   email,
+  aceptaTerminos,
   error,
   loading,
   disabled,
@@ -233,6 +245,7 @@ export function DatosCardBody({
   onNombreChange,
   onApellidoChange,
   onEmailChange,
+  onAceptaTerminosChange,
   onSubmit,
 }: DatosCardBodyProps) {
   // Le CTA doit rester visuellement "mort" (fond gris clair, texte gris) tant
@@ -240,7 +253,7 @@ export function DatosCardBody({
   // styles inline (btnActive/btnDisabled) portent chacun leur propre couleur
   // et l'emportent sur .vb-btn-primary:disabled (opacity), qu'on neutralise
   // donc explicitement dans les deux variantes ci-dessous.
-  const formComplete = isFormComplete(codigo, nombre, apellido, email)
+  const formComplete = isFormComplete(codigo, nombre, apellido, email, aceptaTerminos)
   const ctaEnabled = formComplete && !loading && !disabled
 
   return (
@@ -288,6 +301,29 @@ export function DatosCardBody({
 
         {/* REASSURANCE */}
         <p style={included}>Tu experiencia ya está incluida</p>
+
+        {/* CONSENTIMIENTO — requis pour activer le CTA (voir formComplete).
+            Liens ouverts dans un nouvel onglet pour ne pas perdre le
+            formulaire en cours de saisie. */}
+        <label style={consentLabel}>
+          <input
+            type="checkbox"
+            checked={aceptaTerminos}
+            onChange={(e) => onAceptaTerminosChange(e.target.checked)}
+            disabled={disabled}
+            style={consentCheckbox}
+          />
+          <span>
+            He leído y acepto los{" "}
+            <a href={LEGAL_TERMS_PATH} target="_blank" rel="noreferrer" style={consentLink}>
+              Términos y Condiciones
+            </a>{" "}
+            y la{" "}
+            <a href={LEGAL_PRIVACY_PATH} target="_blank" rel="noreferrer" style={consentLink}>
+              Política de Tratamiento de Datos
+            </a>
+          </span>
+        </label>
 
         {error && <p style={errorText}>{error}</p>}
 
@@ -436,14 +472,14 @@ function CodigoInput({
 // Habilita el CTA solo cuando los 4 campos obligatorios están completos.
 // Para nombre/apellido, alcanza con una valeur réelle (pas de longueur
 // minimale arbitraire) : la contrainte forte porte sur le code et l'email.
-function isFormComplete(codigo: string, nombre: string, apellido: string, email: string) {
+function isFormComplete(codigo: string, nombre: string, apellido: string, email: string, aceptaTerminos: boolean) {
   const codeChars = codigo.replace(/[^A-Z0-9]/g, "")
   const codeComplete = codeChars.length >= 12 // "VIVA" + 8 caracteres
   const nombreComplete = nombre.trim().length > 0
   const apellidoComplete = apellido.trim().length > 0
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
 
-  return codeComplete && nombreComplete && apellidoComplete && emailValid
+  return codeComplete && nombreComplete && apellidoComplete && emailValid && aceptaTerminos
 }
 
 function mapError(code: string) {
@@ -460,6 +496,8 @@ function mapError(code: string) {
       return "Email inválido"
     case "INVALID_INPUT":
       return "Completa todos los datos"
+    case "CONSENT_REQUIRED":
+      return "Debes aceptar los Términos y la Política de Datos"
     case "INCONSISTENT_STATE":
       return "Hubo un problema con el código. Escríbenos."
     case "EMAIL_MISMATCH":
@@ -613,6 +651,33 @@ const errorText = {
   color: "red",
   fontSize: 13,
   marginBottom: 12,
+}
+
+const consentLabel: React.CSSProperties = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 8,
+  textAlign: "left",
+  fontSize: 12.5,
+  color: "#666",
+  lineHeight: 1.45,
+  marginBottom: 16,
+  cursor: "pointer",
+}
+
+const consentCheckbox: React.CSSProperties = {
+  marginTop: 2,
+  width: 16,
+  height: 16,
+  flexShrink: 0,
+  accentColor: "#152F40",
+  cursor: "pointer",
+}
+
+const consentLink: React.CSSProperties = {
+  color: "#152F40",
+  fontWeight: 600,
+  textDecoration: "underline",
 }
 
 const btnBase: React.CSSProperties = {

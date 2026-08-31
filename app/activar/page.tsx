@@ -95,6 +95,7 @@ export default function ActivarFlowPage() {
                 nombre=""
                 apellido=""
                 email=""
+                aceptaTerminos={false}
                 error=""
                 loading={false}
                 disabled
@@ -102,6 +103,7 @@ export default function ActivarFlowPage() {
                 onNombreChange={NOOP}
                 onApellidoChange={NOOP}
                 onEmailChange={NOOP}
+                onAceptaTerminosChange={NOOP}
                 onSubmit={(e) => e.preventDefault()}
               />
             </div>
