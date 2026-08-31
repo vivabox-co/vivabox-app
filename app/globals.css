@@ -116,11 +116,11 @@
 
 @keyframes vb-logo-color-blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.15; }
+  50% { opacity: 0.5; }
 }
 
 .vb-logo-color-blink rect {
-  animation: vb-logo-color-blink 0.9s ease-in-out;
+  animation: vb-logo-color-blink 0.35s ease-in-out 3;
 }
 
 @media (prefers-reduced-motion: reduce) {

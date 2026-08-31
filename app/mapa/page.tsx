@@ -55,14 +55,15 @@ export default function MapaPage() {
   /* =====================================================
      💡 NUDGE — attire l'attention vers le logo (quiz reco)
      tant que la personne ne l'a pas encore ouvert : les 4
-     couleurs du logo clignotent ensemble toutes les 15s
+     couleurs du logo clignotent ensemble (3 pulsations
+     rapides) toutes les 15s
      ===================================================== */
   useEffect(() => {
     const interval = setInterval(() => {
       if (hasOpenedRecoRef.current) return
 
       setLogoBlinking(true)
-      setTimeout(() => setLogoBlinking(false), 900)
+      setTimeout(() => setLogoBlinking(false), 1100)
     }, 15000)
 
     return () => clearInterval(interval)
