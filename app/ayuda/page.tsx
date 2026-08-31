@@ -199,22 +199,25 @@ export default function AyudaPage() {
         <FaqAccordion items={FAQS} />
       </Card>
 
-      <p style={{ textAlign: "center", margin: "8px 0 0" }}>
+      {/* CUENTA */}
+      <Card>
         <button
           onClick={logout}
           style={{
-            background: "none",
-            border: "none",
-            padding: 8,
+            width: "100%",
+            padding: 14,
+            borderRadius: 16,
+            background: "#F3EFEA",
             color: "#B42318",
-            fontSize: 13,
-            textDecoration: "underline",
+            border: "1px solid #E7E2DC",
+            fontSize: 15,
+            fontWeight: 500,
             cursor: "pointer",
           }}
         >
           Cerrar sesión
         </button>
-      </p>
+      </Card>
 
       {showReschedule && booking && (
         <RescheduleModal
