@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { Map, List, Heart, Clock, MessageCircle, LogOut } from "lucide-react";
+import { Map, List, Heart, Clock, MessageCircle } from "lucide-react";
 import { getCurrentBookingId } from "@/lib/data/getCurrentBookingId";
 import { useUI } from "@/components/ui/UIContext";
 
@@ -79,25 +79,6 @@ const bookingItems: Item[] = [
   { href: "/ayuda", label: "Ayuda", Icon: MessageCircle },
 ];
 
-async function handleLogout() {
-  if (!window.confirm("¿Cerrar sesión y volver al inicio?")) return;
-
-  try {
-    await fetch("/api/logout", { method: "POST" });
-  } catch {
-    // Le cookie httpOnly ne peut être effacé que côté serveur ; si l'appel
-    // échoue on redirige quand même — /activar redemandera le code au
-    // prochain accès si le cookie a survécu.
-  }
-
-  sessionStorage.removeItem("vb_session");
-  sessionStorage.removeItem("vb_codigo");
-  localStorage.removeItem("currentBooking");
-
-  // Full reload (pas router.push) pour repartir avec un contexte UI/état vierge.
-  window.location.href = "/activar";
-}
-
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -112,6 +93,12 @@ export default function BottomNav() {
 
   const items = isBookingFlow ? bookingItems : exploreItems;
 
+  // En mode réservation, l'aide est déjà un item de la nav principale
+  // (bookingItems ci-dessus) ; la bulle flottante ne sert donc que côté
+  // exploration (Mapa/Lista/Favoritos), et pas sur /ayuda-general elle-même
+  // pour éviter un accès qui pointe vers la page déjà affichée.
+  const showHelpBubble = !isBookingFlow && !pathname.startsWith("/ayuda-general");
+
   function isActive(item: Item) {
     if (item.label === "Seguimiento") {
       return pathname.startsWith("/reservar/seguimiento");
@@ -122,13 +109,16 @@ export default function BottomNav() {
 
   return (
     <nav className="bottom-nav" ref={navRef}>
-      <button
-        onClick={handleLogout}
-        aria-label="Cerrar sesión"
-        className="bottom-nav-logout"
-      >
-        <LogOut size={13} strokeWidth={1.8} />
-      </button>
+      {showHelpBubble && (
+        <Link
+          href="/ayuda-general"
+          onClick={() => beginRouteTransition()}
+          aria-label="Ayuda"
+          className="bottom-nav-help"
+        >
+          <MessageCircle size={15} strokeWidth={1.8} />
+        </Link>
+      )}
 
       {items.map((item, index) => {
         const active = isActive(item);

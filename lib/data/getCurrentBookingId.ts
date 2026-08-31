@@ -1,6 +1,6 @@
 // "currentBooking" n'est écrit dans localStorage qu'au moment de la
 // confirmation d'une nouvelle réservation (voir reservar/fechas/confirmacion)
-// et effacé par le logout (BottomNav.handleLogout). Un bénéficiaire qui se
+// et effacé par le logout (lib/utils/logout.ts). Un bénéficiaire qui se
 // déconnecte puis se reconnecte (code déjà activé → /api/verify_access)
 // retrouve une session et une réservation valides côté serveur, mais plus
 // aucune trace locale de son id — /experiencia et /ayuda, qui ne

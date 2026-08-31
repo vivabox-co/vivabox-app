@@ -114,33 +114,17 @@
    LOGO NUDGE (découvrabilité reco /mapa)
 ================================ */
 
-@keyframes vb-logo-wiggle {
-  0%, 100% { transform: rotate(0deg); }
-  15% { transform: rotate(-8deg); }
-  30% { transform: rotate(7deg); }
-  45% { transform: rotate(-5deg); }
-  60% { transform: rotate(3deg); }
-  75% { transform: rotate(-1deg); }
+@keyframes vb-logo-color-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
 }
 
-.vb-logo-wiggle {
-  animation: vb-logo-wiggle 0.6s ease-in-out;
-}
-
-@keyframes vb-logo-hint-fade {
-  0% { opacity: 0; transform: translateY(-50%) translateX(4px); }
-  10% { opacity: 1; transform: translateY(-50%) translateX(0); }
-  85% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-.vb-logo-hint {
-  animation: vb-logo-hint-fade 6s ease forwards;
+.vb-logo-color-blink rect {
+  animation: vb-logo-color-blink 0.9s ease-in-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vb-logo-wiggle,
-  .vb-logo-hint {
+  .vb-logo-color-blink rect {
     animation: none;
   }
 }
@@ -250,10 +234,11 @@ body {
   font-weight: 600;
 }
 
-/* Déconnexion discrète : petit bouton flottant sur le coin de la pastille,
-   volontairement peu visible (opacité faible, pas de libellé) pour ne pas
-   concurrencer la navigation principale. */
-.bottom-nav-logout {
+/* Accès Ayuda en mode exploration (Mapa/Lista/Favoritos) : petit bouton
+   flottant sur le coin de la pastille, même emplacement que l'ancien bouton
+   de déconnexion mais un peu plus visible puisque c'est désormais un point
+   d'entrée utile (aide), pas une action qu'on cherche à cacher. */
+.bottom-nav-help {
   position: absolute;
   top: -14px;
   right: 6px;
@@ -262,19 +247,20 @@ body {
   border-radius: 50%;
   border: none;
   background: #fff;
-  color: #a8998c;
-  opacity: 0.55;
+  color: #152F40;
+  opacity: 0.85;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   cursor: pointer;
+  text-decoration: none;
   transition: opacity 0.15s ease;
 }
 
-.bottom-nav-logout:hover,
-.bottom-nav-logout:active {
-  opacity: 0.9;
+.bottom-nav-help:hover,
+.bottom-nav-help:active {
+  opacity: 1;
 }
 
 /* ================================

@@ -17,6 +17,7 @@ import { getWhatsAppLink, WHATSAPP_NUMBER } from "@/lib/constants/contact"
 import RescheduleModal from "@/components/ui/RescheduleModal"
 import { getCurrentBookingId } from "@/lib/data/getCurrentBookingId"
 import { Booking } from "@/lib/data/types/booking"
+import { logout } from "@/lib/utils/logout"
 
 const FAQS = [
   {
@@ -272,6 +273,23 @@ export default function AyudaPage() {
           </div>
         )
       })}
+
+      <p style={{ textAlign: "center", margin: "8px 0 0" }}>
+        <button
+          onClick={logout}
+          style={{
+            background: "none",
+            border: "none",
+            padding: 8,
+            color: "#999",
+            fontSize: 13,
+            textDecoration: "underline",
+            cursor: "pointer",
+          }}
+        >
+          Cerrar sesión
+        </button>
+      </p>
 
       {showReschedule && booking && (
         <RescheduleModal
