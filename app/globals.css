@@ -239,12 +239,12 @@ body {
    reprend exactement la hauteur de .bottom-nav ci-dessus + une marge, donc
    ça reste vrai quel que soit le safe-area-inset-bottom de l'appareil).
    Sur /mapa ça atterrit juste sous le bouton "Ver mi ubicación" (voir
-   MapView.tsx, bottom: 90px) dont il reprend le style (rond blanc, même
+   MapView.tsx, bottom: 130px) dont il reprend le style (rond blanc, même
    ombre) pour lire comme un contrôle de carte plutôt qu'un badge caché. */
 .bottom-nav-help {
   position: absolute;
   right: 16px;
-  bottom: calc(56px + env(safe-area-inset-bottom) + 12px);
+  bottom: calc(56px + env(safe-area-inset-bottom) + 16px);
   width: 42px;
   height: 42px;
   border-radius: 50%;
