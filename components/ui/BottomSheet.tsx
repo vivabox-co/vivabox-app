@@ -25,6 +25,10 @@ export default function BottomSheet({
   const CLOSE_THRESHOLD = 90
   const CLOSE_MAX_OFFSET = 160
   const CLOSE_RESISTANCE = 0.6
+  // Courbe/durée des transitions "relâchées" (snap-back et fermeture animée) :
+  // decel proche de celle des sheets natifs iOS/Android, pas un ease-out générique.
+  const TRANSITION_MS = 280
+  const TRANSITION_EASING = "cubic-bezier(0.32, 0.72, 0, 1)"
 
   const [height, setHeight] = useState(MIN_HEIGHT)
   const [dragOffset, setDragOffset] = useState(0)
@@ -36,6 +40,7 @@ export default function BottomSheet({
   const dragOffsetRef = useRef(0)
 
   const lastY = useRef<number | null>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   // Après un vrai drag, un click "fantôme" peut suivre le relâchement et
@@ -43,9 +48,19 @@ export default function BottomSheet({
   // sheet redimensionnée) → fermerait le drawer juste après l'avoir
   // redimensionné. Ce flag absorbe ce click.
   const suppressNextOverlayClick = useRef(false)
+  // Évite un double-appel à closeSheet() (ex: drag qui dépasse le seuil
+  // puis click fantôme sur l'overlay pendant l'animation de sortie).
+  const isClosingRef = useRef(false)
 
   const TAP_THRESHOLD = 6
   const startY = useRef<number | null>(null)
+
+  // 🔥 Pendant un drag, on écrit `height`/`transform` directement sur le DOM
+  // (refs + rAF) au lieu de passer par setState à chaque pixel : un setState
+  // par touchmove force un re-render React (+ diff + reflow) sur une
+  // propriété de layout, ce qui provoque des saccades sur mobile. On ne
+  // resynchronise le state React qu'une fois, au relâchement (endDrag).
+  const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -53,8 +68,15 @@ export default function BottomSheet({
       heightRef.current = MIN_HEIGHT
       setDragOffset(0)
       dragOffsetRef.current = 0
+      isClosingRef.current = false
     }
   }, [open])
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
 
   if (!open) return null
 
@@ -78,7 +100,31 @@ export default function BottomSheet({
     setDragOffset(next)
   }
 
+  /** Applique heightRef/dragOffsetRef directement au DOM, hors du cycle React. */
+  function applyLiveStyles() {
+    const el = sheetRef.current
+    if (!el) return
+    el.style.height = `${heightRef.current}vh`
+    el.style.transform = `translateX(-50%) translateY(${dragOffsetRef.current}px)`
+  }
+
+  function scheduleStyleFlush() {
+    if (rafRef.current !== null) return
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null
+      applyLiveStyles()
+    })
+  }
+
+  function cancelStyleFlush() {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+  }
+
   function resetDragState() {
+    cancelStyleFlush()
     lastY.current = null
     startY.current = null
     isDragging.current = false
@@ -104,7 +150,13 @@ export default function BottomSheet({
     // 🔥 SI PAS ASSEZ DE MOUVEMENT = TAP → NE PAS PREVENTDEFAULT
     if (deltaTotal < TAP_THRESHOLD) return
 
-    isDragging.current = true
+    if (!isDragging.current) {
+      isDragging.current = true
+      // Désactive la transition CSS tout de suite, sans attendre un
+      // re-render React, pour que les écritures DOM directes qui suivent
+      // ne soient jamais animées pendant qu'on tient le doigt.
+      if (sheetRef.current) sheetRef.current.style.transition = "none"
+    }
 
     const delta = lastY.current - currentY
     const bodyEl = bodyRef.current
@@ -116,32 +168,58 @@ export default function BottomSheet({
     const atMaxHeight = heightRef.current >= MAX_HEIGHT
     const atMinHeight = heightRef.current <= MIN_HEIGHT
 
+    let moved = false
+
     if (scrollingUp) {
       if (dragOffsetRef.current > 0) {
         preventDefault()
-        updateDragOffset(Math.max(0, dragOffsetRef.current - Math.abs(delta)))
+        dragOffsetRef.current = Math.max(0, dragOffsetRef.current - Math.abs(delta))
+        moved = true
       } else if (!atMaxHeight) {
         preventDefault()
         bodyEl.scrollTop = 0
-        updateHeight(h => Math.min(MAX_HEIGHT, h + Math.abs(delta) * DRAG_SPEED))
+        heightRef.current = Math.min(MAX_HEIGHT, heightRef.current + Math.abs(delta) * DRAG_SPEED)
+        moved = true
       }
     } else if (scrollingDown && atTop) {
       if (!atMinHeight) {
         preventDefault()
-        updateHeight(h => Math.max(MIN_HEIGHT, h - Math.abs(delta) * DRAG_SPEED))
+        heightRef.current = Math.max(MIN_HEIGHT, heightRef.current - Math.abs(delta) * DRAG_SPEED)
+        moved = true
       } else {
         // À hauteur mini et on continue de tirer vers le bas → pull-to-close
         preventDefault()
-        updateDragOffset(
-          Math.min(CLOSE_MAX_OFFSET, dragOffsetRef.current + Math.abs(delta) * CLOSE_RESISTANCE)
+        dragOffsetRef.current = Math.min(
+          CLOSE_MAX_OFFSET,
+          dragOffsetRef.current + Math.abs(delta) * CLOSE_RESISTANCE
         )
+        moved = true
       }
     }
 
+    if (moved) scheduleStyleFlush()
     lastY.current = currentY
   }
 
+  /** Anime la sortie (translateY jusqu'à hors-écran) puis démonte réellement
+   *  le sheet une fois la transition terminée — évite le "saut brutal" où
+   *  le sheet disparaissait instantanément dès que le parent recevait onClose(). */
+  function closeSheet() {
+    if (isClosingRef.current) return
+    isClosingRef.current = true
+    resetDragState()
+
+    const offscreen = (typeof window !== "undefined" ? window.innerHeight : 800) + 100
+    updateDragOffset(offscreen)
+
+    setTimeout(() => {
+      onClose()
+    }, TRANSITION_MS)
+  }
+
   function endDrag() {
+    cancelStyleFlush()
+
     if (!isDragging.current) {
       // 👉 C'était un TAP → laisser le click se produire
       resetDragState()
@@ -154,8 +232,7 @@ export default function BottomSheet({
     }, 300)
 
     if (dragOffsetRef.current > CLOSE_THRESHOLD) {
-      resetDragState()
-      onClose()
+      closeSheet()
       return
     }
 
@@ -172,7 +249,7 @@ export default function BottomSheet({
       suppressNextOverlayClick.current = false
       return
     }
-    onClose()
+    closeSheet()
   }
 
   /* ================= TOUCH (mobile) =================
@@ -226,6 +303,7 @@ export default function BottomSheet({
       />
 
       <div
+        ref={sheetRef}
         className="bottom-sheet"
         style={{
           height: `${height}vh`,
@@ -236,7 +314,7 @@ export default function BottomSheet({
           transform: `translateX(-50%) translateY(${dragOffset}px)`,
           transition: isDragging.current
             ? "none"
-            : "height 0.18s ease-out, transform 0.18s ease-out",
+            : `height ${TRANSITION_MS}ms ${TRANSITION_EASING}, transform ${TRANSITION_MS}ms ${TRANSITION_EASING}`,
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
