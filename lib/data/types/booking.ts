@@ -27,6 +27,17 @@ export type Booking = {
   proposedMoment: string | null
   proposedHour: string | null
 
+  // Trace de chaque "Solicitar cambio" fait depuis /ayuda (voir
+  // POST /api/booking/[bookingId]/reschedule), la plus ancienne en premier.
+  // Vide tant que le bénéficiaire n'a jamais reprogrammé sa réservation.
+  rescheduleHistory: {
+    previousDate: string | null
+    previousTimeLabel: string | null
+    newDate: string
+    newTimeLabel: string
+    changedAt: string
+  }[]
+
   experienceSnapshot: {
     id: string
     title: string

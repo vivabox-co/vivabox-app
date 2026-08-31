@@ -118,6 +118,20 @@ export async function GET(
 
     const proposedMomentLabel = booking.proposed_moment ? (MOMENT_LABEL[booking.proposed_moment] ?? booking.proposed_moment) : null
 
+    // Trace de chaque reprogrammation faite depuis /ayuda (voir POST
+    // .../reschedule) — table dédiée plutôt qu'un champ unique sur bookings
+    // pour garder tout l'historique si le bénéficiaire change plusieurs fois,
+    // pas juste la dernière valeur écrasée.
+    const { data: rescheduleRows, error: rescheduleHistoryError } = await supabase
+      .from("booking_reschedules")
+      .select("previous_date, previous_time_label, new_date, new_time_label, changed_at")
+      .eq("booking_id", bookingId)
+      .order("changed_at", { ascending: true })
+
+    if (rescheduleHistoryError) {
+      console.error("BOOKING GET RESCHEDULE HISTORY ERROR:", rescheduleHistoryError)
+    }
+
     // 1ère fois que /reservar/seguimiento (seul appelant qui passe ?track=1,
     // voir plus bas) voit la réservation en "requested" : on fige l'instant
     // côté serveur (au lieu d'un simple minuteur front qui redémarrerait à
@@ -189,6 +203,13 @@ export async function GET(
         proposedDate: booking.proposed_date ?? null,
         proposedMoment: proposedMomentLabel,
         proposedHour: booking.proposed_hour ?? null,
+        rescheduleHistory: (rescheduleRows ?? []).map((r) => ({
+          previousDate: r.previous_date,
+          previousTimeLabel: r.previous_time_label,
+          newDate: r.new_date,
+          newTimeLabel: r.new_time_label,
+          changedAt: r.changed_at,
+        })),
         experienceSnapshot,
       },
     });

@@ -104,6 +104,37 @@ function AlternativeProposalStep({
   )
 }
 
+// Petite note transparente listant chaque "Solicitar cambio" fait depuis
+// /ayuda (voir rescheduleHistory sur Booking) — sinon un changement de date
+// n'apparaît nulle part une fois la nouvelle date en place, ni côté
+// bénéficiaire ni côté équipe (qui lit la même donnée dans /pedidos, repo
+// site vitrine). N'affiche que ce qui existe déjà, jamais masqué par
+// hideDates : savoir qu'on a changé de date reste utile même en
+// "searching_alternative"/"rejected".
+function RescheduleHistoryNote({ history }: { history: Booking["rescheduleHistory"] }) {
+  if (!history.length) return null
+  return (
+    <div style={historyBox}>
+      <div style={historyTitle}>Historial de cambios de fecha</div>
+      {history.map((h) => (
+        <div key={h.changedAt} style={historyRow}>
+          <span style={historyDate}>
+            {h.previousDate
+              ? formatLocalDate(h.previousDate, { day: "numeric", month: "short" })
+              : "Sin fecha previa"}
+            {h.previousTimeLabel ? ` · ${h.previousTimeLabel}` : ""}
+          </span>
+          <span style={historyArrow}>→</span>
+          <span style={historyDate}>
+            {formatLocalDate(h.newDate, { day: "numeric", month: "short" })}
+            {h.newTimeLabel ? ` · ${h.newTimeLabel}` : ""}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // Écran affiché quand le bénéficiaire refuse la date proposée : reste dans
 // le MÊME dossier de réservation (pas d'annulation automatique). "Elegir
 // otra experiencia" est volontairement en retrait (lien discret, pas un
@@ -429,6 +460,8 @@ export default function SeguimientoPage() {
         />
       </div>
 
+      <RescheduleHistoryNote history={booking.rescheduleHistory} />
+
       {/* La timeline suit toujours directement la carte expérience, pour
           tous les statuts — c'est elle qui porte l'état de la réservation.
           Pour "alternative_proposed", la proposition et la décision sont
@@ -532,6 +565,35 @@ export default function SeguimientoPage() {
 }
 
 /* ---------- STYLES : carte "Nueva fecha" (alternative_proposed) ---------- */
+
+const historyBox: React.CSSProperties = {
+  marginBottom: 18,
+  padding: "12px 16px",
+  borderRadius: 16,
+  background: "#F3F1EC",
+}
+
+const historyTitle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: 0.3,
+  textTransform: "uppercase",
+  color: "#888",
+  marginBottom: 6,
+}
+
+const historyRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  fontSize: 13,
+  color: "#555",
+  padding: "3px 0",
+}
+
+const historyDate: React.CSSProperties = { textTransform: "capitalize" }
+
+const historyArrow: React.CSSProperties = { color: "#aaa" }
 
 const proposedCard: React.CSSProperties = {
   marginBottom: 18,

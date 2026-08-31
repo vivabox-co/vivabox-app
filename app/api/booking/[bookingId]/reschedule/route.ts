@@ -49,7 +49,7 @@ export async function POST(
 
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
-      .select("id, activation_code_id, status, message")
+      .select("id, activation_code_id, status, message, requested_date")
       .eq("id", bookingId)
       .maybeSingle()
 
@@ -74,7 +74,10 @@ export async function POST(
     const otherSegments = (booking.message || "")
       .split(" · ")
       .filter((seg: string) => seg.trim() && !seg.trim().startsWith("Horario:"))
-    const horarioSegment = hour ? `Horario: ${MOMENT_LABEL[moment]} (~${hour})` : `Horario: ${MOMENT_LABEL[moment]}`
+    const previousTimeMatch = (booking.message || "").match(/Horario:\s*([^·]+)/)
+    const previousTimeLabel = previousTimeMatch ? previousTimeMatch[1].trim() : null
+    const newTimeLabel = hour ? `${MOMENT_LABEL[moment]} (~${hour})` : MOMENT_LABEL[moment]
+    const horarioSegment = `Horario: ${newTimeLabel}`
     const message = [horarioSegment, ...otherSegments].join(" · ").slice(0, 500)
 
     // Le statut dérivé "searching_alternative" (GET /api/booking/[bookingId])
@@ -93,6 +96,22 @@ export async function POST(
     if (updateError) {
       console.error("BOOKING RESCHEDULE UPDATE ERROR:", updateError)
       return NextResponse.json({ success: false, error: "SERVER_ERROR" });
+    }
+
+    // Trace du changement (table booking_reschedules, voir migration SQL
+    // fournie séparément — même pattern que booking_reviews : pas versionnée
+    // dans le repo, schéma Supabase géré à la main). Best-effort : le
+    // reschedule lui-même a déjà réussi, on ne fait pas échouer la requête
+    // pour un problème de journalisation.
+    const { error: historyError } = await supabase.from("booking_reschedules").insert({
+      booking_id: bookingId,
+      previous_date: booking.requested_date,
+      previous_time_label: previousTimeLabel,
+      new_date: date,
+      new_time_label: newTimeLabel,
+    })
+    if (historyError) {
+      console.error("BOOKING RESCHEDULE HISTORY INSERT ERROR:", historyError)
     }
 
     return NextResponse.json({ success: true, data: updated });
