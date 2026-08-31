@@ -127,7 +127,11 @@ export default function ListaPage() {
             position: "absolute",
             top: 14,
             right: 14,
-            zIndex: 2000,
+            // En dessous de .sheet-overlay (z-index 1500) quand le bottomsheet
+            // est ouvert, pour que son backdrop-filter:blur floute le logo
+            // aussi ; au-dessus sinon (doit rester cliquable par-dessus le
+            // reste du contenu de la page).
+            zIndex: drawerOpen ? 1400 : 2000,
             pointerEvents: "auto",
           }}
         >
