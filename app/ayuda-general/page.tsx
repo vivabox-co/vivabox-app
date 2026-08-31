@@ -10,24 +10,39 @@ import FaqAccordion from "@/components/ui/FaqAccordion"
 // pour la FAQ post-réservation.
 const FAQS = [
   {
-    question: "¿Cómo reservo una experiencia?",
+    question: "¿Cómo elijo y reservo mi experiencia?",
     answer:
-      "Explora las experiencias en Mapa o Lista, elige la que más te guste y selecciona tus fechas preferidas. Nosotros nos encargamos de solicitar la confirmación con el lugar.",
+      "Te mostramos todas las experiencias disponibles para tu Vivabox. Puedes explorar, guardar tus favoritas y elegir la que más te guste. Cuando estés listo, selecciona una fecha y envía tu solicitud de reserva.",
   },
   {
-    question: "¿Qué pasa después de enviar mi solicitud?",
+    question: "¿La fecha y hora que elijo quedan reservadas de una vez?",
     answer:
-      "Contactamos al lugar para confirmar la fecha y hora que elegiste. Te avisaremos apenas tengamos la confirmación.",
+      "No todavía. Primero enviamos tu solicitud al proveedor para confirmar disponibilidad. Te avisaremos cuando tu reserva esté confirmada.",
   },
   {
-    question: "¿Puedo guardar experiencias para decidir más tarde?",
+    question: "¿Cuánto tarda en confirmarse mi reserva?",
     answer:
-      "Sí, toca el corazón en cualquier experiencia para guardarla en Favoritos y encontrarla fácilmente cuando quieras reservar.",
+      "La mayoría de las reservas se confirman en menos de 48 horas. Si necesitamos más tiempo, te avisaremos.",
   },
   {
-    question: "¿Puedo cambiar de experiencia antes de reservar?",
+    question: "¿Puedo ir acompañado? ¿Cuántas personas pueden participar?",
     answer:
-      "Claro, puedes seguir explorando en Mapa o Lista y elegir otra experiencia en cualquier momento, hasta que envíes tu solicitud de reserva.",
+      "Cada experiencia tiene sus propias condiciones. Antes de reservar podrás ver cuántas personas pueden participar y si puedes ir acompañado.",
+  },
+  {
+    question: "¿Qué pasa si la experiencia que quiero no está disponible?",
+    answer:
+      "No te preocupes. Puedes elegir otra fecha o explorar las demás experiencias disponibles con tu Vivabox.",
+  },
+  {
+    question: "¿Puedo cambiar de experiencia?",
+    answer:
+      "Sí, mientras todavía no hayas confirmado una reserva. Puedes volver a explorar y elegir otra experiencia.",
+  },
+  {
+    question: "¿Hay algún costo adicional?",
+    answer:
+      "Tu Vivabox cubre la experiencia indicada. Si alguna experiencia tiene condiciones o costos adicionales, te los mostraremos antes de que envíes tu solicitud.",
   },
 ]
 
