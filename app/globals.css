@@ -273,11 +273,17 @@ body {
   touch-action: none; /* empêche le pull-to-refresh natif au swipe vers le bas */
 }
 
-/* Sheet container */
+/* Sheet container
+   Hauteur DOM constante (MAX_HEIGHT) — seul `transform: translateY()` bouge
+   pour représenter les paliers/le drag/la fermeture. Animer `height` force
+   un reflow de layout à chaque frame (source des saccades sur mobile) ;
+   translateY, lui, reste 100% compositor (GPU), comme les bottom sheets
+   natifs (Google Maps, etc). `transition` est entièrement piloté en inline
+   par le composant (dépend de l'état de drag), la règle ci-dessous ne sert
+   qu'à documenter l'intention. */
 .bottom-sheet {
   position: fixed;
   left: 50%;
-  transform: translateX(-50%);
   bottom: 0; /* 🔥 colle en bas → recouvre la nav */
   width: 100%;
   max-width: 1100px;
@@ -288,7 +294,7 @@ body {
   display: flex;
   flex-direction: column;
   box-shadow: 0 -20px 60px rgba(0,0,0,0.15);
-  transition: height 0.18s ease-out;
+  will-change: transform;
 }
 
 /* Handle */
@@ -311,15 +317,23 @@ body {
   padding-bottom: 1px; /* 🔥 contenu jamais caché */
 }
 
-/* CTA fixe */
-.sheet-footer {
-  position: sticky;
+/* CTA fixe — barre indépendante de la card (toujours ancrée au vrai bas de
+   l'écran), pas un enfant flex du sheet : sinon son ancrage bougerait avec
+   le translateY utilisé pour les paliers. Seul le dragOffset de fermeture
+   (pas la hauteur du palier) s'applique à son transform, voir BottomSheet.tsx. */
+.sheet-footer-bar {
+  position: fixed;
+  left: 50%;
   bottom: 0;
+  width: 100%;
+  max-width: 1100px;
   background: #fff;
   border-top: 1px solid #e5e5e5;
   padding: 16px clamp(16px, 3vw, 40px);
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
-  z-index: 2;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+  z-index: 2001; /* au-dessus de la card */
+  will-change: transform;
 }
 
 /* ================================

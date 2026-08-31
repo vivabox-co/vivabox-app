@@ -26,12 +26,23 @@ export default function BottomSheet({
   const CLOSE_MAX_OFFSET = 160
   const CLOSE_RESISTANCE = 0.6
   // Courbe/durée des transitions "relâchées" (snap-back et fermeture animée) :
-  // decel proche de celle des sheets natifs iOS/Android, pas un ease-out générique.
+  // decel proche de celle des sheets natifs iOS/Android (Google Maps...),
+  // pas un ease-out générique.
   const TRANSITION_MS = 280
   const TRANSITION_EASING = "cubic-bezier(0.32, 0.72, 0, 1)"
 
+  // `height` reste sémantiquement "portion visible depuis le bas de l'écran"
+  // (55..80vh), exactement comme avant. Ce qui change : ça ne pilote plus
+  // jamais la propriété CSS `height` (layout, coûteuse à animer) — seulement
+  // un translateY, calculé à partir de cette valeur. Voir applyLiveStyles().
   const [height, setHeight] = useState(MIN_HEIGHT)
   const [dragOffset, setDragOffset] = useState(0)
+  // Hauteur réelle mesurée du footer (bouton + safe-area), pour réserver la
+  // place correspondante en bas du body scrollable — le footer n'est plus un
+  // enfant flex du sheet (voir plus bas), donc plus rien ne pousse le body
+  // au-dessus de lui automatiquement.
+  const [footerHeight, setFooterHeight] = useState(0)
+
   // Miroirs synchrones du state : un mousemove attaché sur `window` (voir
   // plus bas) garde la closure de son render de départ et ne verrait jamais
   // les setState suivants. Les refs, elles, sont toujours à jour au moment
@@ -41,6 +52,7 @@ export default function BottomSheet({
 
   const lastY = useRef<number | null>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
+  const footerRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   // Après un vrai drag, un click "fantôme" peut suivre le relâchement et
@@ -55,11 +67,10 @@ export default function BottomSheet({
   const TAP_THRESHOLD = 6
   const startY = useRef<number | null>(null)
 
-  // 🔥 Pendant un drag, on écrit `height`/`transform` directement sur le DOM
-  // (refs + rAF) au lieu de passer par setState à chaque pixel : un setState
-  // par touchmove force un re-render React (+ diff + reflow) sur une
-  // propriété de layout, ce qui provoque des saccades sur mobile. On ne
-  // resynchronise le state React qu'une fois, au relâchement (endDrag).
+  // Pendant un drag, on écrit `transform` directement sur le DOM (refs +
+  // rAF) au lieu de passer par setState à chaque pixel : un setState par
+  // touchmove force un re-render React à chaque frame. On ne resynchronise
+  // le state React qu'une fois, au relâchement (endDrag).
   const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -71,6 +82,21 @@ export default function BottomSheet({
       isClosingRef.current = false
     }
   }, [open])
+
+  useEffect(() => {
+    if (!footer) {
+      setFooterHeight(0)
+      return
+    }
+    const el = footerRef.current
+    if (!el) return
+    const observer = new ResizeObserver(entries => {
+      setFooterHeight(entries[0]?.contentRect.height ?? 0)
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!footer])
 
   useEffect(() => {
     return () => {
@@ -100,12 +126,20 @@ export default function BottomSheet({
     setDragOffset(next)
   }
 
-  /** Applique heightRef/dragOffsetRef directement au DOM, hors du cycle React. */
+  /** heightRef/dragOffsetRef → DOM, en ne touchant jamais `height` (layout) :
+   *  uniquement `transform`, donc 100% compositor (aucun reflow possible). */
   function applyLiveStyles() {
-    const el = sheetRef.current
-    if (!el) return
-    el.style.height = `${heightRef.current}vh`
-    el.style.transform = `translateX(-50%) translateY(${dragOffsetRef.current}px)`
+    const cardEl = sheetRef.current
+    if (cardEl) {
+      cardEl.style.transform = `translateX(-50%) translateY(calc(${MAX_HEIGHT - heightRef.current}vh + ${dragOffsetRef.current}px))`
+    }
+    // Le footer ne suit que le dragOffset (fermeture), jamais le palier de
+    // hauteur : il doit rester immobile, ancré au vrai bas de l'écran,
+    // pendant qu'on grandit/rétrécit la card au-dessus de lui.
+    const footerEl = footerRef.current
+    if (footerEl) {
+      footerEl.style.transform = `translateX(-50%) translateY(${dragOffsetRef.current}px)`
+    }
   }
 
   function scheduleStyleFlush() {
@@ -156,6 +190,7 @@ export default function BottomSheet({
       // re-render React, pour que les écritures DOM directes qui suivent
       // ne soient jamais animées pendant qu'on tient le doigt.
       if (sheetRef.current) sheetRef.current.style.transition = "none"
+      if (footerRef.current) footerRef.current.style.transition = "none"
     }
 
     const delta = lastY.current - currentY
@@ -290,6 +325,10 @@ export default function BottomSheet({
     endDrag()
   }
 
+  const liveTransition = isDragging.current
+    ? "none"
+    : `transform ${TRANSITION_MS}ms ${TRANSITION_EASING}`
+
   return (
     <>
       <div
@@ -302,19 +341,16 @@ export default function BottomSheet({
         onMouseDown={handleMouseDown}
       />
 
+      {/* Hauteur DOM CONSTANTE (MAX_HEIGHT) : seul le transform bouge pour
+          représenter le palier courant + le drag de fermeture. Voir la note
+          dans globals.css (.bottom-sheet) pour le pourquoi. */}
       <div
         ref={sheetRef}
         className="bottom-sheet"
         style={{
-          height: `${height}vh`,
-          // .bottom-sheet centre horizontalement via translateX(-50%) en CSS ;
-          // un style inline remplace (ne fusionne pas) le transform du
-          // stylesheet, donc il faut reprendre le translateX ici aussi, sinon
-          // le pull-to-close écrase le centrage et la sheet saute à droite.
-          transform: `translateX(-50%) translateY(${dragOffset}px)`,
-          transition: isDragging.current
-            ? "none"
-            : `height ${TRANSITION_MS}ms ${TRANSITION_EASING}, transform ${TRANSITION_MS}ms ${TRANSITION_EASING}`,
+          height: `${MAX_HEIGHT}vh`,
+          transform: `translateX(-50%) translateY(calc(${MAX_HEIGHT - height}vh + ${dragOffset}px))`,
+          transition: liveTransition,
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -330,26 +366,28 @@ export default function BottomSheet({
           style={{
             overflowY: "auto",
             WebkitOverflowScrolling: "touch",
+            paddingBottom: footer ? `${footerHeight}px` : undefined,
           }}
         >
           {body}
         </div>
-
-        {footer && (
-          <div
-            className="sheet-footer"
-            style={{
-              position: "sticky",
-              bottom: 0,
-              background: "white",
-              padding: "12px",
-              boxShadow: "0 -4px 12px rgba(0,0,0,0.08)",
-            }}
-          >
-            {footer}
-          </div>
-        )}
       </div>
+
+      {/* Barre indépendante de la card (voir .sheet-footer-bar) : reste
+          immobile au vrai bas de l'écran pendant les paliers, et ne suit
+          que le dragOffset lors de la fermeture. */}
+      {footer && (
+        <div
+          ref={footerRef}
+          className="sheet-footer-bar"
+          style={{
+            transform: `translateX(-50%) translateY(${dragOffset}px)`,
+            transition: liveTransition,
+          }}
+        >
+          {footer}
+        </div>
+      )}
     </>
   )
 }
