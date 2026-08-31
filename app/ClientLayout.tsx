@@ -31,6 +31,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }, [])
 
   useEffect(() => {
+    // Requis pour l'installabilité PWA (Chrome/Android n'affiche le prompt
+    // "Ajouter à l'écran d'accueil" que si un service worker est enregistré).
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js")
+    }
+  }, [])
+
+  useEffect(() => {
     function handleBack() {
       const stored = localStorage.getItem("currentBooking")
       if (!stored) return
