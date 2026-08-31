@@ -20,6 +20,7 @@ import { formatDuration } from "@/lib/format/duration"
 
 import RecoOverlay from "@/components/reco/RecoOverlay"
 import LogoQuizButton from "@/components/ui/LogoQuizButton"
+import VigenciaBadge from "@/components/ui/VigenciaBadge"
 
 /* ================= CONSTANTES UI ================= */
 
@@ -168,6 +169,11 @@ export default function ListaPage() {
               }}
             />
           </div>
+        </div>
+
+        {/* ================= VIGENCIA ================= */}
+        <div style={{ padding: "0 20px 12px" }}>
+          <VigenciaBadge />
         </div>
 
         {/* ================= SECTIONS ================= */}

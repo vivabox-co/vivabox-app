@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     const { data: activationCode, error: codeError } = await supabase
       .from("activation_codes")
-      .select("status, beneficiary_name")
+      .select("status, beneficiary_name, created_at")
       .eq("id", session.activation_code_id)
       .maybeSingle()
 
@@ -103,6 +103,9 @@ export async function POST(req: NextRequest) {
         booking_id: booking?.id ?? null,
         renewedExpiresAt,
         beneficiaryName: activationCode.beneficiary_name ?? "",
+        // Fecha de compra real de la Vivabox (no la de activación) — ver
+        // lib/utils/vigencia.ts para el cálculo de los 6 meses de vigencia.
+        purchaseDate: activationCode.created_at,
       },
     });
 

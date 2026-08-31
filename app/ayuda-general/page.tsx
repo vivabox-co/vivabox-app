@@ -48,7 +48,7 @@ const FAQS = [
   {
     question: "¿Hasta cuándo puedo usar mi Vivabox?",
     answer:
-      "Tu Vivabox tiene una fecha de vigencia asociada a tu código de activación. Si tienes dudas sobre hasta cuándo puedes usarlo, escríbenos por WhatsApp y te confirmamos la vigencia exacta de tu regalo.",
+      "Tu Vivabox tiene una vigencia de 6 meses a partir de la fecha de compra. Puedes usarla dentro de ese período para elegir y reservar tu experiencia. La fecha exacta de vencimiento aparece en los detalles de tu Vivabox.",
   },
 ]
 
