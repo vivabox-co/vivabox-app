@@ -19,7 +19,7 @@ import { categoryLabel } from "@/lib/map/categoryLabels"
 import { formatDuration } from "@/lib/format/duration"
 
 import RecoOverlay from "@/components/reco/RecoOverlay"
-import VivaboxLogo from "@/components/ui/VivaboxLogo"
+import LogoQuizButton from "@/components/ui/LogoQuizButton"
 
 /* ================= CONSTANTES UI ================= */
 
@@ -53,26 +53,6 @@ export default function ListaPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [activeActivities, setActiveActivities] = useState<ActivityKey[]>([])
-
-  const [logoBlinking, setLogoBlinking] = useState(false)
-  const hasOpenedRecoRef = useRef(false)
-
-  /* =====================================================
-     💡 NUDGE — attire l'attention vers le logo (quiz reco)
-     tant que la personne ne l'a pas encore ouvert : les 4
-     couleurs du logo clignotent ensemble (4 pulsations
-     lentes, ~2.8s) toutes les 15s — même comportement que /mapa
-     ===================================================== */
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (hasOpenedRecoRef.current) return
-
-      setLogoBlinking(true)
-      setTimeout(() => setLogoBlinking(false), 2900)
-    }, 15000)
-
-    return () => clearInterval(interval)
-  }, [])
 
   useEffect(() => {
     fetchExperiences()
@@ -135,24 +115,7 @@ export default function ListaPage() {
             pointerEvents: "auto",
           }}
         >
-          <button
-            onClick={() => {
-              hasOpenedRecoRef.current = true
-              setRecoOpen(true)
-            }}
-            aria-label="Abrir recomendaciones Vivabox"
-            style={{
-              padding: 0,
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <VivaboxLogo width={50} height={50} blinking={logoBlinking} />
-          </button>
+          <LogoQuizButton onOpen={() => setRecoOpen(true)} width={50} height={50} />
         </div>
 
         {/* ================= SEARCH ================= */}

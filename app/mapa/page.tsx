@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import {
@@ -22,7 +22,7 @@ import { useUI, usePageReady } from "@/components/ui/UIContext"
 
 import RecoOverlay from "@/components/reco/RecoOverlay"
 import CategoryLegend from "../../components/map/CategoryLegend"
-import VivaboxLogo from "@/components/ui/VivaboxLogo"
+import LogoQuizButton from "@/components/ui/LogoQuizButton"
 
 const MapView = dynamic(() => import("@/components/map/MapView"), {
   ssr: false,
@@ -48,26 +48,6 @@ export default function MapaPage() {
 
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [recoOpen, setRecoOpen] = useState(false)
-
-  const [logoBlinking, setLogoBlinking] = useState(false)
-  const hasOpenedRecoRef = useRef(false)
-
-  /* =====================================================
-     💡 NUDGE — attire l'attention vers le logo (quiz reco)
-     tant que la personne ne l'a pas encore ouvert : les 4
-     couleurs du logo clignotent ensemble (4 pulsations
-     lentes, ~2.8s) toutes les 15s
-     ===================================================== */
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (hasOpenedRecoRef.current) return
-
-      setLogoBlinking(true)
-      setTimeout(() => setLogoBlinking(false), 2900)
-    }, 15000)
-
-    return () => clearInterval(interval)
-  }, [])
 
   const [experiences, setExperiences] = useState<Experience[]>([])
   const [loadingExperiences, setLoadingExperiences] = useState(true)
@@ -209,24 +189,7 @@ export default function MapaPage() {
 
           {/* Logo */}
           <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-            <button
-              onClick={() => {
-                hasOpenedRecoRef.current = true
-                setRecoOpen(true)
-              }}
-              aria-label="Abrir recomendaciones Vivabox"
-              style={{
-                background: "transparent",
-                border: "none",
-                padding: 0,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <VivaboxLogo width={50} height={50} blinking={logoBlinking} />
-            </button>
+            <LogoQuizButton onOpen={() => setRecoOpen(true)} width={50} height={50} />
           </div>
         </div>
 
