@@ -1,4 +1,4 @@
-const CACHE_NAME = "vivabox-static-v3"
+const CACHE_NAME = "vivabox-static-v4"
 
 // Uniquement les assets vraiment statiques (icônes, logos, JS/CSS buildés par
 // Next). Les pages et les appels /api/* ne sont jamais mis en cache ici : le
