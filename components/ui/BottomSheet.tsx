@@ -191,6 +191,14 @@ export default function BottomSheet({
   function handleOverlayTouchMove(e: React.TouchEvent<HTMLDivElement>) {
     if (overlayStartY.current === null || overlayClosed.current) return
     const delta = e.touches[0].clientY - overlayStartY.current
+    if (delta <= 0) return
+
+    // 🔥 Empêche le pull-to-refresh natif dès qu'on quitte la zone de tap,
+    // sinon le navigateur recharge la page avant même que onClose() ne s'exécute.
+    if (delta > TAP_THRESHOLD) {
+      e.preventDefault()
+    }
+
     if (delta > OVERLAY_SWIPE_THRESHOLD) {
       overlayClosed.current = true
       suppressNextOverlayClick.current = true
