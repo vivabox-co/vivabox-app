@@ -400,7 +400,12 @@ function PopupGallery({
         overflow: "hidden",
       }}
     >
-      <PhotoGallery photos={photos} alt={exp.title} dotsBottom={8}>
+      <PhotoGallery
+        photos={photos}
+        alt={exp.title}
+        dotsBottom={8}
+        onImageClick={() => onSelect(exp)}
+      >
         <div
           style={{
             position: "absolute",

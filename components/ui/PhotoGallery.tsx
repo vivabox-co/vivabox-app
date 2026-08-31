@@ -16,14 +16,16 @@ type Props = {
   imageStyle?: React.CSSProperties
   dotsBottom?: number
   children?: React.ReactNode
+  onImageClick?: () => void
 }
 
 // Galerie photo partagée (scroll-snap + dots cliquables + drag
 // souris/tactile) — portée depuis ExperienceModal.tsx du site vitrine pour
 // remplacer les 3 implémentations dupliquées (experiencia, fechas, DetailScreen).
-export default function PhotoGallery({ photos, alt, style, imageStyle, dotsBottom = 12, children }: Props) {
+export default function PhotoGallery({ photos, alt, style, imageStyle, dotsBottom = 12, children, onImageClick }: Props) {
   const trackRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<DragState | null>(null)
+  const lastDxRef = useRef(0)
   const [active, setActive] = useState(0)
 
   const showNav = photos.length > 1
@@ -66,6 +68,7 @@ export default function PhotoGallery({ photos, alt, style, imageStyle, dotsBotto
     dragRef.current = null
 
     const dx = e.clientX - state.startX
+    lastDxRef.current = dx
     const threshold = el.clientWidth * 0.15
 
     let target = state.startIndex
@@ -73,6 +76,17 @@ export default function PhotoGallery({ photos, alt, style, imageStyle, dotsBotto
     else if (dx >= threshold) target = Math.max(state.startIndex - 1, 0)
 
     goTo(target)
+  }
+
+  const handleTrackClick = () => {
+    // Ignore le clic déclenché à la fin d'un swipe (drag > quelques px) —
+    // ne déclenche l'action d'image que sur un vrai tap/clic.
+    if (showNav && Math.abs(lastDxRef.current) > 5) {
+      lastDxRef.current = 0
+      return
+    }
+    lastDxRef.current = 0
+    onImageClick?.()
   }
 
   return (
@@ -86,6 +100,7 @@ export default function PhotoGallery({ photos, alt, style, imageStyle, dotsBotto
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
         onDragStart={(e) => e.preventDefault()}
+        onClick={onImageClick ? handleTrackClick : undefined}
         style={{
           display: "flex",
           width: "100%",
@@ -95,7 +110,7 @@ export default function PhotoGallery({ photos, alt, style, imageStyle, dotsBotto
           WebkitOverflowScrolling: "touch",
           touchAction: "pan-y",
           userSelect: "none",
-          cursor: showNav ? "grab" : "default",
+          cursor: showNav ? "grab" : onImageClick ? "pointer" : "default",
         }}
       >
         {photos.map((src, i) => (
