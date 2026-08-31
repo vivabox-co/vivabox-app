@@ -104,7 +104,11 @@ export default function AyudaPage() {
       {/* CAMBIOS */}
       <Card>
         <h3 style={{ marginTop: 0 }}>¿Necesitas cambiar la fecha?</h3>
-        <Row icon={CalendarX} text="Si tus planes cambiaron, puedes solicitar una nueva fecha para tu experiencia." />
+        <Row
+          icon={CalendarX}
+          iconColor="#0294D2"
+          text="Si tus planes cambiaron, puedes solicitar una nueva fecha para tu experiencia."
+        />
 
         {canReschedule ? (
           <button
@@ -274,7 +278,7 @@ function Card({ children }: any) {
   )
 }
 
-function Row({ icon: Icon, text }: any) {
+function Row({ icon: Icon, text, iconColor }: any) {
   return (
     <div
       style={{
@@ -285,7 +289,7 @@ function Row({ icon: Icon, text }: any) {
         alignItems: "center",
       }}
     >
-      <Icon size={16} />
+      <Icon size={16} style={iconColor ? { color: iconColor } : undefined} />
       <span>{text}</span>
     </div>
   )
