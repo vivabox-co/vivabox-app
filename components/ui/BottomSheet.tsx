@@ -47,11 +47,6 @@ export default function BottomSheet({
   const TAP_THRESHOLD = 6
   const startY = useRef<number | null>(null)
 
-  // Swipe vers le bas sur l'overlay (au-dessus du sheet) : ferme aussi le drawer.
-  const OVERLAY_SWIPE_THRESHOLD = 40
-  const overlayStartY = useRef<number | null>(null)
-  const overlayClosed = useRef(false)
-
   useEffect(() => {
     if (open) {
       setHeight(MIN_HEIGHT)
@@ -180,65 +175,6 @@ export default function BottomSheet({
     onClose()
   }
 
-  /* ================= SWIPE SUR L'OVERLAY =================
-     Glisser vers le bas au-dessus du sheet (sur l'overlay) le ferme aussi,
-     pas seulement un glissement démarré à l'intérieur du sheet. */
-  function handleOverlayTouchStart(e: React.TouchEvent<HTMLDivElement>) {
-    overlayStartY.current = e.touches[0].clientY
-    overlayClosed.current = false
-  }
-
-  function handleOverlayTouchMove(e: React.TouchEvent<HTMLDivElement>) {
-    if (overlayStartY.current === null || overlayClosed.current) return
-    const delta = e.touches[0].clientY - overlayStartY.current
-    if (delta <= 0) return
-
-    // 🔥 Le navigateur décide d'activer le pull-to-refresh dès le tout premier
-    // touchmove du geste s'il n'est pas annulé — attendre TAP_THRESHOLD pour
-    // preventDefault() était trop tard, le rechargement était déjà engagé.
-    e.preventDefault()
-
-    if (delta > OVERLAY_SWIPE_THRESHOLD) {
-      overlayClosed.current = true
-      suppressNextOverlayClick.current = true
-      setTimeout(() => {
-        suppressNextOverlayClick.current = false
-      }, 300)
-      onClose()
-    }
-  }
-
-  function handleOverlayTouchEnd() {
-    overlayStartY.current = null
-  }
-
-  function handleOverlayMouseDown(e: React.MouseEvent<HTMLDivElement>) {
-    if (e.button !== 0) return
-    overlayStartY.current = e.clientY
-    overlayClosed.current = false
-    window.addEventListener("mousemove", handleOverlayWindowMouseMove)
-    window.addEventListener("mouseup", handleOverlayWindowMouseUp)
-  }
-
-  function handleOverlayWindowMouseMove(e: MouseEvent) {
-    if (overlayStartY.current === null || overlayClosed.current) return
-    const delta = e.clientY - overlayStartY.current
-    if (delta > OVERLAY_SWIPE_THRESHOLD) {
-      overlayClosed.current = true
-      suppressNextOverlayClick.current = true
-      setTimeout(() => {
-        suppressNextOverlayClick.current = false
-      }, 300)
-      onClose()
-    }
-  }
-
-  function handleOverlayWindowMouseUp() {
-    window.removeEventListener("mousemove", handleOverlayWindowMouseMove)
-    window.removeEventListener("mouseup", handleOverlayWindowMouseUp)
-    overlayStartY.current = null
-  }
-
   /* ================= TOUCH (mobile) =================
      Handlers dédiés (pas Pointer Events) : sur mobile, preventDefault()
      dans un pointermove n'empêche pas fiablement le scroll natif — il
@@ -282,11 +218,11 @@ export default function BottomSheet({
       <div
         className="sheet-overlay"
         onClick={handleOverlayClick}
-        onTouchStart={handleOverlayTouchStart}
-        onTouchMove={handleOverlayTouchMove}
-        onTouchEnd={handleOverlayTouchEnd}
-        onTouchCancel={handleOverlayTouchEnd}
-        onMouseDown={handleOverlayMouseDown}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        onMouseDown={handleMouseDown}
       />
 
       <div
