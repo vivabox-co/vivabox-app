@@ -4,6 +4,7 @@ import { MessageCircle, Phone } from "lucide-react"
 import { getWhatsAppLink, WHATSAPP_NUMBER } from "@/lib/constants/contact"
 import { logout } from "@/lib/utils/logout"
 import FaqAccordion from "@/components/ui/FaqAccordion"
+import BrandDots from "@/components/ui/BrandDots"
 
 // FAQ générique pour l'étape pré-réservation (avant qu'une réservation
 // existe) : pas de contenu lié à "ma reserva" ici, voir app/ayuda/page.tsx
@@ -60,7 +61,10 @@ export default function AyudaGeneralPage() {
         minHeight: "100vh",
       }}
     >
-      <h1 style={{ fontSize: 26, marginBottom: 18 }}>Ayuda</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <h1 style={{ fontSize: 26, margin: 0 }}>Ayuda</h1>
+        <BrandDots style={{ marginBottom: 0 }} />
+      </div>
 
       {/* FAQ */}
       <h3 style={{ margin: "4px 4px 12px", fontSize: 19 }}>Preguntas frecuentes</h3>

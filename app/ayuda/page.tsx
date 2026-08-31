@@ -5,6 +5,7 @@ import { MessageCircle, Phone, CalendarX } from "lucide-react"
 import { getWhatsAppLink, WHATSAPP_NUMBER } from "@/lib/constants/contact"
 import RescheduleModal from "@/components/ui/RescheduleModal"
 import FaqAccordion from "@/components/ui/FaqAccordion"
+import BrandDots from "@/components/ui/BrandDots"
 import { getCurrentBookingId } from "@/lib/data/getCurrentBookingId"
 import { Booking } from "@/lib/data/types/booking"
 import { logout } from "@/lib/utils/logout"
@@ -95,7 +96,10 @@ export default function AyudaPage() {
         minHeight: "100vh",
       }}
     >
-      <h1 style={{ fontSize: 26, marginBottom: 18 }}>Ayuda</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <h1 style={{ fontSize: 26, margin: 0 }}>Ayuda</h1>
+        <BrandDots style={{ marginBottom: 0 }} />
+      </div>
 
       {/* CAMBIOS */}
       <Card>
