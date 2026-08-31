@@ -36,10 +36,14 @@ type UIContextType = {
   hideNav: boolean
   setHideNav: (v: boolean) => void
 
-  // ⭐ FAVORIS GLOBAUX
+  // ⭐ FAVORIS GLOBAUX (synchronisés côté serveur, voir app/api/favorites)
   favorites: string[]
   toggleFavorite: (id: string) => void
   isFavorite: (id: string) => boolean
+  // Vrai une fois le GET /api/favorites initial résolu — permet à
+  // /favoritos de ne pas afficher "aucun favori" avant que la vraie liste
+  // soit arrivée du serveur.
+  favoritesReady: boolean
 
   // Vrai une fois que la page courante a ses données prêtes à l'affichage
   // (voir usePageReady). Consommé par RouteLoaderOverlay pour savoir quand
@@ -151,26 +155,75 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     setPendingNavGroup(group ?? null)
   }
 
-  // ⭐ FAVORIS PERSISTANTS
+  // ⭐ FAVORIS PERSISTANTS — source de vérité : table Supabase `favorites`,
+  // rattachée à activation_code_id (voir app/api/favorites/route.ts), pour
+  // qu'ils soient identiques sur tous les appareils d'un même code. Chargés
+  // une fois au montage ; toggleFavorite reste synchrone localement (état
+  // optimiste) pour que le cœur réagisse sans latence perçue.
   const [favorites, setFavorites] = useState<string[]>([])
+  const [favoritesReady, setFavoritesReady] = useState(false)
 
-  // Charger au démarrage
   useEffect(() => {
-    const saved = localStorage.getItem("vivabox_favorites")
-    if (saved) setFavorites(JSON.parse(saved))
+    fetch("/api/favorites")
+      .then(res => res.json())
+      .then(async (json) => {
+        if (!json.success) return
+        let serverFavorites: string[] = json.data
+
+        // Migration one-shot des favoris localStorage pré-existants (ancien
+        // stockage, non lié à un code) vers le code actif au premier
+        // chargement post-déploiement. Best-effort : ne bloque pas l'UI et
+        // ne réessaie pas si elle échoue partiellement.
+        const alreadyMigrated = localStorage.getItem("vivabox_favorites_migrated")
+        const legacyRaw = localStorage.getItem("vivabox_favorites")
+        if (!alreadyMigrated && serverFavorites.length === 0 && legacyRaw) {
+          const legacyIds: string[] = JSON.parse(legacyRaw)
+          await Promise.all(
+            legacyIds.map(id =>
+              fetch("/api/favorites", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ experienceId: id }),
+              }).catch(() => {})
+            )
+          )
+          localStorage.setItem("vivabox_favorites_migrated", "1")
+          if (legacyIds.length > 0) serverFavorites = legacyIds
+        }
+
+        setFavorites(serverFavorites)
+      })
+      .catch(err => console.error("Error loading favorites:", err))
+      .finally(() => setFavoritesReady(true))
   }, [])
 
-  // Sauvegarder à chaque changement
-  useEffect(() => {
-    localStorage.setItem("vivabox_favorites", JSON.stringify(favorites))
-  }, [favorites])
-
   function toggleFavorite(id: string) {
+    const wasFavorite = favorites.includes(id)
+
     setFavorites(prev =>
-      prev.includes(id)
-        ? prev.filter(f => f !== id)
-        : [...prev, id]
+      wasFavorite ? prev.filter(f => f !== id) : [...prev, id]
     )
+
+    const request = wasFavorite
+      ? fetch(`/api/favorites?experienceId=${encodeURIComponent(id)}`, { method: "DELETE" })
+      : fetch("/api/favorites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ experienceId: id }),
+        })
+
+    request
+      .then(res => res.json())
+      .then(json => {
+        if (!json.success) throw new Error(json.error)
+      })
+      .catch(err => {
+        console.error("Error toggling favorite:", err)
+        // Revert optimiste en cas d'échec serveur.
+        setFavorites(prev =>
+          wasFavorite ? [...prev, id] : prev.filter(f => f !== id)
+        )
+      })
   }
 
   function isFavorite(id: string) {
@@ -206,6 +259,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         favorites,
         toggleFavorite,
         isFavorite,
+        favoritesReady,
 
         pageReady,
         setPageReady,

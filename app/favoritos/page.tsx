@@ -16,6 +16,7 @@ export default function FavoritosPage() {
   const {
     favorites,
     toggleFavorite,
+    favoritesReady,
     drawerOpen,
     setDrawerOpen,
     selectedExperience,
@@ -33,7 +34,7 @@ export default function FavoritosPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  usePageReady(!loading)
+  usePageReady(!loading && favoritesReady)
 
   const favoriteExperiences = useMemo(() => {
     return experiences.filter(exp => favorites.includes(exp.id))
@@ -56,7 +57,7 @@ export default function FavoritosPage() {
       <div style={{ padding: "12px 12px 90px" }}>
         <h2 style={{ marginBottom: 12 }}>Tus favoritos</h2>
 
-        {favoriteExperiences.length === 0 ? (
+        {favoriteExperiences.length === 0 && favoritesReady ? (
           <div style={{ textAlign: "center", marginTop: 70 }}>
             <div style={{ marginBottom: 14 }}>
               <Heart size={40} strokeWidth={1.5} color="#ff6fa3" fill="#ff6fa3" />
