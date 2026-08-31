@@ -325,7 +325,11 @@ export default function MapView({
         style={{
           position: "absolute",
           right: 16,
-          bottom: 90,
+          // Remonté au-dessus du bouton Ayuda flottant de BottomNav.tsx
+          // (.bottom-nav-help), dont le bord haut est à
+          // calc(110px + safe-area) — même formule + 8px de marge, pour
+          // rester valable quel que soit le safe-area-inset-bottom.
+          bottom: "calc(118px + env(safe-area-inset-bottom))",
           zIndex: 1000,
           width: 46,
           height: 46,
@@ -351,7 +355,7 @@ export default function MapView({
           style={{
             position: "absolute",
             right: 16,
-            bottom: 144,
+            bottom: "calc(172px + env(safe-area-inset-bottom))",
             zIndex: 1000,
             maxWidth: 220,
             background: "#111",
