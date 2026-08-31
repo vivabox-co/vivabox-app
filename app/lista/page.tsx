@@ -99,12 +99,12 @@ export default function ListaPage() {
     <>
       <div
         ref={wrapperRef}
-        style={{ minHeight: "100vh", background: "#F7F8FA" }}
+        style={{ minHeight: "100vh", background: "#F7F8FA", position: "relative" }}
       >
         {/* ================= LOGO VIVABOX (SANS ROND) ================= */}
         <div
           style={{
-            position: "fixed",
+            position: "absolute",
             top: 14,
             right: 14,
             zIndex: 2000,
