@@ -89,7 +89,8 @@ export default function BottomNav() {
   const isBookingFlow =
     pathname.startsWith("/reservar/seguimiento") ||
     pathname.startsWith("/experiencia") ||
-    pathname.startsWith("/ayuda");
+    pathname === "/ayuda" ||
+    pathname.startsWith("/ayuda/");
 
   const items = isBookingFlow ? bookingItems : exploreItems;
 
