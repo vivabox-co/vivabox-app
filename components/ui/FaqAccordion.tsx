@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 
 export type FaqAccordionItem = {
   question: string
-  answer: string
+  answer: ReactNode
 }
 
 type Props = {

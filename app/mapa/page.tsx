@@ -23,7 +23,6 @@ import { useUI, usePageReady } from "@/components/ui/UIContext"
 import RecoOverlay from "@/components/reco/RecoOverlay"
 import CategoryLegend from "../../components/map/CategoryLegend"
 import LogoQuizButton from "@/components/ui/LogoQuizButton"
-import VigenciaBadge from "@/components/ui/VigenciaBadge"
 
 const MapView = dynamic(() => import("@/components/map/MapView"), {
   ssr: false,
@@ -139,11 +138,8 @@ export default function MapaPage() {
       <div className={drawerOpen ? "mapa-content blurred" : "mapa-content"}>
 
         {/* ================= TOP BAR CONTENT ================= */}
-        {/* Colonne (topbar + vigencia) plutôt que deux éléments absolus
-            indépendants : la pastille Vigencia reste toujours juste sous la
-            topbar même quand celle-ci grandit (légende catégories sur 2
-            lignes en mobile étroit), sans recalcul de hauteur en dur. */}
         <div
+          className="mapa-topbar"
           style={{
             position: "absolute",
             top: 10,
@@ -151,63 +147,50 @@ export default function MapaPage() {
             right: 16,
             zIndex: 1200,
             display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            gap: 8,
+            alignItems: "center",
+            background: "#fff",
+            borderRadius: 20,
+            boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
           }}
         >
-          <div
-            className="mapa-topbar"
+          {/* Filtros */}
+          <button
+            onClick={() => setFiltersOpen(true)}
             style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              background: "#fff",
-              borderRadius: 20,
-              boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
+              padding: "10px 16px",
+              borderRadius: 22,
+              border: "none",
+              background: "#152F40",
+              color: "#fff",
+              fontSize: 14,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
+              cursor: "pointer",
             }}
           >
-            {/* Filtros */}
-            <button
-              onClick={() => setFiltersOpen(true)}
-              style={{
-                padding: "10px 16px",
-                borderRadius: 22,
-                border: "none",
-                background: "#152F40",
-                color: "#fff",
-                fontSize: 14,
-                fontWeight: 600,
-                whiteSpace: "nowrap",
-                boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
-                cursor: "pointer",
-              }}
-            >
-              Filtros
-            </button>
+            Filtros
+          </button>
 
-            {/* Catégories */}
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
-              <CategoryLegend
-                categories={ALL_CATEGORIES}
-                activeCategories={activeCategories}
-                onToggleCategory={setActiveCategories}
-              />
-            </div>
-
-            {/* Logo */}
-            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-              <LogoQuizButton onOpen={() => setRecoOpen(true)} width={50} height={50} />
-            </div>
+          {/* Catégories */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <CategoryLegend
+              categories={ALL_CATEGORIES}
+              activeCategories={activeCategories}
+              onToggleCategory={setActiveCategories}
+            />
           </div>
 
-          <VigenciaBadge compact />
+          {/* Logo */}
+          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+            <LogoQuizButton onOpen={() => setRecoOpen(true)} width={50} height={50} />
+          </div>
         </div>
 
         {/* ================= MAP ================= */}

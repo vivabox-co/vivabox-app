@@ -1,15 +1,19 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { MessageCircle, Phone } from "lucide-react"
 import { getWhatsAppLink, WHATSAPP_NUMBER } from "@/lib/constants/contact"
 import { logout } from "@/lib/utils/logout"
-import FaqAccordion from "@/components/ui/FaqAccordion"
+import FaqAccordion, { FaqAccordionItem } from "@/components/ui/FaqAccordion"
 import BrandDots from "@/components/ui/BrandDots"
+import { getVigenciaInfo, formatVigenciaDate, VigenciaInfo } from "@/lib/utils/vigencia"
+
+const VIGENCIA_QUESTION = "¿Hasta cuándo puedo usar mi Vivabox?"
 
 // FAQ générique pour l'étape pré-réservation (avant qu'une réservation
 // existe) : pas de contenu lié à "ma reserva" ici, voir app/ayuda/page.tsx
 // pour la FAQ post-réservation.
-const FAQS = [
+const FAQS: FaqAccordionItem[] = [
   {
     question: "¿Cómo elijo y reservo mi experiencia?",
     answer:
@@ -46,13 +50,108 @@ const FAQS = [
       "Escríbenos por WhatsApp lo antes posible y te contamos las opciones según la experiencia y el lugar reservado. Entre antes nos avises, más fácil será encontrar una alternativa.",
   },
   {
-    question: "¿Hasta cuándo puedo usar mi Vivabox?",
+    question: VIGENCIA_QUESTION,
     answer:
-      "Tu Vivabox tiene una vigencia de 6 meses a partir de la fecha de compra. Puedes usarla dentro de ese período para elegir y reservar tu experiencia. La fecha exacta de vencimiento aparece en los detalles de tu Vivabox.",
+      "Tu Vivabox tiene una vigencia de 6 meses a partir de la fecha de compra. Puedes usarla dentro de ese período para elegir y reservar tu experiencia.",
   },
 ]
 
+type VigenciaFetchState =
+  | { kind: "loading" }
+  | { kind: "unavailable" }
+  | { kind: "ready"; info: VigenciaInfo }
+
+// Même source que /api/codigo/context (purchaseDate = activation_codes.
+// created_at, voir lib/utils/vigencia.ts) — auto-chargée ici plutôt que
+// remontée par une prop, cette page étant la seule à en avoir besoin.
+function useVigencia(): VigenciaFetchState {
+  const [state, setState] = useState<VigenciaFetchState>({ kind: "loading" })
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetch("/api/codigo/context", { method: "POST", headers: { "Content-Type": "application/json" } })
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return
+        if (data?.success && data.data?.purchaseDate) {
+          setState({ kind: "ready", info: getVigenciaInfo(data.data.purchaseDate) })
+        } else {
+          setState({ kind: "unavailable" })
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setState({ kind: "unavailable" })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return state
+}
+
+// Complète la règle générale (déjà dans FAQS ci-dessus) avec la date
+// personnelle du bénéficiaire — jamais de date inventée : en l'absence de
+// purchaseDate on retombe sur le contact WhatsApp, jamais sur un calcul de
+// substitution (activation, inscription...).
+function vigenciaAnswer(state: VigenciaFetchState) {
+  const base = FAQS.find((f) => f.question === VIGENCIA_QUESTION)!.answer
+
+  const whatsappLink = (message: string) => (
+    <a
+      href={getWhatsAppLink(message)}
+      target="_blank"
+      rel="noreferrer"
+      style={{ color: "#152F40", fontWeight: 600 }}
+    >
+      escríbenos por WhatsApp
+    </a>
+  )
+
+  if (state.kind === "loading") return base
+
+  if (state.kind === "unavailable") {
+    return (
+      <>
+        {base} Si tienes dudas, {whatsappLink("Hola, quisiera saber hasta cuándo puedo usar mi Vivabox.")} y te
+        confirmamos la fecha exacta.
+      </>
+    )
+  }
+
+  const { info } = state
+  const dateLabel = formatVigenciaDate(info.expiresAt)
+
+  if (info.status === "expired") {
+    return (
+      <>
+        {base} <span style={{ color: "#B42318", fontWeight: 700 }}>Tu Vivabox venció el {dateLabel}.</span> Si
+        tienes dudas, {whatsappLink("Hola, mi Vivabox ya venció y tengo una duda.")}.
+      </>
+    )
+  }
+
+  const color = info.status === "urgent" ? "#8A5300" : "#152F40"
+  return (
+    <>
+      {base}{" "}
+      <span style={{ color, fontWeight: 700 }}>
+        {info.status === "urgent" && "⚠️ "}
+        Vence el {dateLabel}. Te quedan {info.daysRemaining} día{info.daysRemaining === 1 ? "" : "s"}.
+      </span>
+    </>
+  )
+}
+
 export default function AyudaGeneralPage() {
+  const vigencia = useVigencia()
+
+  const faqs: FaqAccordionItem[] = FAQS.map((item) =>
+    item.question === VIGENCIA_QUESTION ? { ...item, answer: vigenciaAnswer(vigencia) } : item
+  )
+
   return (
     <div
       style={{
@@ -69,7 +168,7 @@ export default function AyudaGeneralPage() {
       {/* FAQ */}
       <h3 style={{ margin: "4px 4px 12px", fontSize: 19 }}>Preguntas frecuentes</h3>
       <Card>
-        <FaqAccordion items={FAQS} />
+        <FaqAccordion items={faqs} />
       </Card>
 
       {/* CONTACTO — escalada al soporte, se muestra más liviana que la FAQ */}
