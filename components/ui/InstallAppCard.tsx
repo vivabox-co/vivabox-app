@@ -21,7 +21,7 @@ const PROMPTED_KEY = "vivabox_install_prompted"
 
 const DELAY_MS = 10000
 
-function isStandalone() {
+export function isStandalone() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
     (window.navigator as unknown as { standalone?: boolean }).standalone === true
@@ -32,51 +32,24 @@ function isIOS() {
   return /iphone|ipad|ipod/i.test(window.navigator.userAgent)
 }
 
-export default function InstallAppCard() {
-  // useSyncExternalStore plutôt qu'un useEffect+setState manuel : deferredPrompt
-  // vit dans un singleton de module (voir lib/pwa/deferredInstallPrompt.ts) qui
-  // peut être renseigné par un event reçu avant même le montage de ce
-  // composant — ce hook est le mécanisme React prévu pour re-render sur un
-  // état externe qui change en dehors du cycle React.
+// Contenu partagé entre le popup automatique (déclenché tout seul sur /mapa,
+// voir InstallAppCard ci-dessous) et une ouverture manuelle (bouton "Instalar
+// app" dans Ayuda, voir InstallAppModal) — seuls les boutons du bas diffèrent
+// (l'auto-popup propose "Ahora no" / "No volver a preguntar", l'ouverture
+// manuelle n'a besoin que de la croix puisque la personne l'a demandée).
+function InstallCardBody({ onClose, footer }: { onClose: () => void; footer?: React.ReactNode }) {
   const deferredPrompt = useSyncExternalStore(
     subscribeInstallPrompt,
     getDeferredInstallPrompt,
     () => null
   )
 
-  const [visible, setVisible] = useState(false)
   const [ios, setIos] = useState(false)
   const [showIosSteps, setShowIosSteps] = useState(false)
 
   useEffect(() => {
-    if (isStandalone()) return
-    if (localStorage.getItem(NEVER_KEY) === "1") return
-    if (sessionStorage.getItem(PROMPTED_KEY) === "1") return
-
-    const onIOS = isIOS()
-    setIos(onIOS)
-
-    const timer = setTimeout(() => {
-      // Sur Android/desktop, l'invite native est la seule chose qu'on peut
-      // proposer : si Chrome n'a pas jugé le site installable (event jamais
-      // reçu), il n'y a rien de concret à afficher. iOS n'a pas cet event —
-      // les instructions manuelles restent valables dans tous les cas.
-      if (!onIOS && !getDeferredInstallPrompt()) return
-      setVisible(true)
-    }, DELAY_MS)
-
-    return () => clearTimeout(timer)
+    setIos(isIOS())
   }, [])
-
-  function dismissForSession() {
-    sessionStorage.setItem(PROMPTED_KEY, "1")
-    setVisible(false)
-  }
-
-  function dismissForever() {
-    localStorage.setItem(NEVER_KEY, "1")
-    setVisible(false)
-  }
 
   async function handleInstall() {
     if (ios) {
@@ -88,15 +61,13 @@ export default function InstallAppCard() {
     await prompt.prompt()
     await prompt.userChoice
     clearDeferredInstallPrompt()
-    dismissForSession()
+    onClose()
   }
 
-  if (!visible) return null
-
   return (
-    <div style={overlay} onClick={dismissForSession}>
+    <div style={overlay} onClick={onClose}>
       <div style={card} onClick={(e) => e.stopPropagation()}>
-        <button onClick={dismissForSession} style={closeBtn} aria-label="Cerrar">
+        <button onClick={onClose} style={closeBtn} aria-label="Cerrar">
           <X size={18} />
         </button>
 
@@ -124,14 +95,69 @@ export default function InstallAppCard() {
           </>
         )}
 
-        <button onClick={dismissForSession} style={laterBtn}>
-          Ahora no
-        </button>
-        <button onClick={dismissForever} style={neverBtn}>
-          No volver a preguntar
-        </button>
+        {footer}
       </div>
     </div>
+  )
+}
+
+// Ouverture manuelle et contrôlée (ex: bouton "Instalar app" dans Ayuda) —
+// ignore volontairement NEVER_KEY/PROMPTED_KEY : ces garde-fous ne servent
+// qu'à limiter le popup *non sollicité*, pas une action explicite de la
+// personne qui clique sur un bouton dédié.
+export function InstallAppModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null
+  return <InstallCardBody onClose={onClose} />
+}
+
+export default function InstallAppCard() {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    if (isStandalone()) return
+    if (localStorage.getItem(NEVER_KEY) === "1") return
+    if (sessionStorage.getItem(PROMPTED_KEY) === "1") return
+
+    const onIOS = isIOS()
+
+    const timer = setTimeout(() => {
+      // Sur Android/desktop, l'invite native est la seule chose qu'on peut
+      // proposer : si Chrome n'a pas jugé le site installable (event jamais
+      // reçu), il n'y a rien de concret à afficher. iOS n'a pas cet event —
+      // les instructions manuelles restent valables dans tous les cas.
+      if (!onIOS && !getDeferredInstallPrompt()) return
+      setVisible(true)
+    }, DELAY_MS)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  function dismissForSession() {
+    sessionStorage.setItem(PROMPTED_KEY, "1")
+    setVisible(false)
+  }
+
+  function dismissForever() {
+    localStorage.setItem(NEVER_KEY, "1")
+    setVisible(false)
+  }
+
+  if (!visible) return null
+
+  return (
+    <InstallCardBody
+      onClose={dismissForSession}
+      footer={
+        <>
+          <button onClick={dismissForSession} style={laterBtn}>
+            Ahora no
+          </button>
+          <button onClick={dismissForever} style={neverBtn}>
+            No volver a preguntar
+          </button>
+        </>
+      }
+    />
   )
 }
 

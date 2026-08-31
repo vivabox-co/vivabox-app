@@ -1,10 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 
 export type FaqAccordionItem = {
   question: string
-  answer: string
+  // ReactNode plutôt que string : certaines réponses (ex. app/ayuda-general)
+  // ont besoin d'un lien/bouton cliquable dans le texte de la réponse.
+  answer: ReactNode
 }
 
 type Props = {

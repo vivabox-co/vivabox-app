@@ -1,19 +1,24 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { MessageCircle, Phone } from "lucide-react"
+import { MessageCircle, Phone, Download } from "lucide-react"
 import { getWhatsAppLink, WHATSAPP_NUMBER } from "@/lib/constants/contact"
 import { logout } from "@/lib/utils/logout"
 import FaqAccordion, { FaqAccordionItem } from "@/components/ui/FaqAccordion"
 import BrandDots from "@/components/ui/BrandDots"
+import { InstallAppModal, isStandalone } from "@/components/ui/InstallAppCard"
 import { getVigenciaInfo, formatVigenciaDate, VigenciaInfo } from "@/lib/utils/vigencia"
 
 const VIGENCIA_QUESTION = "¿Hasta cuándo puedo usar mi Vivabox?"
+const APP_QUESTION = "¿Puedo instalar Vivabox como app en mi celular?"
 
 // FAQ générique pour l'étape pré-réservation (avant qu'une réservation
 // existe) : pas de contenu lié à "ma reserva" ici, voir app/ayuda/page.tsx
-// pour la FAQ post-réservation.
-const FAQS: FaqAccordionItem[] = [
+// pour la FAQ post-réservation. openInstallModal est injecté par la page pour
+// que la réponse à APP_QUESTION puisse ouvrir la même modale que le bouton
+// d'installation en haut de page (voir InstallAppCard.tsx).
+function buildFaqs(openInstallModal: () => void): FaqAccordionItem[] {
+  return [
   {
     question: "¿Cómo elijo y reservo mi experiencia?",
     answer:
@@ -54,7 +59,32 @@ const FAQS: FaqAccordionItem[] = [
     answer:
       "Tu Vivabox tiene una vigencia de 6 meses a partir de la fecha de compra. Puedes usarla dentro de ese período para elegir y reservar tu experiencia. La fecha exacta de vencimiento aparece en los detalles de tu Vivabox, arriba en esta página.",
   },
-]
+  {
+    question: APP_QUESTION,
+    answer: (
+      <>
+        Sí. Vivabox funciona como una app: agrégala a tu pantalla de inicio para abrirla más
+        rápido y usarla incluso sin conexión.{" "}
+        <button
+          onClick={openInstallModal}
+          style={{
+            padding: 0,
+            border: "none",
+            background: "none",
+            color: "#0294D2",
+            fontWeight: 600,
+            fontSize: "inherit",
+            textDecoration: "underline",
+            cursor: "pointer",
+          }}
+        >
+          Instalar app
+        </button>
+      </>
+    ),
+  },
+  ]
+}
 
 type VigenciaFetchState =
   | { kind: "loading" }
@@ -166,6 +196,16 @@ function valueStyle(color: string): React.CSSProperties {
 
 export default function AyudaGeneralPage() {
   const vigencia = useVigencia()
+  const [showInstallModal, setShowInstallModal] = useState(false)
+  // undefined pendant l'hydratation (isStandalone() a besoin de window) : le
+  // bouton reste caché tant qu'on n'est pas sûr, plutôt que de flasher puis
+  // disparaître pour qui a déjà l'app installée.
+  const [canInstall, setCanInstall] = useState<boolean | undefined>(undefined)
+  const faqs = buildFaqs(() => setShowInstallModal(true))
+
+  useEffect(() => {
+    setCanInstall(!isStandalone())
+  }, [])
 
   return (
     <div
@@ -180,13 +220,40 @@ export default function AyudaGeneralPage() {
         <BrandDots style={{ marginBottom: 0 }} />
       </div>
 
+      {/* INSTALAR APP — compacte, juste sous le titre pour rester visible
+          sans scroller ni prendre la place d'une card complète. */}
+      {canInstall && (
+        <button
+          onClick={() => setShowInstallModal(true)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 7,
+            width: "100%",
+            padding: "10px 14px",
+            marginBottom: 16,
+            borderRadius: 14,
+            border: "1px solid #E7E2DC",
+            background: "#fff",
+            color: "#152F40",
+            fontSize: 13.5,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          <Download size={15} />
+          Instalar la app
+        </button>
+      )}
+
       {/* VIGENCIA */}
       <VigenciaCard state={vigencia} />
 
       {/* FAQ */}
       <h3 style={{ margin: "4px 4px 12px", fontSize: 19 }}>Preguntas frecuentes</h3>
       <Card>
-        <FaqAccordion items={FAQS} />
+        <FaqAccordion items={faqs} />
       </Card>
 
       {/* CONTACTO — escalada al soporte, se muestra más liviana que la FAQ */}
@@ -278,6 +345,8 @@ export default function AyudaGeneralPage() {
           Cerrar sesión
         </button>
       </Card>
+
+      <InstallAppModal open={showInstallModal} onClose={() => setShowInstallModal(false)} />
     </div>
   )
 }
