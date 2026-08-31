@@ -122,6 +122,7 @@ export default function AyudaPage() {
 
         {/* SECONDARY */}
         <a
+          className="vb-btn-primary"
           href={`tel:+${WHATSAPP_NUMBER}`}
           style={{
             marginTop: 10,

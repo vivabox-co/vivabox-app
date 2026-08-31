@@ -88,6 +88,7 @@ export default function ReviewModal({ bookingId, onClose, onSuccess }: Props) {
         {error && <p style={errorText}>{error}</p>}
 
         <button
+          className="vb-btn-primary"
           onClick={handleSubmit}
           disabled={rating === 0 || submitting}
           style={{ ...submitBtn, opacity: rating === 0 || submitting ? 0.4 : 1 }}

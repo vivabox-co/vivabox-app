@@ -120,6 +120,7 @@ export default function DetailScreen({ experience, onBack }: Props) {
 
         {/* CTA */}
         <button
+          className="vb-btn-primary"
           onClick={() => {
             setSelectedExperience(experience)
             beginRouteTransition()

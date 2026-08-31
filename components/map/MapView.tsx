@@ -291,6 +291,7 @@ export default function MapView({
                             />
 
                             <button
+                              className="vb-btn-primary"
                               style={{
                                 marginTop: 10,
                                 width: "100%",

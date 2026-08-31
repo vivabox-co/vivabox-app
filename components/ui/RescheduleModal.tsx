@@ -91,7 +91,7 @@ export default function RescheduleModal({ bookingId, onClose, onSuccess }: Props
 
           {error && <p style={errorText}>{error}</p>}
 
-          <button onClick={handleSubmit} disabled={!canSubmit} style={{ ...submitBtn, opacity: canSubmit ? 1 : 0.4 }}>
+          <button className="vb-btn-primary" onClick={handleSubmit} disabled={!canSubmit} style={{ ...submitBtn, opacity: canSubmit ? 1 : 0.4 }}>
             {submitting ? "Guardando..." : "Guardar cambios"}
           </button>
         </div>

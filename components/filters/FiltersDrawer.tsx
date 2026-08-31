@@ -350,8 +350,8 @@ function Footer({ resultCount, activeCount, onReset, onClose }: any) {
   return (
     <div style={footerWrap}>
       {activeCount > 0 && <div style={{ fontSize: 13 }}>Filtros activos: <strong>{activeCount}</strong></div>}
-      <button onClick={onReset} style={resetBtn}>Limpiar filtros</button>
-      <button onClick={onClose} style={ctaBtn}>Mostrar {resultCount} experiencias</button>
+      <button className="vb-btn-primary" onClick={onReset} style={resetBtn}>Limpiar filtros</button>
+      <button className="vb-btn-primary" onClick={onClose} style={ctaBtn}>Mostrar {resultCount} experiencias</button>
     </div>
   )
 }

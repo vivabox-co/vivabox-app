@@ -56,6 +56,7 @@ export default function Top3Screen({ items, onSelect }: Props) {
               <button
                 key={exp.id}
                 type="button"
+                className="vb-btn-primary"
                 onClick={() => onSelect(exp)}
                 style={{
                   display: 'flex',

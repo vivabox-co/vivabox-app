@@ -90,6 +90,7 @@ export default function AyudaGeneralPage() {
         </button>
 
         <a
+          className="vb-btn-primary"
           href={`tel:+${WHATSAPP_NUMBER}`}
           style={{
             marginTop: 10,

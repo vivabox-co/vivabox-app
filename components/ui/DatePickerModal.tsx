@@ -162,8 +162,9 @@ export default function DatePickerModal({
 
           {/* FOOTER */}
           <div style={footerRow}>
-            <button onClick={onClose} style={cancelBtn}>Cancelar</button>
+            <button className="vb-btn-primary" onClick={onClose} style={cancelBtn}>Cancelar</button>
             <button
+              className="vb-btn-primary"
               onClick={confirm}
               disabled={selectedDates.length === 0}
               style={{
