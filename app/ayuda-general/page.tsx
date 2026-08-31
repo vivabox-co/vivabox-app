@@ -56,7 +56,7 @@ export default function AyudaGeneralPage() {
             width: "100%",
             padding: 14,
             borderRadius: 16,
-            background: "#152F40",
+            background: "#075E54",
             color: "#fff",
             border: "none",
             fontSize: 15,
