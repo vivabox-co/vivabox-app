@@ -90,8 +90,12 @@ export default function BottomSheet({
     }
     const el = footerRef.current
     if (!el) return
-    const observer = new ResizeObserver(entries => {
-      setFooterHeight(entries[0]?.contentRect.height ?? 0)
+    // 🔥 PAS entries[0].contentRect.height : ça exclut le padding (16px +
+    // l'encoche iPhone en bas), donc ça sous-évalue la vraie hauteur occupée
+    // à l'écran → contenu du body caché sous la barre CTA. getBoundingClientRect
+    // donne la hauteur réellement rendue (padding + bordure inclus).
+    const observer = new ResizeObserver(() => {
+      setFooterHeight(el.getBoundingClientRect().height)
     })
     observer.observe(el)
     return () => observer.disconnect()
