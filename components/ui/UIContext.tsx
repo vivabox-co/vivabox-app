@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 import { Experience } from "@/lib/data/types"
+import { NavGroup } from "@/lib/utils/getNavGroup"
 
 export type SelectedExperience = Experience | null
 
@@ -54,7 +55,17 @@ type UIContextType = {
   // route déjà chargée — ce qui laisse un blanc pendant le chargement.
   pendingTransition: boolean
   setPendingTransition: (v: boolean) => void
-  beginRouteTransition: () => void
+
+  // Renseigné uniquement quand la nav actuelle et la destination sont dans le
+  // même groupe (voir getNavGroup) — BottomNav est le seul appelant qui le
+  // passe, car c'est le seul cas où on peut garantir ça sans connaître le
+  // pathname de destination (voir RouteLoaderOverlay). Reste non-null tant
+  // que l'overlay est affiché, pas seulement le temps du pendingTransition
+  // (voir Overlay dans RouteLoaderOverlay.tsx) : c'est ce qui garde la nav
+  // visible pendant tout le chargement, pas juste la première phase.
+  pendingNavGroup: NavGroup | null
+  setPendingNavGroup: (v: NavGroup | null) => void
+  beginRouteTransition: (group?: NavGroup) => void
 }
 
 const UIContext = createContext<UIContextType | null>(null)
@@ -132,10 +143,12 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
 
   const [pageReady, setPageReady] = useState(true)
   const [pendingTransition, setPendingTransition] = useState(false)
+  const [pendingNavGroup, setPendingNavGroup] = useState<NavGroup | null>(null)
 
-  function beginRouteTransition() {
+  function beginRouteTransition(group?: NavGroup) {
     setPageReady(false)
     setPendingTransition(true)
+    setPendingNavGroup(group ?? null)
   }
 
   // ⭐ FAVORIS PERSISTANTS
@@ -199,6 +212,9 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
 
         pendingTransition,
         setPendingTransition,
+
+        pendingNavGroup,
+        setPendingNavGroup,
         beginRouteTransition,
       }}
     >

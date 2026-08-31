@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { Map, List, Heart, Clock, MessageCircle } from "lucide-react";
 import { getCurrentBookingId } from "@/lib/data/getCurrentBookingId";
 import { useUI } from "@/components/ui/UIContext";
+import { getNavGroup, NavGroup } from "@/lib/utils/getNavGroup";
 
 /* 🔥 Recale la nav sur le viewport visuel réel : Safari iOS ne repositionne
    pas toujours les éléments `position: fixed` quand sa barre d'outils du
@@ -53,7 +54,7 @@ type Item = {
   href?: string;
   label: string;
   Icon: React.ComponentType<{ size?: number; strokeWidth?: number; active?: boolean }>;
-  action?: (router: any, beginRouteTransition: () => void) => void;
+  action?: (router: any, beginRouteTransition: (group?: NavGroup) => void) => void;
 };
 
 /* 🔹 NAV EXPLORATION */
@@ -71,7 +72,7 @@ const bookingItems: Item[] = [
     action: async (router, beginRouteTransition) => {
       const bookingId = await getCurrentBookingId();
       if (!bookingId) return;
-      beginRouteTransition();
+      beginRouteTransition("booking");
       router.push(`/reservar/seguimiento/${bookingId}`);
     },
   },
@@ -82,17 +83,20 @@ const bookingItems: Item[] = [
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { beginRouteTransition } = useUI();
+  const { beginRouteTransition, pendingNavGroup } = useUI();
   const navRef = useRef<HTMLElement>(null);
   useSafariToolbarFix(navRef);
 
-  const isBookingFlow =
-    pathname.startsWith("/reservar/seguimiento") ||
-    pathname.startsWith("/experiencia") ||
-    pathname === "/ayuda" ||
-    pathname.startsWith("/ayuda/");
+  const currentGroup = getNavGroup(pathname);
+  const isBookingFlow = currentGroup === "booking";
 
   const items = isBookingFlow ? bookingItems : exploreItems;
+
+  // Le loader de transition ne recouvre pas la nav pendant les navigations
+  // déclenchées d'ici (voir RouteLoaderOverlay) : elle reste donc figée —
+  // visible mais non cliquable — jusqu'à ce que la nouvelle page soit prête,
+  // pour éviter d'empiler une 2e navigation en pleine transition.
+  const frozen = pendingNavGroup !== null;
 
   // En mode réservation, l'aide est déjà un item de la nav principale
   // (bookingItems ci-dessus) ; la bulle flottante ne sert donc que côté
@@ -109,11 +113,20 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="bottom-nav" ref={navRef}>
+    <nav
+      className="bottom-nav"
+      ref={navRef}
+      // Figée le temps du chargement (voir RouteLoaderOverlay) : la nav
+      // reste visible mais ne doit pas armer une 2e navigation avant que la
+      // première ait fini d'atterrir.
+      style={frozen ? { pointerEvents: "none" } : undefined}
+    >
       {showHelpBubble && (
         <Link
           href="/ayuda-general"
-          onClick={() => beginRouteTransition()}
+          onClick={() => {
+            if (!frozen) beginRouteTransition(currentGroup);
+          }}
           aria-label="Ayuda"
           className="bottom-nav-help"
         >
@@ -129,7 +142,9 @@ export default function BottomNav() {
           return (
             <div
               key={index}
-              onClick={() => item.action!(router, beginRouteTransition)}
+              onClick={() => {
+                if (!frozen) item.action!(router, beginRouteTransition);
+              }}
               className={`bottom-nav-item ${active ? "active" : ""}`}
             >
               <Icon size={22} strokeWidth={active ? 2.4 : 1.8} active={active} />
@@ -148,7 +163,7 @@ export default function BottomNav() {
             // qu'une fois cette navigation déjà terminée, laissant l'ancienne
             // page affichée sans rien pendant tout le chargement.
             onClick={() => {
-              if (!active) beginRouteTransition();
+              if (!active && !frozen) beginRouteTransition(currentGroup);
             }}
             className={`bottom-nav-item ${active ? "active" : ""}`}
           >

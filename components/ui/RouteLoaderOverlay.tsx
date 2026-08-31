@@ -76,17 +76,41 @@ export default function RouteLoaderOverlay() {
   return <Overlay key={pathname} />
 }
 
-function Overlay() {
-  const { pageReady, pendingTransition } = useUI()
-  const done = useLoaderReveal(pageReady)
+// Hauteur exacte de .bottom-nav (app/globals.css) — doit rester synchronisée
+// avec elle pour que le trou laissé au bas de l'overlay épouse la nav sans
+// laisser de bande blanche ni la recouvrir partiellement.
+const BOTTOM_NAV_HEIGHT = "calc(56px + env(safe-area-inset-bottom))"
 
-  if (done && !pendingTransition) return null
+function Overlay() {
+  const { pageReady, pendingTransition, pendingNavGroup, setPendingNavGroup } = useUI()
+  const done = useLoaderReveal(pageReady)
+  const hidden = done && !pendingTransition
+
+  // pendingNavGroup doit rester true tout le long du chargement (pas
+  // seulement le temps de pendingTransition, qui retombe dès que le pathname
+  // change — voir plus haut) pour que la nav reste visible jusqu'à ce que
+  // l'overlay se referme réellement. On ne le remet à null qu'ici, au moment
+  // où il disparaît pour de bon.
+  useEffect(() => {
+    if (hidden && pendingNavGroup) setPendingNavGroup(null)
+  }, [hidden, pendingNavGroup, setPendingNavGroup])
+
+  if (hidden) return null
+
+  // Renseigné uniquement par BottomNav (voir UIContext), pour les
+  // transitions garanties same-group (mapa/lista/favoritos entre elles,
+  // seguimiento/experiencia/ayuda entre elles) : dans ce cas la nav reste
+  // visible (mais figée, voir BottomNav) au lieu d'être recouverte.
+  const keepNavVisible = pendingNavGroup !== null
 
   return (
     <div
       style={{
         position: "fixed",
-        inset: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: keepNavVisible ? BOTTOM_NAV_HEIGHT : 0,
         // Above every other layered UI element in the app (topbars, bottom
         // nav, drawers, modals — RecoOverlay was the previous highest at
         // 3000): this overlay is meant to cover the ENTIRE screen while a
