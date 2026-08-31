@@ -32,7 +32,7 @@ export default function PhotoGallery({ photos, alt, style, imageStyle, dotsBotto
 
   const handleScroll = useCallback(() => {
     const el = trackRef.current
-    if (!el || !el.clientWidth || dragRef.current?.dragging) return
+    if (!el || !el.clientWidth) return
     setActive(Math.round(el.scrollLeft / el.clientWidth))
   }, [])
 
