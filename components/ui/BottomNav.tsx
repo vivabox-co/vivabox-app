@@ -116,7 +116,7 @@ export default function BottomNav() {
           aria-label="Ayuda"
           className="bottom-nav-help"
         >
-          <MessageCircle size={15} strokeWidth={1.8} />
+          <MessageCircle size={20} />
         </Link>
       )}
 

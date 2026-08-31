@@ -234,33 +234,29 @@ body {
   font-weight: 600;
 }
 
-/* Accès Ayuda en mode exploration (Mapa/Lista/Favoritos) : petit bouton
-   flottant sur le coin de la pastille, même emplacement que l'ancien bouton
-   de déconnexion mais un peu plus visible puisque c'est désormais un point
-   d'entrée utile (aide), pas une action qu'on cherche à cacher. */
+/* Accès Ayuda en mode exploration (Mapa/Lista/Favoritos) : bouton flottant
+   au-dessus de la nav (jamais collé/chevauchant la pastille — le calc()
+   reprend exactement la hauteur de .bottom-nav ci-dessus + une marge, donc
+   ça reste vrai quel que soit le safe-area-inset-bottom de l'appareil).
+   Sur /mapa ça atterrit juste sous le bouton "Ver mi ubicación" (voir
+   MapView.tsx, bottom: 90px) dont il reprend le style (rond blanc, même
+   ombre) pour lire comme un contrôle de carte plutôt qu'un badge caché. */
 .bottom-nav-help {
   position: absolute;
-  top: -14px;
-  right: 6px;
-  width: 28px;
-  height: 28px;
+  right: 16px;
+  bottom: calc(56px + env(safe-area-inset-bottom) + 12px);
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   border: none;
   background: #fff;
-  color: #152F40;
-  opacity: 0.85;
+  color: #111;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
   cursor: pointer;
   text-decoration: none;
-  transition: opacity 0.15s ease;
-}
-
-.bottom-nav-help:hover,
-.bottom-nav-help:active {
-  opacity: 1;
 }
 
 /* ================================
