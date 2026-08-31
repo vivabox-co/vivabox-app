@@ -23,6 +23,7 @@ import { useUI, usePageReady } from "@/components/ui/UIContext"
 import RecoOverlay from "@/components/reco/RecoOverlay"
 import CategoryLegend from "../../components/map/CategoryLegend"
 import LogoQuizButton from "@/components/ui/LogoQuizButton"
+import InstallAppCard from "@/components/ui/InstallAppCard"
 
 const MapView = dynamic(() => import("@/components/map/MapView"), {
   ssr: false,
@@ -293,6 +294,9 @@ export default function MapaPage() {
         open={recoOpen}
         onClose={() => setRecoOpen(false)}
       />
+
+      {/* ================= INSTALL PWA PROMPT ================= */}
+      <InstallAppCard />
     </>
   )
 }

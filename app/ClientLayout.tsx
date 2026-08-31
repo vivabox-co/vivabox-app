@@ -5,6 +5,11 @@ import { useRouter, usePathname } from "next/navigation"
 import BottomNav from "@/components/ui/BottomNav"
 import RouteLoaderOverlay from "@/components/ui/RouteLoaderOverlay"
 import { useUI } from "@/components/ui/UIContext"
+// Import pour effet de bord : démarre l'écoute de beforeinstallprompt dès le
+// premier chargement de l'app (voir ce fichier) — sans ça, un event reçu
+// avant que la personne n'atteigne /mapa serait manqué, car InstallAppCard
+// n'est monté que sur cette route.
+import "@/lib/pwa/deferredInstallPrompt"
 
 // Pages où la nav doit être cachée dès le premier rendu — dérivé du pathname
 // (disponible synchronement) plutôt que du seul hideNav du contexte, qui n'est
