@@ -52,7 +52,7 @@ const FAQS: FaqAccordionItem[] = [
   {
     question: VIGENCIA_QUESTION,
     answer:
-      "Tu Vivabox tiene una vigencia de 6 meses a partir de la fecha de compra. Puedes usarla dentro de ese período para elegir y reservar tu experiencia.",
+      "Tu Vivabox tiene una vigencia de 6 meses a partir de la fecha de compra. Puedes usarla dentro de ese período para elegir y reservar tu experiencia. La fecha exacta de vencimiento aparece en los detalles de tu Vivabox, arriba en esta página.",
   },
 ]
 
@@ -92,65 +92,74 @@ function useVigencia(): VigenciaFetchState {
   return state
 }
 
-// Complète la règle générale (déjà dans FAQS ci-dessus) avec la date
-// personnelle du bénéficiaire — jamais de date inventée : en l'absence de
-// purchaseDate on retombe sur le contact WhatsApp, jamais sur un calcul de
-// substitution (activation, inscription...).
-function vigenciaAnswer(state: VigenciaFetchState) {
-  const base = FAQS.find((f) => f.question === VIGENCIA_QUESTION)!.answer
-
-  const whatsappLink = (message: string) => (
-    <a
-      href={getWhatsAppLink(message)}
-      target="_blank"
-      rel="noreferrer"
-      style={{ color: "#152F40", fontWeight: 600 }}
-    >
-      escríbenos por WhatsApp
-    </a>
-  )
-
-  if (state.kind === "loading") return base
+// Carte dédiée entre le titre et les FAQ — jamais de date inventée : en
+// l'absence de purchaseDate on retombe sur le contact WhatsApp, jamais sur
+// un calcul de substitution (activation, inscription...). Rien pendant le
+// chargement (l'appel est quasi immédiat, pas la peine d'un skeleton).
+function VigenciaCard({ state }: { state: VigenciaFetchState }) {
+  if (state.kind === "loading") return null
 
   if (state.kind === "unavailable") {
     return (
-      <>
-        {base} Si tienes dudas, {whatsappLink("Hola, quisiera saber hasta cuándo puedo usar mi Vivabox.")} y te
-        confirmamos la fecha exacta.
-      </>
+      <a
+        href={getWhatsAppLink("Hola, quisiera saber hasta cuándo puedo usar mi Vivabox.")}
+        target="_blank"
+        rel="noreferrer"
+        style={{ ...cardStyle("#fff", "#E7E2DC"), display: "block", textDecoration: "none" }}
+      >
+        <div style={labelStyle("#9a9a9a")}>Vigencia</div>
+        <div style={valueStyle("#152F40")}>Consulta la fecha de vencimiento</div>
+      </a>
     )
   }
 
   const { info } = state
   const dateLabel = formatVigenciaDate(info.expiresAt)
+  const colors =
+    info.status === "urgent"
+      ? { bg: "#FFF6E9", border: "#F2DFB8", text: "#8A5300" }
+      : info.status === "expired"
+      ? { bg: "#fff", border: "#E7E2DC", text: "#B42318" }
+      : { bg: "#fff", border: "transparent", text: "#152F40" }
 
-  if (info.status === "expired") {
-    return (
-      <>
-        {base} <span style={{ color: "#B42318", fontWeight: 700 }}>Tu Vivabox venció el {dateLabel}.</span> Si
-        tienes dudas, {whatsappLink("Hola, mi Vivabox ya venció y tengo una duda.")}.
-      </>
-    )
-  }
-
-  const color = info.status === "urgent" ? "#8A5300" : "#152F40"
   return (
-    <>
-      {base}{" "}
-      <span style={{ color, fontWeight: 700 }}>
-        {info.status === "urgent" && "⚠️ "}
-        Vence el {dateLabel}. Te quedan {info.daysRemaining} día{info.daysRemaining === 1 ? "" : "s"}.
-      </span>
-    </>
+    <div style={cardStyle(colors.bg, colors.border)}>
+      <div style={labelStyle(info.status === "expired" ? "#9a9a9a" : colors.text)}>
+        {info.status === "urgent" && "⚠️ "}Vigencia
+      </div>
+      <div style={valueStyle(colors.text)}>
+        {info.status === "expired" ? `Vencida el ${dateLabel}` : `Hasta el ${dateLabel}`}
+      </div>
+      {info.status !== "expired" && (
+        <div style={{ fontSize: 13, color: "#9a9a9a", marginTop: 2 }}>
+          Te quedan <b>{info.daysRemaining}</b> día{info.daysRemaining === 1 ? "" : "s"}
+        </div>
+      )}
+    </div>
   )
+}
+
+function cardStyle(bg: string, border: string): React.CSSProperties {
+  return {
+    background: bg,
+    border: `1px solid ${border}`,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 20,
+    boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
+  }
+}
+
+function labelStyle(color: string): React.CSSProperties {
+  return { fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", color }
+}
+
+function valueStyle(color: string): React.CSSProperties {
+  return { fontSize: 18, fontWeight: 700, color, marginTop: 4 }
 }
 
 export default function AyudaGeneralPage() {
   const vigencia = useVigencia()
-
-  const faqs: FaqAccordionItem[] = FAQS.map((item) =>
-    item.question === VIGENCIA_QUESTION ? { ...item, answer: vigenciaAnswer(vigencia) } : item
-  )
 
   return (
     <div
@@ -165,10 +174,13 @@ export default function AyudaGeneralPage() {
         <BrandDots style={{ marginBottom: 0 }} />
       </div>
 
+      {/* VIGENCIA */}
+      <VigenciaCard state={vigencia} />
+
       {/* FAQ */}
       <h3 style={{ margin: "4px 4px 12px", fontSize: 19 }}>Preguntas frecuentes</h3>
       <Card>
-        <FaqAccordion items={faqs} />
+        <FaqAccordion items={FAQS} />
       </Card>
 
       {/* CONTACTO — escalada al soporte, se muestra más liviana que la FAQ */}
