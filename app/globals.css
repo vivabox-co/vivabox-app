@@ -115,8 +115,8 @@
 ================================ */
 
 @keyframes vb-logo-color-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.8); }
 }
 
 .vb-logo-color-blink rect {
