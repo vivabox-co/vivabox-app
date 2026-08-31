@@ -270,6 +270,7 @@ body {
   background: rgba(0,0,0,0.35);
   backdrop-filter: blur(2px);
   z-index: 1500;
+  touch-action: none; /* empêche le pull-to-refresh natif au swipe vers le bas */
 }
 
 /* Sheet container */

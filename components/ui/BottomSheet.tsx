@@ -193,11 +193,10 @@ export default function BottomSheet({
     const delta = e.touches[0].clientY - overlayStartY.current
     if (delta <= 0) return
 
-    // 🔥 Empêche le pull-to-refresh natif dès qu'on quitte la zone de tap,
-    // sinon le navigateur recharge la page avant même que onClose() ne s'exécute.
-    if (delta > TAP_THRESHOLD) {
-      e.preventDefault()
-    }
+    // 🔥 Le navigateur décide d'activer le pull-to-refresh dès le tout premier
+    // touchmove du geste s'il n'est pas annulé — attendre TAP_THRESHOLD pour
+    // preventDefault() était trop tard, le rechargement était déjà engagé.
+    e.preventDefault()
 
     if (delta > OVERLAY_SWIPE_THRESHOLD) {
       overlayClosed.current = true
