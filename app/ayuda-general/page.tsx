@@ -15,34 +15,39 @@ const FAQS = [
       "Te mostramos todas las experiencias disponibles para tu Vivabox. Puedes explorar, guardar tus favoritas y elegir la que más te guste. Cuando estés listo, selecciona una fecha y envía tu solicitud de reserva.",
   },
   {
-    question: "¿La fecha y hora que elijo quedan reservadas de una vez?",
+    question: "¿Mi reserva queda confirmada de inmediato?",
     answer:
-      "No todavía. Primero enviamos tu solicitud al proveedor para confirmar disponibilidad. Te avisaremos cuando tu reserva esté confirmada.",
+      "No todavía. Cuando eliges una fecha y hora, enviamos tu solicitud al lugar para confirmar que puede recibirte. La mayoría de las reservas se confirman en menos de 48 horas; si se necesita más tiempo, te avisaremos apenas tengamos una respuesta. Mientras tanto, puedes ver el estado de tu solicitud dentro de la app.",
   },
   {
-    question: "¿Cuánto tarda en confirmarse mi reserva?",
+    question: "¿Qué pasa si la experiencia o la fecha que quiero no está disponible?",
     answer:
-      "La mayoría de las reservas se confirman en menos de 48 horas. Si necesitamos más tiempo, te avisaremos.",
+      "Si la fecha que elegiste no está disponible, el lugar nos lo hace saber y te proponemos una alternativa para que la revises. Si ninguna fecha te funciona, también puedes explorar otras experiencias disponibles con tu Vivabox.",
+  },
+  {
+    question: "¿Puedo cambiar mi experiencia o mi reserva?",
+    answer:
+      "Puedes cambiar de experiencia mientras tu reserva no esté confirmada. Si lo que quieres es cambiar la fecha, puedes solicitarlo directamente desde la app mientras tu solicitud siga en trámite; si tu reserva ya está confirmada, escríbenos por WhatsApp y revisamos contigo las opciones disponibles con el lugar.",
   },
   {
     question: "¿Puedo ir acompañado? ¿Cuántas personas pueden participar?",
     answer:
-      "Cada experiencia tiene sus propias condiciones. Antes de reservar podrás ver cuántas personas pueden participar y si puedes ir acompañado.",
-  },
-  {
-    question: "¿Qué pasa si la experiencia que quiero no está disponible?",
-    answer:
-      "No te preocupes. Puedes elegir otra fecha o explorar las demás experiencias disponibles con tu Vivabox.",
-  },
-  {
-    question: "¿Puedo cambiar de experiencia?",
-    answer:
-      "Sí, mientras todavía no hayas confirmado una reserva. Puedes volver a explorar y elegir otra experiencia.",
+      "Depende de la experiencia. Cada una indica cuántas personas están incluidas en tu regalo y si admite personas adicionales; podrás verlo antes de reservar en el detalle de la experiencia. Cuando se permite ir acompañado, las personas extra quedan sujetas a disponibilidad y a un costo adicional.",
   },
   {
     question: "¿Hay algún costo adicional?",
     answer:
-      "Tu Vivabox cubre la experiencia indicada. Si alguna experiencia tiene condiciones o costos adicionales, te los mostraremos antes de que envíes tu solicitud.",
+      "Tu Vivabox cubre la experiencia y la cantidad de personas incluidas que se indican en cada experiencia. Si decides llevar personas adicionales, cuando la experiencia lo permite, esas personas sí tienen un costo adicional y quedan sujetas a disponibilidad del lugar.",
+  },
+  {
+    question: "¿Qué pasa si necesito cancelar o no puedo asistir?",
+    answer:
+      "Escríbenos por WhatsApp lo antes posible y te contamos las opciones según la experiencia y el lugar reservado. Entre antes nos avises, más fácil será encontrar una alternativa.",
+  },
+  {
+    question: "¿Hasta cuándo puedo usar mi Vivabox?",
+    answer:
+      "Tu Vivabox tiene una fecha de vigencia asociada a tu código de activación. Si tienes dudas sobre hasta cuándo puedes usarlo, escríbenos por WhatsApp y te confirmamos la vigencia exacta de tu regalo.",
   },
 ]
 
@@ -57,11 +62,28 @@ export default function AyudaGeneralPage() {
     >
       <h1 style={{ fontSize: 26, marginBottom: 18 }}>Ayuda</h1>
 
-      {/* CONTACTO */}
+      {/* FAQ */}
+      <h3 style={{ margin: "4px 4px 12px", fontSize: 19 }}>Preguntas frecuentes</h3>
       <Card>
-        <h3 style={{ marginTop: 0 }}>Hablar con nosotros</h3>
-        <p style={{ color: "#666" }}>
-          ¿Tienes una pregunta antes de reservar? Estamos para ayudarte.
+        <FaqAccordion items={FAQS} />
+      </Card>
+
+      {/* CONTACTO — escalada al soporte, se muestra más liviana que la FAQ */}
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 20,
+          padding: 18,
+          marginTop: 8,
+          marginBottom: 20,
+          border: "1px solid #E7E2DC",
+        }}
+      >
+        <h3 style={{ marginTop: 0, marginBottom: 4, fontSize: 16, fontWeight: 600, color: "#333" }}>
+          ¿Necesitas ayuda?
+        </h3>
+        <p style={{ color: "#666", fontSize: 13.5 }}>
+          ¿No encontraste la respuesta? Escríbenos y te ayudamos.
         </p>
 
         <button
@@ -114,13 +136,7 @@ export default function AyudaGeneralPage() {
           <Phone size={16} />
           Llamar
         </a>
-      </Card>
-
-      {/* FAQ */}
-      <h3 style={{ margin: "4px 4px 12px", fontSize: 19 }}>Preguntas frecuentes</h3>
-      <Card>
-        <FaqAccordion items={FAQS} />
-      </Card>
+      </div>
 
       {/* CUENTA */}
       <Card>
