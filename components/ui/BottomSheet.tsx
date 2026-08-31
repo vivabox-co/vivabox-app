@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 
 type BottomSheetProps = {
   open: boolean
@@ -83,24 +83,49 @@ export default function BottomSheet({
     }
   }, [open])
 
-  useEffect(() => {
-    if (!footer) {
+  const footerObserverRef = useRef<ResizeObserver | null>(null)
+
+  // Ref-callback plutôt que useRef+useEffect([!!footer]) : le sheet ne
+  // démonte jamais vraiment (juste `return null` en interne), donc fermer
+  // puis rouvrir avec une AUTRE expérience laisse `!!footer` inchangé (true
+  // → true) — l'effect ne se relançait alors jamais pour la nouvelle div
+  // footer, et l'observer restait accroché à l'ancienne, déjà retirée du
+  // DOM (mesure 0 → CTA recouvrait la fin du body, cf. vidéo : ça marchait
+  // au premier "Ver experiencia" puis plus jamais ensuite). Un ref-callback,
+  // lui, est rappelé par React à CHAQUE montage/démontage réel du nœud DOM.
+  // useCallback avec deps figées : une ref-callback recréée à chaque render
+  // (identité de fonction différente) est rappelée par React à CHAQUE
+  // render, pas seulement au vrai montage/démontage du nœud — ça relançait
+  // observer.disconnect()/setFooterHeight(0) en boucle sur chaque re-render
+  // déclenché par... setFooterHeight lui-même (boucle infinie de 0↔85).
+  const setFooterNode = useCallback((el: HTMLDivElement | null) => {
+    footerRef.current = el
+    footerObserverRef.current?.disconnect()
+    footerObserverRef.current = null
+
+    if (!el) {
       setFooterHeight(0)
       return
     }
-    const el = footerRef.current
-    if (!el) return
+    // Mesure synchrone tout de suite : le premier callback d'un ResizeObserver
+    // est asynchrone (et certains navigateurs le retardent/le sautent tant que
+    // l'onglet n'est pas au premier plan) — sans ça, il existe une fenêtre où
+    // le padding vaut encore 0 alors que le footer est déjà rendu à sa vraie
+    // taille, soit exactement le bug (contenu caché sous la CTA).
+    setFooterHeight(el.getBoundingClientRect().height)
     // 🔥 PAS entries[0].contentRect.height : ça exclut le padding (16px +
     // l'encoche iPhone en bas), donc ça sous-évalue la vraie hauteur occupée
     // à l'écran → contenu du body caché sous la barre CTA. getBoundingClientRect
-    // donne la hauteur réellement rendue (padding + bordure inclus).
+    // donne la hauteur réellement rendue (padding + bordure inclus). Le
+    // ResizeObserver, lui, ne sert plus qu'à suivre un changement ultérieur
+    // (rotation, contenu du footer qui change de taille).
     const observer = new ResizeObserver(() => {
       setFooterHeight(el.getBoundingClientRect().height)
     })
     observer.observe(el)
-    return () => observer.disconnect()
+    footerObserverRef.current = observer
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!footer])
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -382,7 +407,7 @@ export default function BottomSheet({
           que le dragOffset lors de la fermeture. */}
       {footer && (
         <div
-          ref={footerRef}
+          ref={setFooterNode}
           className="sheet-footer-bar"
           style={{
             transform: `translateX(-50%) translateY(${dragOffset}px)`,
