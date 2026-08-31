@@ -40,6 +40,16 @@ const FAQS = [
     answer:
       "Escríbenos por WhatsApp y cuéntanos qué pasó. Revisaremos tu reserva y te ayudaremos con el siguiente paso.",
   },
+  {
+    question: "¿Qué debo hacer el día de mi experiencia?",
+    answer:
+      "Revisa el detalle de tu reserva en la app: ahí encontrarás el lugar, la hora y las indicaciones importantes para ese día. Solo preséntate a la hora acordada y disfruta.",
+  },
+  {
+    question: "¿Qué pasa si no puedo asistir a mi reserva?",
+    answer:
+      "Escríbenos por WhatsApp lo antes posible y te contamos las opciones según tu reserva. Entre antes nos avises, más fácil será encontrar una alternativa.",
+  },
 ]
 
 export default function AyudaPage() {
@@ -87,71 +97,10 @@ export default function AyudaPage() {
     >
       <h1 style={{ fontSize: 26, marginBottom: 18 }}>Ayuda</h1>
 
-      {/* CONTACTO */}
-      <Card>
-        <h3 style={{ marginTop: 0 }}>Hablar con nosotros</h3>
-        <p style={{ color: "#666" }}>
-          ¿Tienes una pregunta o necesitas ayuda con tu experiencia?
-        </p>
-
-        {/* PRIMARY */}
-        <button
-          className="vb-btn-primary"
-          onClick={() => window.open(getWhatsAppLink("Hola, necesito ayuda con mi Vivabox."), "_blank")}
-          style={{
-            marginTop: 12,
-            width: "100%",
-            padding: 14,
-            borderRadius: 16,
-            background: "#075E54",
-            color: "#fff",
-            border: "none",
-            fontSize: 15,
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-            cursor: "pointer",
-          }}
-        >
-          <MessageCircle size={16} />
-          Escribir por WhatsApp
-        </button>
-
-        {/* SECONDARY */}
-        <a
-          className="vb-btn-primary"
-          href={`tel:+${WHATSAPP_NUMBER}`}
-          style={{
-            marginTop: 10,
-            width: "100%",
-            padding: 14,
-            borderRadius: 16,
-            background: "#F3EFEA",
-            color: "#333",
-            border: "1px solid #E7E2DC",
-            fontSize: 15,
-            fontWeight: 500,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            cursor: "pointer",
-            textDecoration: "none",
-            boxSizing: "border-box",
-          }}
-        >
-          <Phone size={16} />
-          Llamar
-        </a>
-      </Card>
-
       {/* CAMBIOS */}
       <Card>
-        <h3 style={{ marginTop: 0 }}>Cambiar fecha</h3>
-        <Row icon={CalendarX} text="Si tus planes cambiaron, podemos ayudarte a solicitar una nueva fecha." />
+        <h3 style={{ marginTop: 0 }}>¿Necesitas cambiar la fecha?</h3>
+        <Row icon={CalendarX} text="Si tus planes cambiaron, puedes solicitar una nueva fecha para tu experiencia." />
 
         {canReschedule ? (
           <button
@@ -199,6 +148,76 @@ export default function AyudaPage() {
       <Card>
         <FaqAccordion items={FAQS} />
       </Card>
+
+      {/* CONTACTO — escalada al soporte, se muestra más liviana que la FAQ */}
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 20,
+          padding: 18,
+          marginTop: 8,
+          marginBottom: 20,
+          border: "1px solid #E7E2DC",
+        }}
+      >
+        <h3 style={{ marginTop: 0, marginBottom: 4, fontSize: 16, fontWeight: 600, color: "#333" }}>
+          ¿Necesitas ayuda?
+        </h3>
+        <p style={{ color: "#666", fontSize: 13.5 }}>
+          ¿No encontraste la respuesta? Escríbenos y te ayudamos.
+        </p>
+
+        <button
+          className="vb-btn-primary"
+          onClick={() => window.open(getWhatsAppLink("Hola, necesito ayuda con mi Vivabox."), "_blank")}
+          style={{
+            marginTop: 12,
+            width: "100%",
+            padding: 14,
+            borderRadius: 16,
+            background: "#075E54",
+            color: "#fff",
+            border: "none",
+            fontSize: 15,
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+            cursor: "pointer",
+          }}
+        >
+          <MessageCircle size={16} />
+          Escribir por WhatsApp
+        </button>
+
+        <a
+          className="vb-btn-primary"
+          href={`tel:+${WHATSAPP_NUMBER}`}
+          style={{
+            marginTop: 10,
+            width: "100%",
+            padding: 14,
+            borderRadius: 16,
+            background: "#F3EFEA",
+            color: "#333",
+            border: "1px solid #E7E2DC",
+            fontSize: 15,
+            fontWeight: 500,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            cursor: "pointer",
+            textDecoration: "none",
+            boxSizing: "border-box",
+          }}
+        >
+          <Phone size={16} />
+          Llamar
+        </a>
+      </div>
 
       {/* CUENTA */}
       <Card>
