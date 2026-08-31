@@ -114,7 +114,7 @@ export default function AyudaGeneralPage() {
             padding: 14,
             borderRadius: 16,
             background: "#F3EFEA",
-            color: "#333",
+            color: "#B42318",
             border: "1px solid #E7E2DC",
             fontSize: 15,
             fontWeight: 500,

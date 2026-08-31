@@ -203,7 +203,7 @@ export default function AyudaPage() {
             background: "none",
             border: "none",
             padding: 8,
-            color: "#999",
+            color: "#B42318",
             fontSize: 13,
             textDecoration: "underline",
             cursor: "pointer",
