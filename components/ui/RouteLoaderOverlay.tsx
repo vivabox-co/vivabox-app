@@ -122,7 +122,7 @@ function Overlay() {
         background: "#ffffff",
       }}
     >
-      <VivaboxLoader size={72} />
+      <VivaboxLoader size={86} />
     </div>
   )
 }
