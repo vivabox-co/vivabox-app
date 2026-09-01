@@ -9,16 +9,18 @@ import BrandDots from "@/components/ui/BrandDots"
 import { InstallAppModal, isStandalone } from "@/components/ui/InstallAppCard"
 import { getVigenciaInfo, formatVigenciaDate, VigenciaInfo } from "@/lib/utils/vigencia"
 
-const VIGENCIA_QUESTION = "¿Hasta cuándo puedo usar mi Vivabox?"
-const APP_QUESTION = "¿Puedo instalar Vivabox como app en mi celular?"
+// Nombre de questions toujours visibles avant le toggle "Ver todas las
+// preguntas" (voir FaqAccordion). Les 5 premières sont les plus fréquentes ;
+// le reste (accompagnement, coût additionnel) reste à un tap de distance.
+const FAQ_INITIAL_VISIBLE_COUNT = 5
 
 // FAQ générique pour l'étape pré-réservation (avant qu'une réservation
 // existe) : pas de contenu lié à "ma reserva" ici, voir app/ayuda/page.tsx
-// pour la FAQ post-réservation. openInstallModal est injecté par la page pour
-// que la réponse à APP_QUESTION puisse ouvrir la même modale que le bouton
-// d'installation en haut de page (voir InstallAppCard.tsx).
-function buildFaqs(openInstallModal: () => void): FaqAccordionItem[] {
-  return [
+// pour la FAQ post-réservation. Pas de question sur la vigencia (déjà
+// couverte par VigenciaCard juste au-dessus, pas la peine de dupliquer) ni
+// sur l'installation PWA (déjà couverte par le bouton "Instalar la app" en
+// haut de page, voir InstallAppCard.tsx).
+const FAQS: FaqAccordionItem[] = [
   {
     question: "¿Cómo elijo y reservo mi experiencia?",
     answer:
@@ -40,6 +42,11 @@ function buildFaqs(openInstallModal: () => void): FaqAccordionItem[] {
       "Puedes cambiar de experiencia mientras tu reserva no esté confirmada. Si lo que quieres es cambiar la fecha, puedes solicitarlo directamente desde la app mientras tu solicitud siga en trámite; si tu reserva ya está confirmada, escríbenos por WhatsApp y revisamos contigo las opciones disponibles con el lugar.",
   },
   {
+    question: "¿Qué pasa si necesito cancelar o no puedo asistir?",
+    answer:
+      "Escríbenos por WhatsApp lo antes posible y te contamos las opciones según la experiencia y el lugar reservado. Entre antes nos avises, más fácil será encontrar una alternativa.",
+  },
+  {
     question: "¿Puedo ir acompañado? ¿Cuántas personas pueden participar?",
     answer:
       "Depende de la experiencia. Cada una indica cuántas personas están incluidas en tu regalo y si admite personas adicionales; podrás verlo antes de reservar en el detalle de la experiencia. Cuando se permite ir acompañado, las personas extra quedan sujetas a disponibilidad y a un costo adicional.",
@@ -49,42 +56,7 @@ function buildFaqs(openInstallModal: () => void): FaqAccordionItem[] {
     answer:
       "Tu Vivabox cubre la experiencia y la cantidad de personas incluidas que se indican en cada experiencia. Si decides llevar personas adicionales, cuando la experiencia lo permite, esas personas sí tienen un costo adicional y quedan sujetas a disponibilidad del lugar.",
   },
-  {
-    question: "¿Qué pasa si necesito cancelar o no puedo asistir?",
-    answer:
-      "Escríbenos por WhatsApp lo antes posible y te contamos las opciones según la experiencia y el lugar reservado. Entre antes nos avises, más fácil será encontrar una alternativa.",
-  },
-  {
-    question: VIGENCIA_QUESTION,
-    answer:
-      "Tu Vivabox tiene una vigencia de 6 meses a partir de la fecha de compra. Puedes usarla dentro de ese período para elegir y reservar tu experiencia. La fecha exacta de vencimiento aparece en los detalles de tu Vivabox, arriba en esta página.",
-  },
-  {
-    question: APP_QUESTION,
-    answer: (
-      <>
-        Sí. Vivabox funciona como una app: agrégala a tu pantalla de inicio para abrirla más
-        rápido y usarla incluso sin conexión.{" "}
-        <button
-          onClick={openInstallModal}
-          style={{
-            padding: 0,
-            border: "none",
-            background: "none",
-            color: "#0294D2",
-            fontWeight: 600,
-            fontSize: "inherit",
-            textDecoration: "underline",
-            cursor: "pointer",
-          }}
-        >
-          Instalar app
-        </button>
-      </>
-    ),
-  },
-  ]
-}
+]
 
 type VigenciaFetchState =
   | { kind: "loading" }
@@ -201,7 +173,6 @@ export default function AyudaGeneralPage() {
   // bouton reste caché tant qu'on n'est pas sûr, plutôt que de flasher puis
   // disparaître pour qui a déjà l'app installée.
   const [canInstall, setCanInstall] = useState<boolean | undefined>(undefined)
-  const faqs = buildFaqs(() => setShowInstallModal(true))
 
   useEffect(() => {
     setCanInstall(!isStandalone())
@@ -253,7 +224,7 @@ export default function AyudaGeneralPage() {
       {/* FAQ */}
       <h3 style={{ margin: "4px 4px 12px", fontSize: 19 }}>Preguntas frecuentes</h3>
       <Card>
-        <FaqAccordion items={faqs} />
+        <FaqAccordion items={FAQS} initialVisibleCount={FAQ_INITIAL_VISIBLE_COUNT} />
       </Card>
 
       {/* CONTACTO — escalada al soporte, se muestra más liviana que la FAQ */}
