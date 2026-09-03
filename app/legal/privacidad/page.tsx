@@ -52,8 +52,9 @@ export default function PrivacidadPage() {
           <p>
             Al activar tu código recolectamos: nombre, apellido y correo
             electrónico. Durante el uso de la App podemos recolectar además: tu
-            ubicación aproximada o precisa (cuando usas funciones de mapa o
-            solicitas ayuda para llegar a un lugar), tus experiencias favoritas y
+            número de WhatsApp o teléfono (si lo proporcionas), tu ubicación
+            aproximada o precisa (cuando usas funciones de mapa o solicitas
+            ayuda para llegar a un lugar), tus experiencias favoritas y
             reservas, y datos técnicos básicos (dirección IP, tipo de dispositivo)
             con fines de seguridad y prevención de fraude.
           </p>
@@ -65,7 +66,11 @@ export default function PrivacidadPage() {
             explorar y reservar experiencias, comunicarnos contigo sobre el estado
             de tus solicitudes, brindarte soporte y asistencia (incluida la
             ubicación para orientarte hacia un lugar), y mejorar el funcionamiento
-            de la App. No usamos tus datos con fines publicitarios de terceros.
+            de la App. Si nos proporcionas tu número de WhatsApp o teléfono y
+            diste tu consentimiento expreso, también podemos usarlo para
+            enviarte contenido promocional de Vivabox (incluyendo estados/
+            &quot;stories&quot; de WhatsApp) y SMS. No usamos tus datos con fines
+            publicitarios de terceros.
           </p>
         </Section>
 
@@ -86,16 +91,36 @@ export default function PrivacidadPage() {
           </p>
         </Section>
 
-        <Section title="6. Con quién compartimos tus datos">
+        <Section title="6. Comunicaciones por WhatsApp y SMS">
           <p>
-            Compartimos únicamente los datos necesarios con el lugar prestador de la
-            experiencia que reserves (por ejemplo, tu nombre y fecha solicitada),
-            con el fin de gestionar dicha reserva. No vendemos ni cedemos tus datos
-            personales a terceros con fines comerciales.
+            Si nos diste tu número de WhatsApp o teléfono junto con tu
+            consentimiento expreso, podemos enviarte por esos canales contenido
+            promocional de Vivabox, incluyendo estados/&quot;stories&quot; de
+            WhatsApp. Puedes darte de baja en cualquier momento respondiendo
+            &quot;STOP&quot; al mensaje de texto, escribiéndonos por{" "}
+            <a href={getWhatsAppLink("Hola, quiero dejar de recibir comunicaciones promocionales.")} target="_blank" rel="noreferrer" style={link}>
+              WhatsApp
+            </a>{" "}
+            o a{" "}
+            <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} style={link}>{LEGAL_CONTACT_EMAIL}</a>.
+            Darte de baja no afecta el uso de la App ni la gestión de tus
+            reservas.
           </p>
         </Section>
 
-        <Section title="7. Conservación de los datos">
+        <Section title="7. Con quién compartimos tus datos">
+          <p>
+            Compartimos únicamente los datos necesarios con el lugar prestador de la
+            experiencia que reserves (por ejemplo, tu nombre y fecha solicitada),
+            con el fin de gestionar dicha reserva. También compartimos tu número
+            de WhatsApp o teléfono con nuestro proveedor de mensajería,
+            únicamente si diste tu consentimiento para recibir comunicaciones
+            por WhatsApp o SMS. No vendemos ni cedemos tus datos personales a
+            terceros con fines comerciales.
+          </p>
+        </Section>
+
+        <Section title="8. Conservación de los datos">
           <p>
             Conservamos tus datos mientras tu código Vivabox esté vigente y durante
             el tiempo adicional necesario para atender obligaciones legales,
@@ -103,7 +128,7 @@ export default function PrivacidadPage() {
           </p>
         </Section>
 
-        <Section title="8. Tus derechos como titular">
+        <Section title="9. Tus derechos como titular">
           <p>Como titular de tus datos personales, tienes derecho a:</p>
           <ul>
             <li>Conocer, actualizar y rectificar tus datos personales.</li>
@@ -122,14 +147,14 @@ export default function PrivacidadPage() {
           </p>
         </Section>
 
-        <Section title="9. Seguridad">
+        <Section title="10. Seguridad">
           <p>
             Adoptamos medidas técnicas y organizativas razonables para proteger tus
             datos personales frente a acceso no autorizado, pérdida o alteración.
           </p>
         </Section>
 
-        <Section title="10. Cambios a esta política">
+        <Section title="11. Cambios a esta política">
           <p>
             Podemos actualizar esta política para reflejar cambios en la App o en la
             normativa aplicable. La fecha de "última actualización" indicada arriba
@@ -137,7 +162,7 @@ export default function PrivacidadPage() {
           </p>
         </Section>
 
-        <Section title="11. Contacto">
+        <Section title="12. Contacto">
           <p>
             Para consultas sobre el tratamiento de tus datos personales, escríbenos a{" "}
             <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} style={link}>{LEGAL_CONTACT_EMAIL}</a>{" "}

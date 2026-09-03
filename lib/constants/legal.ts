@@ -3,7 +3,7 @@
 // (voir consent_terms_version sur activation_codes, rempli par
 // /api/activate_code). Incrémenter (nouvelle date) à chaque changement de
 // contenu de app/legal/terminos ou app/legal/privacidad.
-export const LEGAL_VERSION = "2026-08-31"
+export const LEGAL_VERSION = "2026-09-02"
 
 export const LEGAL_CONTACT_EMAIL = "contact@vivabox.com.co"
 
