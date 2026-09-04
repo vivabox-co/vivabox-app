@@ -186,8 +186,8 @@ export default function MapView({
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>
       <MapContainer
-        center={[4.65, -74.08]}
-        zoom={13}
+        center={[4.85, -73.97]}
+        zoom={10}
         zoomControl={false}
         style={{ width: "100%", height: "100%", background: "#f4f1ea" }}
         whenReady={() => setMapReady(true)}
