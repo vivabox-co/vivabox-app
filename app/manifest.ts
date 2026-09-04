@@ -7,6 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Activa tu código Vivabox y reserva tu experiencia",
     start_url: "/",
     display: "standalone",
+    orientation: "portrait-primary",
     background_color: "#ffffff",
     theme_color: "#152F40",
     lang: "es",

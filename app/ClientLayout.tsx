@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import BottomNav from "@/components/ui/BottomNav"
+import OrientationLock from "@/components/ui/OrientationLock"
 import RouteLoaderOverlay from "@/components/ui/RouteLoaderOverlay"
 import { useUI } from "@/components/ui/UIContext"
 // Import pour effet de bord : démarre l'écoute de beforeinstallprompt dès le
@@ -79,6 +80,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   return (
     <>
+      <OrientationLock />
       <RouteLoaderOverlay />
       {children}
       {!hideNav && !pathHidesNav && <BottomNav />}

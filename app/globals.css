@@ -58,6 +58,57 @@
   opacity: 0.85;
 }
 
+/* ================================
+   VERROU D'ORIENTATION — bloque l'usage en paysage
+   Le vrai verrouillage (screen.orientation.lock, voir OrientationLock.tsx)
+   ne marche qu'Android/standalone. Cet overlay couvre les autres cas
+   (iOS, onglet navigateur) où l'orientation ne peut pas être empêchée.
+   max-height cible les téléphones en paysage (hauteur réduite) sans
+   déclencher sur des tablettes/moniteurs en paysage.
+================================ */
+
+.orientation-lock-overlay {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .orientation-lock-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    background: #152F40;
+  }
+}
+
+.orientation-lock-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: white;
+  max-width: 280px;
+}
+
+.orientation-lock-message svg {
+  animation: vb-rotate-hint 1.6s ease-in-out infinite;
+}
+
+@keyframes vb-rotate-hint {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(90deg); }
+}
+
+.orientation-lock-message p {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .vb-btn-primary {
     transition: none;
