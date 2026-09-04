@@ -8,7 +8,7 @@ import { useEffect } from "react"
 export default function OrientationLock() {
   useEffect(() => {
     const orientation = screen.orientation as
-      | (ScreenOrientation & { lock?: (o: OrientationLockType) => Promise<void> })
+      | (ScreenOrientation & { lock?: (o: string) => Promise<void> })
       | undefined
     orientation?.lock?.("portrait").catch(() => {})
   }, [])
