@@ -30,16 +30,9 @@ export default function DetailScreen({ experience, onBack }: Props) {
   const categoryColor =
     categoryColors[experience.category] || '#333'
 
-  // TEMP: le champ gallery n'est pas encore rempli côté données, donc on
-  // complète avec 2 visuels de démo pour visualiser le scroll horizontal,
-  // comme dans ExperienceExploreMeta.tsx. À retirer une fois que
-  // experience.gallery contient de vraies photos.
-  const photos = [
-    experience.image,
-    ...(experience.gallery || []),
-    '/image/image_activado1.jpg',
-    '/image/image_welcome.webp',
-  ].filter((src, i, arr) => !!src && arr.indexOf(src) === i)
+  const photos = [experience.image, ...(experience.gallery || [])].filter(
+    (src, i, arr) => !!src && arr.indexOf(src) === i
+  )
 
   return (
     <div

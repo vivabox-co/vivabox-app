@@ -87,16 +87,9 @@ export default function FechasPage() {
   const extraAllowed = !!exp.extraPeopleOption?.allowed
   const totalPeople = baseCapacity + extraPeople
 
-  // TEMP: exp.gallery n'est pas encore rempli côté données (comme dans
-  // DetailScreen.tsx), donc on complète avec 2 visuels de démo pour ne pas
-  // avoir une galerie à une seule photo. À retirer une fois le catalogue
-  // rempli avec de vraies photos additionnelles.
-  const photos = [
-    exp.image,
-    ...(exp.gallery || []),
-    "/image/image_activado1.jpg",
-    "/image/image_welcome.webp",
-  ].filter((src, i, arr) => !!src && arr.indexOf(src) === i)
+  const photos = [exp.image, ...(exp.gallery || [])].filter(
+    (src, i, arr) => !!src && arr.indexOf(src) === i
+  )
 
   function handleContinue() {
     if (!isFormComplete) return
