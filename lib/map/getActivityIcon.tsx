@@ -28,6 +28,7 @@ const VALID_ACTIVITY_KEYS = new Set([
   "glass",
   "glamping",
   "golf",
+  "gun",
   "hair",
   "hiking",
   "horseback",

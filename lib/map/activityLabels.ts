@@ -15,6 +15,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
   escape_room: "Escape room",
   flight_plane: "Vuelo en avioneta",
   golf: "Golf",
+  gun: "Polígono de tiro",
   hiking: "Senderismo",
   horseback: "Cabalgata",
   karting: "Karting",
