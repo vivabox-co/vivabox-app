@@ -242,7 +242,7 @@ export default function MapView({
                 key={category}
                 chunkedLoading
                 showCoverageOnHover={false}
-                maxClusterRadius={60}
+                maxClusterRadius={90}
                 iconCreateFunction={createClusterIcon(color)}
               >
                 {exps.map((exp) => {
