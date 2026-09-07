@@ -306,7 +306,7 @@ export default function ListaPage() {
 // Nombre de personnes réduit au seul chiffre pour la card Lista (espace
 // restreint sur une seule ligne) — la fiche détail et les autres écrans
 // gardent le libellé complet de formatLabel().
-const FORMAT_COUNT: Record<string, string> = { solo: "1", duo: "2" }
+const FORMAT_COUNT: Record<string, string> = { solo: "1", duo: "2", "solo o duo": "1-2" }
 
 function getKeyFact(exp: Experience): { icon: typeof Clock; text: string } | null {
   const duration = formatDuration(exp.duration)

@@ -112,7 +112,7 @@ export default function ListView({
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ fontSize: 14 }}>
-                  {exp.format === "duo" ? "Para dos" : "Para uno"}
+                  {exp.format === "duo" ? "Para dos" : exp.format === "solo o duo" ? "Para uno o dos" : "Para uno"}
                 </div>
 
                 <button

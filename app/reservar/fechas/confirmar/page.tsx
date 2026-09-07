@@ -79,7 +79,7 @@ export default function ConfirmarReservaPage() {
   }
 
   const exp = selectedExperience
-  const baseCapacity = exp.format === "duo" ? 2 : 1
+  const baseCapacity = exp.format === "duo" || exp.format === "solo o duo" ? 2 : 1
   const totalPeople = baseCapacity + reservationExtraPeople
   const preferredDate = reservationDates[0]
 

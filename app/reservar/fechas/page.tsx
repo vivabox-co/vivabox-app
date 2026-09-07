@@ -83,7 +83,7 @@ export default function FechasPage() {
   // seul le nombre de personnes EN PLUS (si l'expérience le permet) est
   // ajustable, sans plafond : chaque personne extra passe par validation du
   // prestador et implique un coût additionnel (géré hors app).
-  const baseCapacity = exp.format === "duo" ? 2 : 1
+  const baseCapacity = exp.format === "duo" || exp.format === "solo o duo" ? 2 : 1
   const extraAllowed = !!exp.extraPeopleOption?.allowed
   const totalPeople = baseCapacity + extraPeople
 

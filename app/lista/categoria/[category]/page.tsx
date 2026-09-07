@@ -46,7 +46,7 @@ export default function CategoryPage() {
   const filtered = useMemo(() => {
     let list = experiences.filter(e => e.category === category)
 
-    if (formatFilter !== "all") list = list.filter(e => e.format === formatFilter)
+    if (formatFilter !== "all") list = list.filter(e => e.format === formatFilter || e.format === "solo o duo")
     if (durationFilter !== "all") list = list.filter(e => e.durationType === durationFilter)
     if (indoorFilter !== "all") list = list.filter(e => e.environment === indoorFilter)
 

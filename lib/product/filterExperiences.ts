@@ -46,8 +46,12 @@ export function filterExperiences(
     /* 🎯 CATÉGORIE */
     if (!categories.includes(exp.category)) return false
 
-    /* 👥 FORMAT */
-    if (!formats.includes(exp.format)) return false
+    /* 👥 FORMAT -- "solo o duo" matche le filtre "Para uno" o "Para dos" */
+    const matchesFormat =
+      exp.format === "solo o duo"
+        ? formats.some((f) => f === "solo" || f === "duo")
+        : formats.includes(exp.format)
+    if (!matchesFormat) return false
 
     /* 🏙 VILLE */
     if (cities.length && (!exp.city || !cities.includes(exp.city))) return false
@@ -109,12 +113,17 @@ export function filterExperiences(
   const countsByFormat: Record<Format, number> = {
     solo: 0,
     duo: 0,
+    "solo o duo": 0,
   }
 
   const countsByActivity: Record<string, number> = {}
 
   filteredExperiences.forEach((exp) => {
     countsByCategory[exp.category]++
+    if (exp.format === "solo o duo") {
+      countsByFormat.solo++
+      countsByFormat.duo++
+    }
     countsByFormat[exp.format]++
 
     if (!countsByActivity[exp.activity_key]) {

@@ -74,6 +74,7 @@ const AMBIANCE_ICONS: Record<string, LucideIcon> = {
 const FORMAT_ICONS: Record<Format, LucideIcon> = {
   solo: User,
   duo: Users,
+  "solo o duo": Users,
 }
 
 const INDOOR_ICONS: Record<"any" | "indoor" | "outdoor", LucideIcon> = {
