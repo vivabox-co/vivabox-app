@@ -43,6 +43,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
   meditation: "Meditación",
   sauna: "Sauna",
   spa: "Spa",
+  tarot: "Lectura de tarot",
 
   // cultura
   art_workshop: "Taller de arte",

@@ -45,6 +45,7 @@ const VALID_ACTIVITY_KEYS = new Set([
   "skydiving",
   "spa",
   "sushi_class",
+  "tarot",
   "theater",
   "wind_tunnel",
 ])
