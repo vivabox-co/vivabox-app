@@ -18,6 +18,7 @@ const VALID_ACTIVITY_KEYS = new Set([
   "cinema",
   "climbing",
   "coffee_tasting",
+  "crystal_ball",
   "dining",
   "driving_track",
   "eco_lodge",
@@ -45,7 +46,6 @@ const VALID_ACTIVITY_KEYS = new Set([
   "skydiving",
   "spa",
   "sushi_class",
-  "tarot",
   "theater",
   "wind_tunnel",
 ])
