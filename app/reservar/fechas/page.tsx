@@ -3,27 +3,27 @@
 import { useEffect, useState } from "react"
 import { useUI, usePageReady } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
-import { Calendar, Users, Check, ArrowRight, Sunrise, Sun, Sunset } from "lucide-react"
+import { Calendar, Clock, Users, Check, ArrowRight } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
 import PhotoGallery from "@/components/ui/PhotoGallery"
 import BrandRibbon from "@/components/ui/BrandRibbon"
 import BrandDots from "@/components/ui/BrandDots"
 import { formatLocalDate } from "@/lib/utils/formatLocalDate"
 import { categoryColors } from "@/lib/map/categoryColors"
-import { MOMENT_LABEL } from "@/lib/utils/moment"
 
 const MAX_DATES = 3
 
-// Même vocabulaire que RescheduleModal.tsx (voir lib/utils/moment.ts) : le
-// bénéficiaire choisit un momento del día indicatif, jamais une heure exacte
-// (l'équipe affine ensuite avec le lugar). Icônes locales, pas dans
-// MOMENT_LABEL qui ne porte que les libellés texte (partagés avec l'API).
-const MOMENT_ICON: Record<string, React.ReactNode> = {
-  morning: <Sunrise size={14} />,
-  afternoon: <Sun size={14} />,
-  night: <Sunset size={14} />,
-}
-const MOMENTS = Object.keys(MOMENT_LABEL) as (keyof typeof MOMENT_LABEL)[]
+// Pas encore de source de disponibilité par prestador/fecha (voir
+// lib/data/types.ts::Experience — aucun champ horario) : ces créneaux restent
+// génériques pour tout le catalogue, comme avant le retrait du picker
+// d'horaire (voir historique de ce fichier). Le jour où une vraie dispo par
+// prestador existe, c'est ce tableau qu'il faudra remplacer par une source
+// dynamique.
+const ALL_HOURS = [
+  "08:00", "09:00", "10:00", "11:00",
+  "12:00", "13:00", "14:00", "15:00", "16:00",
+  "17:00", "18:00", "19:00", "20:00",
+]
 
 // Pas de constante ES partagée pour les abréviations de jour dans le projet
 // (DatePickerModal.tsx a le même souci et hardcode aussi localement) — Intl
@@ -51,8 +51,8 @@ export default function FechasPage() {
     setReservationDates: setSelectedDates,
     reservationExtraPeople: extraPeople,
     setReservationExtraPeople: setExtraPeople,
-    reservationMoments: moments,
-    setReservationMoments: setMoments,
+    reservationHours: hours,
+    setReservationHours: setHours,
     beginRouteTransition,
   } = useUI()
   const router = useRouter()
@@ -145,40 +145,30 @@ export default function FechasPage() {
           datesMaxed={datesMaxed}
         />
 
-        {/* ---------- MOMENTO DEL DÍA (por fecha, opcional) ---------- */}
+        {/* ---------- HORA PREFERIDA (por fecha, opcional) ---------- */}
         {selectedDates.length > 0 && (
           <section style={section}>
             <h2 style={sectionTitle}>
-              <Sun size={17} style={sectionTitleIcon} />
-              Momento del día
+              <Clock size={17} style={sectionTitleIcon} />
+              Hora preferida
             </h2>
             <p style={sectionDescription}>
-              Opcional: dinos qué momento te viene mejor para cada fecha. Coordinamos la hora exacta con el lugar.
+              Opcional: dinos a qué hora te viene mejor cada fecha. Confirmamos disponibilidad con el lugar.
             </p>
 
             {selectedDates.map((d) => (
-              <div key={d} style={momentDateRow}>
-                <span style={momentDateLabel}>{formatDateChip(d)}</span>
-                <div style={momentChipsRow}>
-                  {MOMENTS.map((value) => {
-                    const active = moments[d] === value
-                    return (
-                      <button
-                        key={value}
-                        onClick={() =>
-                          setMoments({ ...moments, [d]: active ? "" : value })
-                        }
-                        style={{
-                          ...momentChip,
-                          ...(active ? momentChipActive(categoryColor) : {}),
-                        }}
-                      >
-                        {MOMENT_ICON[value]}
-                        {MOMENT_LABEL[value]}
-                      </button>
-                    )
-                  })}
-                </div>
+              <div key={d} style={hourDateRow}>
+                <span style={hourDateLabel}>{formatDateChip(d)}</span>
+                <select
+                  value={hours[d] ?? ""}
+                  onChange={(e) => setHours({ ...hours, [d]: e.target.value })}
+                  style={hourSelect}
+                >
+                  <option value="">Sin preferencia</option>
+                  {ALL_HOURS.map((h) => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
               </div>
             ))}
           </section>
@@ -455,7 +445,7 @@ const dateChipStyle = (isPreferred: boolean, color: string): React.CSSProperties
   boxShadow: isPreferred ? `0 0 0 2px ${color}` : "none",
 })
 
-const momentDateRow: React.CSSProperties = {
+const hourDateRow: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
@@ -464,29 +454,18 @@ const momentDateRow: React.CSSProperties = {
   marginTop: 12,
 }
 
-const momentDateLabel: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "#444" }
+const hourDateLabel: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "#444" }
 
-const momentChipsRow: React.CSSProperties = { display: "flex", gap: 6, flexWrap: "wrap" }
-
-const momentChip: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 5,
-  padding: "7px 12px",
-  borderRadius: 999,
+const hourSelect: React.CSSProperties = {
+  padding: "9px 12px",
+  borderRadius: 12,
   border: "1px solid #E5E2DB",
   background: "#fff",
-  color: "#555",
-  fontSize: 12.5,
+  color: "#333",
+  fontSize: 13.5,
   fontWeight: 500,
   cursor: "pointer",
 }
-
-const momentChipActive = (color: string): React.CSSProperties => ({
-  border: `1px solid ${color}`,
-  background: "#152F40",
-  color: "#fff",
-})
 
 const personasMainRow: React.CSSProperties = {
   display: "flex",

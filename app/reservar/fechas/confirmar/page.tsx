@@ -8,7 +8,6 @@ import BrandRibbon from "@/components/ui/BrandRibbon"
 import ExperienceSummaryCard from "@/components/list/ExperienceSummaryCard"
 import PhoneNumberField from "@/components/ui/PhoneNumberField"
 import { formatLocalDate } from "@/lib/utils/formatLocalDate"
-import { MOMENT_LABEL } from "@/lib/utils/moment"
 
 // Pas de constante ES partagée pour les abréviations de jour dans le projet
 // (voir app/reservar/fechas/page.tsx et DatePickerModal.tsx, même souci) —
@@ -22,14 +21,14 @@ function formatDateChip(iso: string): string {
   return `${weekday} ${d} ${monthShort}`
 }
 
-// Reprend le même format "Horario: <fecha>: <momento>; ..." que l'ancien
+// Reprend le même format "Horario: <fecha>: <heure>; ..." que l'ancien
 // picker d'horaire (voir historique de app/reservar/fechas/page.tsx) pour
 // rester capturé par la regex d'extraction côté GET /api/booking/[bookingId]
 // (`/Horario:\s*([^·]+)/`) sans y toucher.
-function buildHorarioValue(dates: string[], moments: Record<string, string>): string {
+function buildHorarioValue(dates: string[], hours: Record<string, string>): string {
   const segments = dates
-    .filter((d) => moments[d])
-    .map((d) => `${formatDateChip(d)}: ${MOMENT_LABEL[moments[d]] ?? moments[d]}`)
+    .filter((d) => hours[d])
+    .map((d) => `${formatDateChip(d)}: ${hours[d]}`)
 
   return segments.length > 0 ? segments.join("; ") : "Sin hora preferida (flexible)"
 }
@@ -52,7 +51,7 @@ export default function ConfirmarReservaPage() {
     setHideNav,
     reservationDates,
     reservationExtraPeople,
-    reservationMoments,
+    reservationHours,
     clearReservationDraft,
   } = useUI()
 
@@ -111,7 +110,7 @@ export default function ConfirmarReservaPage() {
   const preferredDate = reservationDates[0]
 
   const isFormComplete = whatsappValid
-  const horarioValue = buildHorarioValue(reservationDates, reservationMoments)
+  const horarioValue = buildHorarioValue(reservationDates, reservationHours)
 
   function startEditName() {
     const { nombre, apellido } = splitName(beneficiaryName)
