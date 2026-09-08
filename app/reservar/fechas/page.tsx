@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useUI, usePageReady } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
-import { Calendar, Clock, Users, Check, ArrowRight } from "lucide-react"
+import { Calendar, Clock, Users, Check, ArrowRight, ChevronDown } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
 import PhotoGallery from "@/components/ui/PhotoGallery"
 import BrandRibbon from "@/components/ui/BrandRibbon"
@@ -56,6 +56,10 @@ export default function FechasPage() {
     beginRouteTransition,
   } = useUI()
   const router = useRouter()
+
+  // Fecha dont le menu d'heure est ouvert (null = tous fermés) — un seul menu
+  // à la fois, comme l'ancien openHourSheet retiré en 19908cb.
+  const [openHourMenu, setOpenHourMenu] = useState<string | null>(null)
 
   useEffect(() => {
     setHideNav(true)
@@ -156,19 +160,46 @@ export default function FechasPage() {
               Opcional: dinos a qué hora te viene mejor cada fecha. Confirmamos disponibilidad con el lugar.
             </p>
 
+            {openHourMenu && (
+              <div style={hourMenuOverlay} onClick={() => setOpenHourMenu(null)} />
+            )}
+
             {selectedDates.map((d) => (
               <div key={d} style={hourDateRow}>
                 <span style={hourDateLabel}>{formatDateChip(d)}</span>
-                <select
-                  value={hours[d] ?? ""}
-                  onChange={(e) => setHours({ ...hours, [d]: e.target.value })}
-                  style={hourSelect}
-                >
-                  <option value="">Sin preferencia</option>
-                  {ALL_HOURS.map((h) => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
+                <div style={{ ...hourFieldWrap, ...(openHourMenu === d ? hourFieldWrapOpen : {}) }}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenHourMenu(openHourMenu === d ? null : d)}
+                    style={hourTrigger}
+                  >
+                    {hours[d] || "Sin preferencia"}
+                    <ChevronDown size={14} />
+                  </button>
+
+                  {openHourMenu === d && (
+                    <div style={hourMenuAnchor}>
+                      <div className="vb-hide-scrollbar" style={hourMenu}>
+                        <div
+                          style={{ ...hourMenuItem, ...(!hours[d] ? hourMenuItemActive : {}) }}
+                          onClick={() => { setHours({ ...hours, [d]: "" }); setOpenHourMenu(null) }}
+                        >
+                          Sin preferencia
+                        </div>
+                        {ALL_HOURS.map((h) => (
+                          <div
+                            key={h}
+                            style={{ ...hourMenuItem, ...(hours[d] === h ? hourMenuItemActive : {}) }}
+                            onClick={() => { setHours({ ...hours, [d]: h }); setOpenHourMenu(null) }}
+                          >
+                            {h}
+                          </div>
+                        ))}
+                      </div>
+                      <div style={hourMenuFade} />
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </section>
@@ -456,7 +487,21 @@ const hourDateRow: React.CSSProperties = {
 
 const hourDateLabel: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "#444" }
 
-const hourSelect: React.CSSProperties = {
+// Encapsule le bouton + son menu : ancre le popover (position absolute) et
+// reste au-dessus de hourMenuOverlay (voir ci-dessous) pour que le clic sur
+// le bouton d'une autre fecha bascule directement le menu sans passer par un
+// premier clic qui ne ferait que fermer l'overlay.
+const hourFieldWrap: React.CSSProperties = { position: "relative", zIndex: 16 }
+
+// Quand son menu est ouvert, une fecha passe devant les fechas suivantes
+// (même zIndex 16 sinon) : sur 3 fechas rapprochées, le popover d'une des
+// premières déborderait visuellement sous la rangée du dessous sans ça.
+const hourFieldWrapOpen: React.CSSProperties = { zIndex: 20 }
+
+const hourTrigger: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
   padding: "9px 12px",
   borderRadius: 12,
   border: "1px solid #E5E2DB",
@@ -465,6 +510,58 @@ const hourSelect: React.CSSProperties = {
   fontSize: 13.5,
   fontWeight: 500,
   cursor: "pointer",
+}
+
+// Clic n'importe où en dehors du menu pour le refermer — transparent, sous
+// hourFieldWrap (zIndex 16) mais au-dessus du reste de la page.
+const hourMenuOverlay: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 15,
+}
+
+const hourMenuAnchor: React.CSSProperties = {
+  position: "absolute",
+  right: 0,
+  top: "calc(100% + 6px)",
+  width: 150,
+}
+
+// Scrollbar masquée (voir .vb-hide-scrollbar dans globals.css, même pattern
+// que .hero-gallery-track) — le fondu ci-dessous signale qu'il reste des
+// heures à faire défiler plutôt que de laisser un bord coupé net.
+const hourMenu: React.CSSProperties = {
+  maxHeight: 180,
+  overflowY: "auto",
+  background: "#fff",
+  border: "1px solid #D8D5CE",
+  borderRadius: 12,
+  boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+}
+
+const hourMenuItem: React.CSSProperties = {
+  padding: "9px 12px",
+  fontSize: 13,
+  fontWeight: 500,
+  color: "#444",
+  cursor: "pointer",
+}
+
+const hourMenuItemActive: React.CSSProperties = {
+  background: "#F7F5F2",
+  color: "#152F40",
+  fontWeight: 600,
+}
+
+const hourMenuFade: React.CSSProperties = {
+  position: "absolute",
+  left: 1,
+  right: 1,
+  bottom: 1,
+  height: 22,
+  background: "linear-gradient(to bottom, rgba(255,255,255,0), #fff)",
+  borderRadius: "0 0 12px 12px",
+  pointerEvents: "none",
 }
 
 const personasMainRow: React.CSSProperties = {

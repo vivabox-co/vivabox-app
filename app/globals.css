@@ -400,6 +400,17 @@ body {
   display: none;
 }
 
+/* Scrollbar masquée, générique (voir app/reservar/fechas/page.tsx : menu
+   d'heure avec fondu en bas plutôt qu'une scrollbar visible). */
+.vb-hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.vb-hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* ================================
    CTA BUTTON
 ================================ */
