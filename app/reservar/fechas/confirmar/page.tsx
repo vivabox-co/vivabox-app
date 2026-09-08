@@ -7,6 +7,32 @@ import { useUI, usePageReady } from "@/components/ui/UIContext"
 import BrandRibbon from "@/components/ui/BrandRibbon"
 import ExperienceSummaryCard from "@/components/list/ExperienceSummaryCard"
 import PhoneNumberField from "@/components/ui/PhoneNumberField"
+import { formatLocalDate } from "@/lib/utils/formatLocalDate"
+import { MOMENT_LABEL } from "@/lib/utils/moment"
+
+// Pas de constante ES partagée pour les abréviations de jour dans le projet
+// (voir app/reservar/fechas/page.tsx et DatePickerModal.tsx, même souci) —
+// dupliqué ici plutôt que dépendant de toLocaleDateString.
+const WEEKDAY_SHORT = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+
+function formatDateChip(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number)
+  const weekday = WEEKDAY_SHORT[new Date(y, m - 1, d).getDay()]
+  const monthShort = formatLocalDate(iso, { month: "short" })
+  return `${weekday} ${d} ${monthShort}`
+}
+
+// Reprend le même format "Horario: <fecha>: <momento>; ..." que l'ancien
+// picker d'horaire (voir historique de app/reservar/fechas/page.tsx) pour
+// rester capturé par la regex d'extraction côté GET /api/booking/[bookingId]
+// (`/Horario:\s*([^·]+)/`) sans y toucher.
+function buildHorarioValue(dates: string[], moments: Record<string, string>): string {
+  const segments = dates
+    .filter((d) => moments[d])
+    .map((d) => `${formatDateChip(d)}: ${MOMENT_LABEL[moments[d]] ?? moments[d]}`)
+
+  return segments.length > 0 ? segments.join("; ") : "Sin hora preferida (flexible)"
+}
 
 // Sépare le nom complet stocké côté activation ("Nombre Apellido", un seul
 // champ en base — voir activation_codes.beneficiary_name) en deux parties
@@ -26,6 +52,7 @@ export default function ConfirmarReservaPage() {
     setHideNav,
     reservationDates,
     reservationExtraPeople,
+    reservationMoments,
     clearReservationDraft,
   } = useUI()
 
@@ -84,6 +111,7 @@ export default function ConfirmarReservaPage() {
   const preferredDate = reservationDates[0]
 
   const isFormComplete = whatsappValid
+  const horarioValue = buildHorarioValue(reservationDates, reservationMoments)
 
   function startEditName() {
     const { nombre, apellido } = splitName(beneficiaryName)
@@ -131,6 +159,7 @@ export default function ConfirmarReservaPage() {
           fechasDeseadas: reservationDates,
           cantidadPersonas: totalPeople,
           whatsapp,
+          mensaje: `Horario: ${horarioValue}`,
         }),
       })
 
@@ -166,6 +195,7 @@ export default function ConfirmarReservaPage() {
           subtitle={`${totalPeople} ${totalPeople === 1 ? "persona" : "personas"}`}
           location={exp.zone}
           image={exp.image}
+          time={horarioValue}
           requestedDates={reservationDates}
           datesHeading="Fechas elegidas"
           category={exp.category}

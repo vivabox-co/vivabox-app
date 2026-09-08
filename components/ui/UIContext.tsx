@@ -24,6 +24,12 @@ type UIContextType = {
   setReservationDates: (dates: string[]) => void
   reservationExtraPeople: number
   setReservationExtraPeople: (n: number) => void
+  // Momento du día préféré par fecha ("2026-08-26": "morning") — optionnel,
+  // même vocabulaire "morning/afternoon/night" que le reschedule bénéficiaire
+  // (voir lib/utils/moment.ts et RescheduleModal.tsx) pour rester compatible
+  // avec le message "Horario: ..." et son extraction côté API.
+  reservationMoments: Record<string, string>
+  setReservationMoments: (moments: Record<string, string>) => void
   clearReservationDraft: () => void
 
   selectedDate: string | null
@@ -133,11 +139,28 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.setItem("vivabox_reservation_extra_people", String(n))
   }
 
+  const [reservationMoments, setReservationMomentsState] = useState<Record<string, string>>(() => {
+    if (typeof window === "undefined") return {}
+    const saved = sessionStorage.getItem("vivabox_reservation_moments")
+    return saved ? JSON.parse(saved) : {}
+  })
+
+  function setReservationMoments(moments: Record<string, string>) {
+    setReservationMomentsState(moments)
+    if (Object.keys(moments).length > 0) {
+      sessionStorage.setItem("vivabox_reservation_moments", JSON.stringify(moments))
+    } else {
+      sessionStorage.removeItem("vivabox_reservation_moments")
+    }
+  }
+
   function clearReservationDraft() {
     setReservationDatesState([])
     setReservationExtraPeopleState(0)
+    setReservationMomentsState({})
     sessionStorage.removeItem("vivabox_reservation_dates")
     sessionStorage.removeItem("vivabox_reservation_extra_people")
+    sessionStorage.removeItem("vivabox_reservation_moments")
   }
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -246,6 +269,8 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         setReservationDates,
         reservationExtraPeople,
         setReservationExtraPeople,
+        reservationMoments,
+        setReservationMoments,
         clearReservationDraft,
 
         selectedDate,
