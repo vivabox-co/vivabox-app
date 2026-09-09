@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import BottomNav from "@/components/ui/BottomNav"
+import DesktopGate from "@/components/ui/DesktopGate"
 import OrientationLock from "@/components/ui/OrientationLock"
 import RouteLoaderOverlay from "@/components/ui/RouteLoaderOverlay"
 import { useUI } from "@/components/ui/UIContext"
@@ -16,9 +17,15 @@ import "@/lib/pwa/deferredInstallPrompt"
 // (disponible synchronement) plutôt que du seul hideNav du contexte, qui n'est
 // mis à jour que par un useEffect de la page cible et arrive donc un cran trop
 // tard (flash de la navbar le temps que l'effet se déclenche).
-const HIDDEN_NAV_PATHS = ["/activar", "/activacion-completa", "/reservar/fechas", "/legal"]
+const HIDDEN_NAV_PATHS = ["/activar", "/activacion-completa", "/reservar/fechas", "/legal", "/solo-movil"]
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
+export default function ClientLayout({
+  children,
+  desktopGateEnabled,
+}: {
+  children: React.ReactNode
+  desktopGateEnabled: boolean
+}) {
   const router = useRouter()
   const pathname = usePathname()
   const { hideNav } = useUI()
@@ -80,6 +87,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   return (
     <>
+      <DesktopGate enabled={desktopGateEnabled} />
       <OrientationLock />
       <RouteLoaderOverlay />
       {children}

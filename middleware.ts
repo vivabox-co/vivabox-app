@@ -1,5 +1,49 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, userAgent } from 'next/server';
 import type { NextRequest } from 'next/server';
+
+// Cookie posé quand quelqu'un débloque volontairement l'accès desktop (voir
+// desktopGate ci-dessous) — non httpOnly car DesktopGate.tsx (filet de
+// sécurité côté client, voir ClientLayout.tsx) doit pouvoir le lire pour ne
+// pas rediriger quelqu'un qui vient juste de passer le gate serveur.
+const DESKTOP_GATE_BYPASS_COOKIE = 'vb_desktop_ok';
+const DESKTOP_GATE_ROUTE = '/solo-movil';
+
+// L'app est pensée pour un usage mobile (activation par QR code scanné au
+// téléphone) : on bloque l'accès desktop pour éviter une expérience cassée
+// (layout, tactile...) plutôt que de la rendre "responsive" pour un usage
+// qu'on ne veut pas supporter. Désactivé en local (`next dev`) pour ne pas
+// gêner le développement — voir aussi DesktopGate.tsx, un filet de sécurité
+// côté client pour les user-agents que userAgent() ne reconnaît pas.
+function desktopGate(request: NextRequest): NextResponse | null {
+  if (process.env.NODE_ENV !== 'production') return null;
+
+  if (request.cookies.get(DESKTOP_GATE_BYPASS_COOKIE)?.value === '1') {
+    return null;
+  }
+
+  // Déblocage volontaire (nous, en dev/tests sur preview ou prod) via
+  // ?vb_desktop=<DESKTOP_PREVIEW_KEY> — pose le cookie puis nettoie l'URL.
+  const previewKey = request.nextUrl.searchParams.get('vb_desktop');
+  if (previewKey && process.env.DESKTOP_PREVIEW_KEY && previewKey === process.env.DESKTOP_PREVIEW_KEY) {
+    const cleanUrl = new URL(request.nextUrl);
+    cleanUrl.searchParams.delete('vb_desktop');
+    const response = NextResponse.redirect(cleanUrl);
+    response.cookies.set(DESKTOP_GATE_BYPASS_COOKIE, '1', {
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30,
+      path: '/',
+    });
+    return response;
+  }
+
+  const { device } = userAgent(request);
+  if (device.type === 'mobile' || device.type === 'tablet') {
+    return null;
+  }
+
+  return NextResponse.redirect(new URL(DESKTOP_GATE_ROUTE, request.url));
+}
 
 // Routes publiques (pas besoin de session) : l'écran post-activation, plus
 // les endpoints qui créent ou vérifient une session — on ne peut pas exiger
@@ -26,6 +70,10 @@ const publicRoutes = [
   // technique (voir resolveSessionContext ci-dessous) — doit rester
   // atteignable sans repasser par la validation qui vient d'échouer.
   '/reintentar',
+  // Écran du gate desktop (voir desktopGate) : doit s'afficher tel quel,
+  // qu'il y ait une session ou non, sinon la règle 6 plus bas le renvoie
+  // vers /activar avant même que la personne ne le voie.
+  DESKTOP_GATE_ROUTE,
 ];
 
 const activationEntryRoute = '/activar';
@@ -124,7 +172,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 1bis. Routes protégées par leur propre secret (pas par vb_session) :
+  // 1bis. Restriction desktop (toute l'app hors /api — un cron/webhook n'a
+  //       pas de "type d'appareil" pertinent, et le bloquer casserait des
+  //       appels serveur-à-serveur légitimes). Voir desktopGate ci-dessus.
+  if (!pathname.startsWith('/api/') && pathname !== DESKTOP_GATE_ROUTE) {
+    const gate = desktopGate(request);
+    if (gate) return gate;
+  }
+
+  // 1ter. Routes protégées par leur propre secret (pas par vb_session) :
   //       le cron Vercel (CRON_SECRET) et l'annulation admin (ADMIN_API_KEY,
   //       voir PATCH /api/booking/[bookingId]) sont des appels serveur-à-
   //       serveur qui n'ont jamais de cookie de session bénéficiaire — les

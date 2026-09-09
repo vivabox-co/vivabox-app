@@ -25,13 +25,20 @@ export default function RootLayout({
 }: {
   children: ReactNode
 }) {
+  // NODE_ENV plutôt qu'une variable NEXT_PUBLIC_* : lu côté serveur puis
+  // passé en prop, il n'a pas besoin d'être exposé au bundle client. Vaut
+  // "production" aussi bien en preview qu'en prod Vercel (seul `next dev`
+  // en local vaut "development") — voir desktopGate dans middleware.ts,
+  // qui applique la même règle côté serveur.
+  const desktopGateEnabled = process.env.NODE_ENV === "production"
+
   return (
     <html lang="es">
       <body>
         <UIProvider>
           <div className="app-shell">
             <div className="app-content">
-              <ClientLayout>
+              <ClientLayout desktopGateEnabled={desktopGateEnabled}>
                 {children}
               </ClientLayout>
             </div>
