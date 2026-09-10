@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useUI, usePageReady } from "@/components/ui/UIContext"
 import { useRouter } from "next/navigation"
-import { Calendar, Clock, Users, Check, ArrowRight, ChevronDown } from "lucide-react"
+import { Calendar, Clock, Users, Check, ArrowRight, ChevronDown, CalendarPlus } from "lucide-react"
 import DatePickerModal from "@/components/ui/DatePickerModal"
 import PhotoGallery from "@/components/ui/PhotoGallery"
 import BrandRibbon from "@/components/ui/BrandRibbon"
@@ -61,6 +61,16 @@ export default function FechasPage() {
   // à la fois, comme l'ancien openHourSheet retiré en 19908cb.
   const [openHourMenu, setOpenHourMenu] = useState<string | null>(null)
 
+  // Calendrier remonté ici (plutôt que local à FechasCard) pour que la popup
+  // "1 seule fecha" ci-dessous puisse le rouvrir directement depuis son
+  // bouton "Elegir más fechas".
+  const [openCalendar, setOpenCalendar] = useState(false)
+
+  // Avertissement affiché au clic sur "Continuar" quand une seule fecha est
+  // choisie — le max est 3 mais rien n'empêchait avant de foncer avec une
+  // seule, ce qui réduit les chances que le prestador puisse confirmer.
+  const [showOneDateWarning, setShowOneDateWarning] = useState(false)
+
   useEffect(() => {
     setHideNav(true)
     return () => setHideNav(false)
@@ -111,6 +121,16 @@ export default function FechasPage() {
 
   function handleContinue() {
     if (!isFormComplete) return
+    if (selectedDates.length === 1) {
+      setShowOneDateWarning(true)
+      return
+    }
+    beginRouteTransition()
+    router.push("/reservar/fechas/confirmar")
+  }
+
+  function handleContinueAnyway() {
+    setShowOneDateWarning(false)
     beginRouteTransition()
     router.push("/reservar/fechas/confirmar")
   }
@@ -147,6 +167,8 @@ export default function FechasPage() {
           selectedDates={selectedDates}
           setSelectedDates={setSelectedDates}
           datesMaxed={datesMaxed}
+          openCalendar={openCalendar}
+          setOpenCalendar={setOpenCalendar}
         />
 
         {/* ---------- HORA PREFERIDA (por fecha, opcional) ---------- */}
@@ -261,7 +283,53 @@ export default function FechasPage() {
           <ArrowRight size={16} strokeWidth={2.5} />
         </button>
       </div>
+
+      {showOneDateWarning && (
+        <OneDateWarningModal
+          categoryColor={categoryColor}
+          onAddMore={() => { setShowOneDateWarning(false); setOpenCalendar(true) }}
+          onContinueAnyway={handleContinueAnyway}
+          onClose={() => setShowOneDateWarning(false)}
+        />
+      )}
     </>
+  )
+}
+
+/* ---------- POPUP "1 SOLA FECHA" ---------- */
+
+function OneDateWarningModal({
+  categoryColor,
+  onAddMore,
+  onContinueAnyway,
+  onClose,
+}: {
+  categoryColor: string
+  onAddMore: () => void
+  onContinueAnyway: () => void
+  onClose: () => void
+}) {
+  return (
+    <div style={warnOverlay} onClick={onClose}>
+      <div style={warnModal} onClick={(e) => e.stopPropagation()}>
+        <div style={{ ...warnIconWrap, background: `${categoryColor}1A`, color: categoryColor }}>
+          <CalendarPlus size={22} />
+        </div>
+
+        <h3 style={warnTitle}>¿Solo una fecha?</h3>
+        <p style={warnBody}>
+          Con una sola opción, si el prestador no tiene disponibilidad ese día tendremos que
+          volver a contactarte. Elegir 2 o 3 fechas nos ayuda a confirmar tu reserva más rápido.
+        </p>
+
+        <button onClick={onAddMore} className="vb-btn-primary" style={warnPrimaryBtn}>
+          Elegir más fechas
+        </button>
+        <button onClick={onContinueAnyway} style={warnSecondaryBtn}>
+          Continuar con 1 fecha
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -272,14 +340,16 @@ function FechasCard({
   selectedDates,
   setSelectedDates,
   datesMaxed,
+  openCalendar,
+  setOpenCalendar,
 }: {
   categoryColor: string
   selectedDates: string[]
   setSelectedDates: (dates: string[]) => void
   datesMaxed: boolean
+  openCalendar: boolean
+  setOpenCalendar: (open: boolean) => void
 }) {
-  const [openCalendar, setOpenCalendar] = useState(false)
-
   return (
     <>
       <section
@@ -598,6 +668,75 @@ const extraBtn: React.CSSProperties = {
 const extraCount: React.CSSProperties = { fontSize: 13, fontWeight: 500, minWidth: 130, textAlign: "center", color: "#444" }
 
 const personasNote: React.CSSProperties = { marginTop: 10, fontSize: 11, color: "#999", textAlign: "center", lineHeight: 1.4 }
+
+const warnOverlay: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.25)",
+  display: "flex",
+  alignItems: "flex-end",
+  justifyContent: "center",
+  zIndex: 2000,
+}
+
+const warnModal: React.CSSProperties = {
+  width: "100%",
+  maxWidth: 500,
+  background: "#fff",
+  borderRadius: "28px 28px 0 0",
+  padding: "28px 24px 32px",
+  textAlign: "center",
+}
+
+const warnIconWrap: React.CSSProperties = {
+  width: 48,
+  height: 48,
+  borderRadius: "50%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  margin: "0 auto 16px",
+}
+
+const warnTitle: React.CSSProperties = {
+  margin: 0,
+  fontSize: 19,
+  fontWeight: 700,
+  color: "#152F40",
+  letterSpacing: -0.2,
+}
+
+const warnBody: React.CSSProperties = {
+  margin: "10px 0 22px",
+  fontSize: 14,
+  color: "#666",
+  lineHeight: 1.5,
+}
+
+const warnPrimaryBtn: React.CSSProperties = {
+  width: "100%",
+  padding: 16,
+  borderRadius: 14,
+  background: "#152F40",
+  color: "#fff",
+  fontSize: 15,
+  fontWeight: 600,
+  border: "none",
+  cursor: "pointer",
+}
+
+const warnSecondaryBtn: React.CSSProperties = {
+  width: "100%",
+  padding: 14,
+  marginTop: 10,
+  borderRadius: 14,
+  background: "transparent",
+  color: "#8f8f8f",
+  fontSize: 14,
+  fontWeight: 600,
+  border: "none",
+  cursor: "pointer",
+}
 
 const cta: React.CSSProperties = {
   margin: "28px 20px 0 20px",
