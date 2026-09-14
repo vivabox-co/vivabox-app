@@ -361,9 +361,10 @@ const nameValue: React.CSSProperties = { fontSize: 18, fontWeight: 700, color: "
 
 const inlineTextLink: React.CSSProperties = {
   background: "transparent",
-  border: "none",
-  padding: "6px 0",
-  color: "#111",
+  border: "1px solid #D0D0D0",
+  borderRadius: 999,
+  padding: "6px 14px",
+  color: "#6B7280",
   fontSize: 13,
   fontWeight: 600,
   cursor: "pointer",

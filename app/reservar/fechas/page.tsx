@@ -731,10 +731,10 @@ const warnSecondaryBtn: React.CSSProperties = {
   marginTop: 10,
   borderRadius: 14,
   background: "transparent",
-  color: "#8f8f8f",
+  color: "#6B7280",
   fontSize: 14,
   fontWeight: 600,
-  border: "none",
+  border: "1px solid #D0D0D0",
   cursor: "pointer",
 }
 
