@@ -6,6 +6,7 @@ import { checkRateLimit, getClientIp } from "@/lib/utils/rateLimit"
 import { generateSessionToken, hashSessionToken } from "@/lib/utils/sessionToken"
 import { SESSION_VALIDITY_DAYS } from "@/lib/constants/session"
 import { LEGAL_VERSION } from "@/lib/constants/legal"
+import { sendWelcomeEmail } from "@/lib/services/beneficiaryEmail"
 
 const RATE_LIMIT_MAX_ATTEMPTS = 5
 const RATE_LIMIT_WINDOW_MINUTES = 15
@@ -97,6 +98,13 @@ export async function POST(req: Request) {
 
       return rejected("INVALID")
     }
+
+    // Best-effort : sendWelcomeEmail() ne lève jamais (erreurs déjà
+    // capturées et logguées à l'intérieur) — un échec Resend n'empêche donc
+    // jamais l'activation d'aboutir. Attendu plutôt que lancé "en fond" :
+    // une fonction serverless (Vercel) peut être arrêtée dès la réponse
+    // envoyée, ce qui tuerait un envoi non attendu avant qu'il ne parte.
+    await sendWelcomeEmail({ name, email, code: normalizedCode })
 
     const token = generateSessionToken()
     const expiresAt = new Date(Date.now() + SESSION_VALIDITY_DAYS * 24 * 60 * 60 * 1000).toISOString()
