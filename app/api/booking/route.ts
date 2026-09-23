@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from "@/lib/services/supabase"
 import { hashSessionToken } from "@/lib/utils/sessionToken"
-import { EXTRA_PERSON_PRICE_COP } from "@/lib/constants/pricing"
 import { sendBeneficiaryBookingEmail } from "@/lib/services/beneficiaryEmail"
 
 const UNIQUE_VIOLATION = "23505"
@@ -25,15 +24,6 @@ export async function POST(req: NextRequest) {
       ? body.fechasDeseadas.filter((d: unknown): d is string => typeof d === "string" && d.length > 0).slice(0, 3)
       : requestedDate ? [requestedDate] : null
     const cantidadPersonas = body.cantidadPersonas
-    // Snapshoteado ici (unit_price + amount) plutôt que recalculé plus tard :
-    // si EXTRA_PERSON_PRICE_COP change, une réservation déjà demandée garde
-    // le prix vu par le bénéficiaire au moment de l'ajout (voir
-    // /reservar/fechas). Le paiement lui-même n'a lieu qu'après confirmation
-    // par le lugar (extra_payment_status passe à 'pending' côté panneau
-    // opérateur, voir vivabox-operativo/reservas/actions.ts) — pas ici.
-    const extraPeople = Math.max(0, Math.trunc(Number(body.extraPeople) || 0))
-    const extraPeopleUnitPrice = extraPeople > 0 ? EXTRA_PERSON_PRICE_COP : null
-    const extraPeopleAmount = extraPeople > 0 ? extraPeople * EXTRA_PERSON_PRICE_COP : null
     const mensaje = typeof body.mensaje === "string" ? body.mensaje : ""
     const whatsapp = typeof body.whatsapp === "string" ? body.whatsapp.trim().slice(0, 30) : ""
     // La table bookings n'a pas de colonne dédiée au nombre de personnes ni
@@ -83,9 +73,6 @@ export async function POST(req: NextRequest) {
         requested_date: requestedDate,
         requested_dates: requestedDates,
         message,
-        extra_people: extraPeople,
-        extra_people_unit_price: extraPeopleUnitPrice,
-        extra_people_amount: extraPeopleAmount,
       })
       .select("id")
       .single()
