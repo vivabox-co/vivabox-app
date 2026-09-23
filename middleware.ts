@@ -181,14 +181,17 @@ export async function middleware(request: NextRequest) {
   }
 
   // 1ter. Routes protégées par leur propre secret (pas par vb_session) :
-  //       le cron Vercel (CRON_SECRET) et l'annulation admin (ADMIN_API_KEY,
-  //       voir PATCH /api/booking/[bookingId]) sont des appels serveur-à-
-  //       serveur qui n'ont jamais de cookie de session bénéficiaire — les
-  //       laisser tomber dans la règle 6 ci-dessous les redirigeait vers
-  //       /activar avant même d'atteindre le handler, qui revalide de toute
-  //       façon son propre header.
+  //       le cron Vercel (CRON_SECRET), l'annulation admin (ADMIN_API_KEY,
+  //       voir PATCH /api/booking/[bookingId]) et les notifications email
+  //       déclenchées par vivabox-operativo (INTERNAL_API_SECRET, voir
+  //       /api/internal/booking-notify) sont des appels serveur-à-serveur
+  //       qui n'ont jamais de cookie de session bénéficiaire — les laisser
+  //       tomber dans la règle 6 ci-dessous les redirigeait vers /activar
+  //       avant même d'atteindre le handler, qui revalide de toute façon
+  //       son propre header.
   if (
     pathname.startsWith('/api/cron/') ||
+    pathname.startsWith('/api/internal/') ||
     (pathname.startsWith('/api/booking/') && request.method === 'PATCH')
   ) {
     return NextResponse.next();
