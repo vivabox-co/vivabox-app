@@ -6,6 +6,7 @@ import { MOMENT_LABEL } from "@/lib/utils/moment"
 import { formatApproxHour } from "@/lib/utils/formatApproxHour"
 import { isValidEmail } from "@/lib/utils/isValidEmail"
 import { loadPublishedExperiences } from "./experienceCatalog"
+import { maskCode } from "@/lib/utils/maskCode"
 
 // Emails transactionnels envoyés au BÉNÉFICIAIRE (celui qui active le code et
 // réserve — pas l'acheteur, voir buyerEmail.ts côté site vitrine). Envoyés
@@ -135,7 +136,7 @@ export async function sendWelcomeEmail({ name, email, code }: WelcomeParams): Pr
       "Tu código quedó activado y ya puedes elegir la experiencia que quieres vivir.",
       "Explora el mapa o la lista de experiencias disponibles y solicita hasta 3 fechas de tu preferencia — confirmamos disponibilidad con el lugar en cuanto puedas.",
     ],
-    rows: [["Código", code]],
+    rows: [["Código", maskCode(code)]],
     cta: { label: "Ver experiencias", url: `${APP_URL}/mapa` },
   }
 
