@@ -137,16 +137,21 @@ function mapRow(row: Record<string, string>): Experience | null {
 
 // Exportée : appelée aussi bien ici (fallback client) que côté serveur par
 // /api/experiencias/route.ts, qui n'a plus de backend Apps Script à appeler.
-export async function fetchExperiencesFromSheet(): Promise<Experience[]> {
-  const res = await fetch(SHEET_CSV_URL, { cache: "no-store" })
-  const text = await res.text()
-  const rows = parseCSV(text)
-
+// Transforme des lignes au format du Sheet (en-têtes espagnols) en Experience[].
+// Utilisée avec les lignes du CSV ET avec celles lues depuis Supabase
+// (services/catalog.ts), qui reproduisent exactement ce format.
+export function experiencesFromRows(rows: Record<string, string>[]): Experience[] {
   const data = rows
     .filter((row) => clean(row.estado).toLowerCase() === PUBLISHED_STATUS)
     .map(mapRow)
 
   return data.filter(isExperience)
+}
+
+export async function fetchExperiencesFromSheet(): Promise<Experience[]> {
+  const res = await fetch(SHEET_CSV_URL, { cache: "no-store" })
+  const text = await res.text()
+  return experiencesFromRows(parseCSV(text))
 }
 
 /* ================= NOUVELLE FONCTION PRINCIPALE ================= */

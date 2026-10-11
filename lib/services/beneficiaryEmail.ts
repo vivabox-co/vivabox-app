@@ -5,7 +5,7 @@ import { whatsappLink } from "@/lib/constants/whatsapp"
 import { MOMENT_LABEL } from "@/lib/utils/moment"
 import { formatApproxHour } from "@/lib/utils/formatApproxHour"
 import { isValidEmail } from "@/lib/utils/isValidEmail"
-import { fetchExperiencesFromSheet } from "@/lib/data/fetchExperiences"
+import { loadPublishedExperiences } from "./experienceCatalog"
 
 // Emails transactionnels envoyés au BÉNÉFICIAIRE (celui qui active le code et
 // réserve — pas l'acheteur, voir buyerEmail.ts côté site vitrine). Envoyés
@@ -335,7 +335,7 @@ export async function sendBeneficiaryBookingEmail(
     let experienceTitle = booking.experience_code
     let providerName = ""
     try {
-      const experiences = await fetchExperiencesFromSheet()
+      const experiences = await loadPublishedExperiences()
       const match = experiences.find((e) => e.id === booking.experience_code)
       if (match) {
         experienceTitle = match.title
