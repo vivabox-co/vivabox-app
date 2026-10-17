@@ -26,22 +26,6 @@ export function filterExperiences(
 
   const text = searchText.toLowerCase().trim()
 
-  // Le drill-down "Ver actividades" ne doit affiner qu'à l'intérieur d'une
-  // catégorie donnée, pas masquer les autres catégories : on ne restreint
-  // une expérience par activité que si sa propre catégorie a au moins une
-  // activité explicitement sélectionnée.
-  const activityCategoryMap = new Map<ActivityKey, Category>()
-  experiences.forEach((exp) => {
-    if (!activityCategoryMap.has(exp.activity_key)) {
-      activityCategoryMap.set(exp.activity_key, exp.category)
-    }
-  })
-  const categoriesWithActivityFilter = new Set(
-    activities
-      .map((a) => activityCategoryMap.get(a))
-      .filter((c): c is Category => Boolean(c))
-  )
-
   const filteredExperiences = experiences.filter((exp) => {
     /* 🎯 CATÉGORIE */
     if (!categories.includes(exp.category)) return false
@@ -71,11 +55,8 @@ export function filterExperiences(
     )
       return false
 
-    /* 🐎 ACTIVITÉ (scopée à la catégorie où elle a été choisie) */
-    if (
-      categoriesWithActivityFilter.has(exp.category) &&
-      !activities.includes(exp.activity_key)
-    )
+    /* 🐎 ACTIVITÉ (aucune sélection = pas de restriction) */
+    if (activities.length && !activities.includes(exp.activity_key))
       return false
 
     /* 🔍 RECHERCHE TEXTE */

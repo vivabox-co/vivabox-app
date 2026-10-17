@@ -31,7 +31,7 @@ export default function CategoryPage() {
 
   /* ---------- FILTER STATE ---------- */
   const [formatFilter, setFormatFilter] = useState<"all" | "solo" | "duo">("all")
-  const [durationFilter, setDurationFilter] = useState<"all" | "corta" | "larga">("all")
+  const [durationFilter, setDurationFilter] = useState<"all" | "media" | "larga">("all")
   const [indoorFilter, setIndoorFilter] = useState<"all" | "indoor" | "outdoor">("all")
   const [sortBy, setSortBy] = useState<"popular" | "shortest">("popular")
 
@@ -99,8 +99,8 @@ export default function CategoryPage() {
         <div style={{ display: "flex", gap: 10, padding: "12px 16px", overflowX: "auto" }}>
           <FilterChip label="Para uno" active={formatFilter === "solo"} onClick={() => setFormatFilter(formatFilter === "solo" ? "all" : "solo")} />
           <FilterChip label="Para dos" active={formatFilter === "duo"} onClick={() => setFormatFilter(formatFilter === "duo" ? "all" : "duo")} />
-          <FilterChip label="Corto" active={durationFilter === "corta"} onClick={() => setDurationFilter(durationFilter === "corta" ? "all" : "corta")} />
-          <FilterChip label="Largo" active={durationFilter === "larga"} onClick={() => setDurationFilter(durationFilter === "larga" ? "all" : "larga")} />
+          <FilterChip label="Media" active={durationFilter === "media"} onClick={() => setDurationFilter(durationFilter === "media" ? "all" : "media")} />
+          <FilterChip label="Larga"active={durationFilter === "larga"} onClick={() => setDurationFilter(durationFilter === "larga" ? "all" : "larga")} />
           <FilterChip label="Interior" active={indoorFilter === "indoor"} onClick={() => setIndoorFilter(indoorFilter === "indoor" ? "all" : "indoor")} />
           <FilterChip label="Exterior" active={indoorFilter === "outdoor"} onClick={() => setIndoorFilter(indoorFilter === "outdoor" ? "all" : "outdoor")} />
           <FilterChip label="Más corto" active={sortBy === "shortest"} onClick={() => setSortBy(sortBy === "shortest" ? "popular" : "shortest")} />

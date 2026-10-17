@@ -4,10 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Search, Heart, MapPin, Users, Clock, CheckCircle2 } from "lucide-react"
 
-import { Experience, Category, ActivityKey } from "@/lib/data/types"
+import { Experience, Category, Format, ActivityKey } from "@/lib/data/types"
 import { fetchExperiences } from "@/lib/data/fetchExperiences"
 import { filterExperiences } from "@/lib/product/filterExperiences"
 import { buildActivityFilters } from "@/lib/product/buildActivityFilters"
+import { buildAmbianceFilters } from "@/lib/product/buildAmbianceFilters"
 
 import BottomSheet from "@/components/ui/BottomSheet"
 import ExperienceExploreMeta from "@/components/experience/ExperienceExploreMeta"
@@ -53,6 +54,11 @@ export default function ListaPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [activeActivities, setActiveActivities] = useState<ActivityKey[]>([])
+  const [activeFormats, setActiveFormats] = useState<Format[]>(["solo", "duo"])
+  const [activeCities, setActiveCities] = useState<string[]>([])
+  const [activeAmbiances, setActiveAmbiances] = useState<string[]>([])
+  const [indoorState, setIndoorState] =
+    useState<"indoor" | "outdoor" | "any">("any")
 
   useEffect(() => {
     fetchExperiences()
@@ -67,12 +73,23 @@ export default function ListaPage() {
     [experiences]
   )
 
+  const availableCities = useMemo(() => {
+    const set = new Set<string>()
+    experiences.forEach(exp => exp.city && set.add(exp.city))
+    return Array.from(set).sort()
+  }, [experiences])
+
+  const ambianceOptions = useMemo(
+    () => buildAmbianceFilters(experiences),
+    [experiences]
+  )
+
   const { filteredExperiences } = filterExperiences(experiences, {
     categories: ["gastro", "bienestar", "aventura", "cultura", "estancias"],
-    formats: ["solo", "duo"],
-    cities: [],
-    ambiances: [],
-    indoorState: "any",
+    formats: activeFormats,
+    cities: activeCities,
+    ambiances: activeAmbiances,
+    indoorState,
     searchText: searchQuery,
     activities: activeActivities,
   })
@@ -268,7 +285,13 @@ export default function ListaPage() {
         open={filtersOpen}
         onClose={() => setFiltersOpen(false)}
         resultCount={filteredExperiences.length}
-        onReset={() => {}}
+        onReset={() => {
+          setActiveActivities([])
+          setActiveFormats(["solo", "duo"])
+          setActiveCities([])
+          setActiveAmbiances([])
+          setIndoorState("any")
+        }}
         activityFilters={activityFilters}
         activeActivities={activeActivities}
         toggleActivity={id =>
@@ -276,15 +299,29 @@ export default function ListaPage() {
             p.includes(id) ? p.filter(a => a !== id) : [...p, id]
           )
         }
-        cities={[]}
-        activeCities={[]}
-        toggleCity={() => {}}
-        activeFormats={[]}
-        toggleFormat={() => {}}
-        activeAmbiances={[]}
-        toggleAmbiance={() => {}}
-        indoorState="any"
-        setIndoorState={() => {}}
+        cities={availableCities}
+        activeCities={activeCities}
+        toggleCity={c =>
+          setActiveCities(p =>
+            p.includes(c) ? p.filter(x => x !== c) : [...p, c]
+          )
+        }
+        activeFormats={activeFormats}
+        toggleFormat={f =>
+          setActiveFormats(p => {
+            const all: Format[] = ["solo", "duo"]
+            return p.length === all.length ? [f] : all
+          })
+        }
+        ambianceOptions={ambianceOptions}
+        activeAmbiances={activeAmbiances}
+        toggleAmbiance={a =>
+          setActiveAmbiances(p =>
+            p.includes(a) ? p.filter(x => x !== a) : [...p, a]
+          )
+        }
+        indoorState={indoorState}
+        setIndoorState={setIndoorState}
       />
 
       {/* ================= RECO OVERLAY ================= */}

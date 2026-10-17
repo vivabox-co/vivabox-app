@@ -270,11 +270,12 @@ export default function MapaPage() {
         }
         activeFormats={activeFormats}
         toggleFormat={(f: Format) =>
-          setActiveFormats(prev =>
-            prev.includes(f)
-              ? prev.filter(x => x !== f)
-              : [...prev, f]
-          )
+          // Même logique que la légende des catégories : tout actif →
+          // un tap isole l'option ; retirer la dernière revient à tout.
+          setActiveFormats(prev => {
+            const all: Format[] = ["solo", "duo"]
+            return prev.length === all.length ? [f] : all
+          })
         }
         ambianceOptions={ambianceOptions}
         activeAmbiances={activeAmbiances}
